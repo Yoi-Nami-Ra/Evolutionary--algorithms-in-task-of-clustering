@@ -1,0 +1,61 @@
+format 71
+
+pseudostatecanvas 128042 pseudostate_ref 128042 // initial
+   xyz 13 67 2000
+end
+statecanvas 128298 state_ref 128170 // Selekcja/Ekstrakcja Cech
+  show_activities default region_horizontally default drawing_language default show_stereotype_properties default
+  xyzwh 138 60 2000 157 33
+end
+statecanvas 128426 state_ref 128298 // Miara Podobienstwa
+  show_activities default region_horizontally default drawing_language default show_stereotype_properties default
+  xyzwh 378 60 2000 133 33
+end
+statecanvas 128554 state_ref 128426 // Grupowanie
+  show_activities default region_horizontally default drawing_language default show_stereotype_properties default
+  xyzwh 596 60 2000 87 33
+end
+pseudostatecanvas 128682 pseudostate_ref 128170 // exit_point
+   xyz 789 67 3005 label_xy 787 89
+end
+textcanvas 130346 "Reprezentacja"
+  xyzwh 299 59 2006 70 14
+textcanvas 130474 "rekordu
+"
+  xyzwh 316 79 2008 37 28
+transitioncanvas 128810 transition_ref 128042 // Rekordy
+  
+  from ref 128042 z 2001 label "Rekordy" xyz 64 62 3000 to ref 128298
+  write_horizontally default show_definition default drawing_language default
+end
+transitioncanvas 128938 transition_ref 128170 // <transition>
+  
+  from ref 128298 z 2001 to ref 128426
+  write_horizontally default show_definition default drawing_language default
+end
+transitioncanvas 129066 transition_ref 128298 // <transition>
+  
+  from ref 128426 z 2001 to ref 128554
+  write_horizontally default show_definition default drawing_language default
+end
+transitioncanvas 129194 transition_ref 128426 // Klastry
+  decenter_end 526
+  
+  from ref 128554 z 3006 label "Klastry" xyz 718 60 3000 to ref 128682
+  write_horizontally default show_definition default drawing_language default
+end
+transitioncanvas 129322 transition_ref 128554 // <transition>
+  
+  from ref 128554 z 2001 to point 636 136
+  line 129962 z 2001 to point 441 136
+  line 129450 z 2001 to ref 128426
+  write_horizontally default show_definition default drawing_language default
+end
+transitioncanvas 129578 transition_ref 128682 // <transition>
+  
+  from ref 128554 z 2001 to point 636 136
+  line 129834 z 2001 to point 214 136
+  line 129706 z 2001 to ref 128298
+  write_horizontally default show_definition default drawing_language default
+end
+end

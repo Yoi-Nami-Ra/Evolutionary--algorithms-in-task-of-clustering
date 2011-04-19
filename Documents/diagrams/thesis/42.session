@@ -1,0 +1,11 @@
+window_sizes 1216 778 300 900 533 82
+diagrams
+  active  statediagram_ref 128042 // diag
+    910 620 100 4 0 0
+end
+show_stereotypes
+selected state_ref 128042 // machine
+open
+  classview_ref 128042 // class
+end
+end
