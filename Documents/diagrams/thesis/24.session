@@ -1,0 +1,14 @@
+window_sizes 1276 980 300 970 789 136
+diagrams
+  active  activitydiagram_ref 128024 // diag
+    966 769 100 4 0 0
+end
+show_stereotypes
+selected activitydiagram_ref 128024 // diag
+open
+  
+  package_ref 128042 // Document
+  classview_ref 134570 // main
+  activity_ref 128024 // sim_kernel
+end
+end

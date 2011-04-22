@@ -1,0 +1,90 @@
+format 75
+
+activitynodecanvas 128024 activitynode_ref 128024 // initial_node
+  xyz 32 70 2000
+end
+activitynodecanvas 128152 activitynode_ref 128152 // decision
+  xyz 92 61 2000
+end
+activitynodecanvas 128408 activitynode_ref 128280 // flow_final
+  xyz 439 74 2000
+end
+note 128664 "Poza przeliczanym obszarem macierzy?"
+  xyzwh 55 6 2000 99 43
+activitynodecanvas 129048 activitynode_ref 128408 // decision
+  xyz 176 61 2000
+end
+note 129176 "Jesli para skrajna (wiersz/kolumna) ?"
+  xyzwh 255 60 2000 89 41
+activityactioncanvas 130072 activityaction_ref 128024 // activity action Zaladuj rekord do pamieci dzielonej
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 44 145 2000 100 60
+end
+activitynodecanvas 131480 activitynode_ref 128664 // join
+  xyz 216 163 2000
+end
+activityactioncanvas 132120 activityaction_ref 128152 // activity action Oblicz odleglosci dla grupy cech danej pary
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 254 148 2000 100 60
+end
+activityactioncanvas 132248 activityaction_ref 128280 // activity action wynik dodaj do macierzy
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 399 149 2000 100 60
+end
+flowcanvas 128280 flow_ref 128024 // <flow>
+  
+  from ref 128024 z 2001 to ref 128152
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 128536 flow_ref 128152 // tak
+  
+  from ref 128152 z 2001 label "tak" xyz 178.5 40 3000 to point 251 16
+  line 131224 z 2001 to point 446 16
+  line 131352 z 2001 to ref 128408
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129816 flow_ref 128280 // <flow>
+  
+  from ref 128152 z 2001 to ref 129048
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130200 flow_ref 128536 // tak
+  
+  from ref 129048 z 2001 label "tak" xyz 127.5 93 3000 to point 91 112
+  line 131992 z 2001 to ref 130072
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 131608 flow_ref 128792 // <flow>
+  
+  from ref 130072 z 2001 to ref 131480
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 131736 flow_ref 128920 // <flow>
+  
+  from ref 129048 z 2001 to point 185 154
+  line 131864 z 2001 to ref 131480
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132376 flow_ref 129048 // <flow>
+  
+  from ref 131480 z 2001 to ref 132120
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132504 flow_ref 129176 // <flow>
+  
+  from ref 132120 z 2001 to ref 132248
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132632 flow_ref 129304 // <flow>
+  
+  from ref 132248 z 2001 to ref 128408
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+line 128920 -_-_
+  from ref 128664 z 2001 to ref 128152
+line 129304 -_-_ decenter_end 486
+  from ref 129176 z 2001 to ref 129048
+end

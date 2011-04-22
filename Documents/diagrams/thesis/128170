@@ -1,7 +1,7 @@
 format 75
 "app" // app
-  revision 3
-  modified_by 42 "Yoi"
+  revision 4
+  modified_by 24 "jwojtasik"
   // class settings
   //class diagram settings
   draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_context default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
@@ -79,7 +79,6 @@ format 75
       activitynode 128170 flow_final ""
       end
     end
-
   end
 
   classview 141098 "similarity"
@@ -133,6 +132,70 @@ format 75
       end
 
       activitynode 135082 flow_final ""
+      end
+    end
+
+    activity 128024 "sim_kernel"
+      activitydiagram 128024 "diag"
+	package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations default shadow default
+	show_infonote default drawing_language default show_stereotype_properties default
+	size A4
+      end
+
+      activitynode 128024 initial_node ""
+	flow 128024 "<flow>"
+	  on activitynode_ref 128152 // decision
+	end
+      end
+
+      activitynode 128152 decision ""
+	flow 128152 "tak"
+	  on activitynode_ref 128280 // flow_final
+	end
+
+	flow 128280 "<flow>"
+	  on activitynode_ref 128408 // decision
+	end
+      end
+
+      activitynode 128280 flow_final ""
+      end
+
+      activitynode 128408 decision ""
+	flow 128536 "tak"
+	  on activityaction_ref 128024 // activity action Zaladuj rekord do pamieci dzielonej
+	end
+
+	flow 128920 "<flow>"
+	  on activitynode_ref 128664 // join
+	end
+      end
+
+      activityaction 128024 "Zaladuj rekord do pamieci dzielonej"
+	opaque_action
+	flow 128792 "<flow>"
+	  on activitynode_ref 128664 // join
+	end
+      end
+
+      activitynode 128664 join ""
+	flow 129048 "<flow>"
+	  on activityaction_ref 128152 // activity action Oblicz odleglosci dla grupy cech danej pary
+	end
+      end
+
+      activityaction 128152 "Oblicz odleglosci dla grupy cech danej pary"
+	opaque_action
+	flow 129176 "<flow>"
+	  on activityaction_ref 128280 // activity action wynik dodaj do macierzy
+	end
+      end
+
+      activityaction 128280 "wynik dodaj do macierzy"
+	opaque_action
+	flow 129304 "<flow>"
+	  on activitynode_ref 128280 // flow_final
+	end
       end
     end
   end
