@@ -1,14 +1,15 @@
 window_sizes 1216 778 300 900 533 82
 diagrams
-  statediagram_ref 128042 // diag
-    910 620 100 4 0 0
-  active  activitydiagram_ref 134570 // diag
-    910 620 100 4 0 0
+  active  activitydiagram_ref 141226 // diag
+    910 622 100 4 0 0
+  activitydiagram_ref 134570 // diag
+    724 497 100 4 0 0
 end
 show_stereotypes
-selected activity_ref 128042 // main_run
+selected activitydiagram_ref 141226 // diag
 open
   classview_ref 128042 // class
   classview_ref 134570 // main
+  activity_ref 134570 // sim_general
 end
 end
