@@ -1,0 +1,149 @@
+format 75
+
+activitynodecanvas 128042 activitynode_ref 142890 // initial_node
+  xyz 19.8 29.8 2000
+end
+activityactioncanvas 128170 activityaction_ref 142634 // activity action losuj ilosc sasiadow
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 64.4 7.7 2000 101 61
+end
+activityactioncanvas 128298 activityaction_ref 142762 // activity action losuj maks. wielkosc klastra
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 191.1 7.7 2000 101 61
+end
+activityactioncanvas 128682 activityaction_ref 142890 // activity action losuj meodoida
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 321.1 7.7 2000 101 61
+end
+activitynodecanvas 129578 activitynode_ref 143146 // decision
+  xyz 473.5 20.8 2000
+end
+activitynodecanvas 129834 activitynode_ref 143274 // decision
+  xyz 474.6 93.1 2000
+end
+note 130346 "Czy powtarza sie ?"
+  xyzwh 261.4 87 2000 97 49
+note 130986 "Czy wektor jest pelny ?"
+  xyzwh 503.9 55 2000 85 51
+activityactioncanvas 131370 activityaction_ref 143018 // activity action losuj przedzial
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 587.7 116.4 2000 101 61
+end
+activitynodecanvas 131754 activitynode_ref 143402 // decision
+  xyz 533.6 128.3 2000
+end
+note 131882 "Suma nie wieksza od wektorow medoidow ?"
+  xyzwh 476.6 198.7 2000 139 47
+activityactioncanvas 132266 activityaction_ref 143146 // activity action zapisz przedzial
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 149.2 116.4 2006 101 61
+end
+activityactioncanvas 132522 activityaction_ref 143274 // activity action skroc wylosowany przedzial
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 332.5 191.5 2000 101 61
+end
+activitynodecanvas 132906 activitynode_ref 143530 // decision
+  xyz 79.5 128.7 2000
+end
+note 133162 "Suma przedzialow rowna wektorowi medoidow ?"
+  xyzwh 30.7 190.4 2000 123 63
+activitynodecanvas 133418 activitynode_ref 143658 // flow_final
+  xyz 82.4 79.9 2000
+end
+flowcanvas 128426 flow_ref 145578 // <flow>
+  
+  from ref 128042 z 2001 to ref 128170
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 128554 flow_ref 145706 // <flow>
+  
+  from ref 128170 z 2001 to ref 128298
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129322 flow_ref 145962 // <flow>
+  
+  from ref 128298 z 2001 to ref 128682
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129962 flow_ref 146346 // <flow>
+  decenter_end 243
+  
+  from ref 128682 z 2001 to ref 129834
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130090 flow_ref 146474 // tak
+  decenter_begin 486
+  
+  from ref 129834 z 2001 label "tak" xyz 416.5 99.5 3000 to point 369.1 109.1
+  line 130602 z 2001 to ref 128682
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130730 flow_ref 146602 // nie
+  
+  from ref 129834 z 2001 label "nie" xyz 472.5 63.5 3000 to ref 129578
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130858 flow_ref 146730 // nie
+  
+  from ref 129578 z 2001 label "nie" xyz 441.5 24 3000 to ref 128682
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 131498 flow_ref 146858 // tak
+  
+  from ref 129578 z 2001 label "tak" xyz 561.5 25 3000 to point 634.6 36.9
+  line 131626 z 2001 to ref 131370
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132138 flow_ref 146986 // <flow>
+  
+  from ref 131370 z 2001 to ref 131754
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132394 flow_ref 147114 // tak
+  
+  from ref 131754 z 2007 label "tak" xyz 387 133 3000 to ref 132266
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132650 flow_ref 147242 // nie
+  
+  from ref 131754 z 2001 label "nie" xyz 475 158.5 3000 to ref 132522
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132778 flow_ref 147370 // <flow>
+  
+  from ref 132522 z 2007 to ref 132266
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133034 flow_ref 147498 // <flow>
+  
+  from ref 132266 z 2007 to ref 132906
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133546 flow_ref 147626 // tak
+  
+  from ref 132906 z 2001 label "tak" xyz 93 105 3000 to ref 133418
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 134186 flow_ref 147754 // nie
+  
+  from ref 132906 z 2001 label "nie" xyz 185 195 3000 to point 256 254
+  line 134314 z 2001 to point 634 254
+  line 134442 z 2001 to ref 131370
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+line 130474 -_-_
+  from ref 129834 z 2001 to point 453 133
+  line 134058 z 2001 to ref 130346
+line 131114 -_-_ decenter_end 317
+  from ref 129578 z 2001 to ref 130986
+line 132010 -_-_
+  from ref 131754 z 2001 to ref 131882
+line 133290 -_-_
+  from ref 132906 z 2001 to ref 133162
+end

@@ -1,0 +1,79 @@
+format 75
+
+activitynodecanvas 128042 activitynode_ref 142378 // initial_node
+  xyz 16 35 2000
+end
+activityactioncanvas 128170 activityaction_ref 141994 // activity action populacja startowa
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 61 14 2000 100 60
+end
+activityactioncanvas 128298 activityaction_ref 142122 // activity action Funkcje oceny
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 191 14 2000 100 60
+end
+activityactioncanvas 128426 activityaction_ref 142250 // activity action Selekcja
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 324 14 2000 100 60
+end
+activityactioncanvas 128554 activityaction_ref 142378 // activity action Krzyzowanie
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 452 14 2000 100 60
+end
+activityactioncanvas 128682 activityaction_ref 142506 // activity action Mutacja
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 452 111 2000 100 60
+end
+activitynodecanvas 129834 activitynode_ref 142634 // flow_final
+  xyz 16 132 2000
+end
+activitynodecanvas 129962 activitynode_ref 142762 // decision
+  xyz 229 123 2000
+end
+note 130474 "Maksumalna ilosc przebiegow ?"
+  xyzwh 262 79 2000 105 51
+flowcanvas 128938 flow_ref 144298 // <flow>
+  
+  from ref 128042 z 2001 to ref 128170
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129066 flow_ref 144426 // <flow>
+  
+  from ref 128170 z 2001 to ref 128298
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129194 flow_ref 144554 // <flow>
+  
+  from ref 128298 z 2001 to ref 128426
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129322 flow_ref 144682 // <flow>
+  
+  from ref 128426 z 2001 to ref 128554
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129450 flow_ref 144810 // <flow>
+  
+  from ref 128554 z 2001 to ref 128682
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130090 flow_ref 145194 // <flow>
+  
+  from ref 128682 z 2001 to ref 129962
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130218 flow_ref 145322 // <flow>
+  
+  from ref 129962 z 2001 to ref 128298
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130346 flow_ref 145450 // <flow>
+  
+  from ref 129962 z 2001 to ref 129834
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+end

@@ -1,7 +1,7 @@
 format 75
 "app" // app
-  revision 4
-  modified_by 24 "jwojtasik"
+  revision 5
+  modified_by 42 "Yoi"
   // class settings
   //class diagram settings
   draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_context default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
@@ -143,57 +143,80 @@ format 75
       end
 
       activitynode 128024 initial_node ""
-	flow 128024 "<flow>"
-	  on activitynode_ref 128152 // decision
-	end
-      end
-
-      activitynode 128152 decision ""
-	flow 128152 "tak"
-	  on activitynode_ref 128280 // flow_final
-	end
-
-	flow 128280 "<flow>"
-	  on activitynode_ref 128408 // decision
+	flow 142506 "<flow>"
+	  on activitynode_ref 141610 // decision
 	end
       end
 
       activitynode 128280 flow_final ""
       end
 
-      activitynode 128408 decision ""
-	flow 128536 "tak"
-	  on activityaction_ref 128024 // activity action Zaladuj rekord do pamieci dzielonej
+      activitynode 141610 decision ""
+	flow 142634 "tak"
+	  on activitynode_ref 128280 // flow_final
 	end
 
-	flow 128920 "<flow>"
-	  on activitynode_ref 128664 // join
+	flow 142762 "<flow>"
+	  on activitynode_ref 141738 // decision
 	end
       end
 
-      activityaction 128024 "Zaladuj rekord do pamieci dzielonej"
+      activitynode 141738 decision ""
+	flow 142890 "tak"
+	  on activityaction_ref 141610 // activity action zaladuj rekord wiersza
+	end
+
+	flow 143018 "<flow>"
+	  on activitynode_ref 141866 // decision
+	end
+      end
+
+      activityaction 141610 "zaladuj rekord wiersza"
 	opaque_action
-	flow 128792 "<flow>"
-	  on activitynode_ref 128664 // join
+	flow 143146 "<flow>"
+	  on activitynode_ref 141866 // decision
 	end
       end
 
-      activitynode 128664 join ""
-	flow 129048 "<flow>"
-	  on activityaction_ref 128152 // activity action Oblicz odleglosci dla grupy cech danej pary
+      activitynode 141866 decision ""
+	flow 143274 "nie"
+	  on activitynode_ref 141994 // decision
+	end
+
+	flow 143530 "<flow>"
+	  on activitynode_ref 142250 // join
 	end
       end
 
-      activityaction 128152 "Oblicz odleglosci dla grupy cech danej pary"
+      activitynode 141994 decision ""
+	flow 143402 "tak"
+	  on activityaction_ref 141738 // activity action zaladuj rekord kolumny
+	end
+
+	flow 143914 "<flow>"
+	  on activitynode_ref 142250 // join
+	end
+      end
+
+      activityaction 141738 "zaladuj rekord kolumny"
 	opaque_action
-	flow 129176 "<flow>"
-	  on activityaction_ref 128280 // activity action wynik dodaj do macierzy
+	flow 143786 "<flow>"
+	  on activitynode_ref 142250 // join
 	end
       end
 
-      activityaction 128280 "wynik dodaj do macierzy"
+      activitynode 142122 fork ""
+      end
+
+      activitynode 142250 join ""
+	flow 144042 "<flow>"
+	  on activityaction_ref 141866 // activity action Oblicz odleglosc
+	end
+      end
+
+      activityaction 141866 "Oblicz odleglosc"
 	opaque_action
-	flow 129304 "<flow>"
+	flow 144170 "<flow>"
 	  on activitynode_ref 128280 // flow_final
 	end
       end
@@ -216,5 +239,169 @@ format 75
     //activity diagram settings
     package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations default shadow default
     show_infonote default drawing_language default show_stereotype_properties default
+    activity 141098 "alg-general"
+      activitydiagram 147754 "diag"
+	package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations default shadow default
+	show_infonote default drawing_language default show_stereotype_properties default
+	size A4
+      end
+
+      activitynode 142378 initial_node ""
+	flow 144298 "<flow>"
+	  on activityaction_ref 141994 // activity action populacja startowa
+	end
+      end
+
+      activityaction 141994 "populacja startowa"
+	opaque_action
+	flow 144426 "<flow>"
+	  on activityaction_ref 142122 // activity action Funkcje oceny
+	end
+      end
+
+      activityaction 142122 "Funkcje oceny"
+	opaque_action
+	flow 144554 "<flow>"
+	  on activityaction_ref 142250 // activity action Selekcja
+	end
+      end
+
+      activityaction 142250 "Selekcja"
+	opaque_action
+	flow 144682 "<flow>"
+	  on activityaction_ref 142378 // activity action Krzyzowanie
+	end
+      end
+
+      activityaction 142378 "Krzyzowanie"
+	opaque_action
+	flow 144810 "<flow>"
+	  on activityaction_ref 142506 // activity action Mutacja
+	end
+      end
+
+      activityaction 142506 "Mutacja"
+	opaque_action
+	flow 145194 "<flow>"
+	  on activitynode_ref 142762 // decision
+	end
+      end
+
+      activitynode 142634 flow_final ""
+      end
+
+      activitynode 142762 decision ""
+	flow 145322 "<flow>"
+	  on activityaction_ref 142122 // activity action Funkcje oceny
+	end
+
+	flow 145450 "<flow>"
+	  on activitynode_ref 142634 // flow_final
+	end
+      end
+    end
+
+    activity 141226 "alg-losowanie"
+      activitydiagram 147882 "diag"
+	package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations default shadow default
+	show_infonote default drawing_language default show_stereotype_properties default
+	size A4
+      end
+
+      activitynode 142890 initial_node ""
+	flow 145578 "<flow>"
+	  on activityaction_ref 142634 // activity action losuj ilosc sasiadow
+	end
+      end
+
+      activityaction 142634 "losuj ilosc sasiadow"
+	opaque_action
+	flow 145706 "<flow>"
+	  on activityaction_ref 142762 // activity action losuj maks. wielkosc klastra
+	end
+      end
+
+      activityaction 142762 "losuj maks. wielkosc klastra"
+	opaque_action
+	flow 145962 "<flow>"
+	  on activityaction_ref 142890 // activity action losuj meodoida
+	end
+      end
+
+      activityaction 142890 "losuj meodoida"
+	opaque_action
+	flow 145834 "<flow>"
+	  on activityaction_ref 142890 // activity action losuj meodoida
+	end
+
+	flow 146346 "<flow>"
+	  on activitynode_ref 143274 // decision
+	end
+      end
+
+      activitynode 143146 decision ""
+	flow 146730 "nie"
+	  on activityaction_ref 142890 // activity action losuj meodoida
+	end
+
+	flow 146858 "tak"
+	  on activityaction_ref 143018 // activity action losuj przedzial
+	end
+      end
+
+      activitynode 143274 decision ""
+	flow 146474 "tak"
+	  on activityaction_ref 142890 // activity action losuj meodoida
+	end
+
+	flow 146602 "nie"
+	  on activitynode_ref 143146 // decision
+	end
+      end
+
+      activityaction 143018 "losuj przedzial"
+	opaque_action
+	flow 146986 "<flow>"
+	  on activitynode_ref 143402 // decision
+	end
+      end
+
+      activitynode 143402 decision ""
+	flow 147114 "tak"
+	  on activityaction_ref 143146 // activity action zapisz przedzial
+	end
+
+	flow 147242 "nie"
+	  on activityaction_ref 143274 // activity action skroc wylosowany przedzial
+	end
+      end
+
+      activityaction 143146 "zapisz przedzial"
+	opaque_action
+	flow 147498 "<flow>"
+	  on activitynode_ref 143530 // decision
+	end
+      end
+
+      activityaction 143274 "skroc wylosowany przedzial"
+	opaque_action
+	flow 147370 "<flow>"
+	  on activityaction_ref 143146 // activity action zapisz przedzial
+	end
+      end
+
+      activitynode 143530 decision ""
+	flow 147626 "tak"
+	  on activitynode_ref 143658 // flow_final
+	end
+
+	flow 147754 "nie"
+	  on activityaction_ref 143018 // activity action losuj przedzial
+	end
+      end
+
+      activitynode 143658 flow_final ""
+      end
+    end
   end
 end
