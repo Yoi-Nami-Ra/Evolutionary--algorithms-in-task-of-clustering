@@ -1,0 +1,181 @@
+format 75
+
+activitynodecanvas 128042 activitynode_ref 150186 // initial_node
+  xyz 18 41 2000
+end
+activityactioncanvas 129322 activityaction_ref 149802 // activity action Kolejne rozwiazanie z listy
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 201 178 2000 100 60
+end
+activitynodecanvas 129578 activitynode_ref 150570 // decision
+  xyz 132 188 2000
+end
+note 129706 "Jest rozwiazanie ?"
+  xyzwh 11 181 2000 89 51
+activityactioncanvas 130090 activityaction_ref 149930 // activity action Kolejne kryterium
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 199 20 2000 100 60
+end
+activitynodecanvas 130218 activitynode_ref 150698 // decision
+  xyz 237 112 2000
+end
+note 130346 "Jest kryterium ?"
+  xyzwh 5 112 2000 101 35
+activitynodecanvas 131882 activitynode_ref 150826 // decision
+  xyz 132 308 2000
+end
+note 132010 "Wartosc kryterium jest wieksze lub rowne ?"
+  xyzwh -4 290 2000 119 73
+activityactioncanvas 132522 activityaction_ref 150058 // activity action Ustaw pelna liste rozwiazan
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 68 20 2000 100 60
+end
+activityactioncanvas 132906 activityaction_ref 150186 // activity action Usun rozwiazanie z listy
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 202 296 2000 100 60
+end
+activityactioncanvas 133930 activityaction_ref 150314 // activity action dla kazdego rozwiazania z listy
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 335 102 2000 100 60
+end
+activitynodecanvas 134186 activitynode_ref 151082 // decision
+  xyz 373 204 2000
+end
+note 134314 "Jest ?"
+  xyzwh 445 232 2000 57 35
+activityactioncanvas 135338 activityaction_ref 150442 // activity action zwieksz licznik zdominowania dla tego rozwiazania
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 326 286 2000 122 81
+end
+activitynodecanvas 135850 activitynode_ref 151210 // decision
+  xyz 461 68 2000
+end
+note 135978 "Pierwszy watek bloku ?"
+  xyzwh 459 303 2000 93 47
+activitynodecanvas 136106 activitynode_ref 151338 // join
+  horizontal xyz 461 136 2000
+end
+activitynodecanvas 136618 activitynode_ref 151466 // flow_final
+  xyz 464 9 2000
+end
+activityactioncanvas 137002 activityaction_ref 150570 // activity action zapisz liste i liczniki do pamieci globalnej
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 332 22 2006 100 60
+end
+flowcanvas 129962 flow_ref 154666 // <flow>
+  decenter_end 513
+  
+  from ref 129322 z 2001 to ref 129578
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130858 flow_ref 154794 // <flow>
+  
+  from ref 130090 z 2001 to ref 130218
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 131114 flow_ref 155050 // tak
+  
+  from ref 130218 z 2001 label "tak" xyz 250 155 3000 to ref 129322
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 131242 flow_ref 155178 // nie
+  
+  from ref 129578 z 2001 label "nie" xyz 184 140.5 3000 to ref 130090
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132266 flow_ref 155306 // tak
+  
+  from ref 129578 z 2001 label "tak" xyz 146 250.5 3000 to ref 131882
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132650 flow_ref 155434 // <flow>
+  
+  from ref 128042 z 2001 to ref 132522
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132778 flow_ref 155562 // <flow>
+  
+  from ref 132522 z 2001 to ref 130090
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133034 flow_ref 155690 // tak
+  
+  from ref 131882 z 2001 label "tak" xyz 171 312 3000 to ref 132906
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133290 flow_ref 155818 // <flow>
+  
+  from ref 132906 z 2001 to ref 129322
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133802 flow_ref 156074 // nie
+  
+  from ref 131882 z 2001 label "nie" xyz 195 258 3000 to ref 129322
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 134058 flow_ref 156202 // nie
+  
+  from ref 130218 z 2001 label "nie" xyz 272 119 3000 to ref 133930
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 134442 flow_ref 156330 // <flow>
+  
+  from ref 133930 z 2001 to ref 134186
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 135466 flow_ref 156458 // tak
+  
+  from ref 134186 z 2001 label "tak" xyz 385 255 3000 to ref 135338
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 135594 flow_ref 156586 // <flow>
+  
+  from ref 135338 z 2001 to point 338 211
+  line 135722 z 2001 to ref 133930
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 136234 flow_ref 156714 // nie
+  
+  from ref 134186 z 2001 label "nie" xyz 435 205 3000 to point 471 191
+  line 137258 z 2001 to ref 136106
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 136362 flow_ref 156842 // <flow>
+  
+  from ref 136106 z 2001 to ref 135850
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 136746 flow_ref 156970 // nie
+  
+  from ref 135850 z 2001 label "nie" xyz 475 40 3000 to ref 136618
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 137130 flow_ref 157098 // tak
+  
+  from ref 135850 z 2007 label "tak" xyz 444 61 3000 to ref 137002
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 137386 flow_ref 157226 // <flow>
+  
+  from ref 137002 z 2007 to ref 136618
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+line 129834 -_-_
+  from ref 129578 z 2001 to ref 129706
+line 130474 -_-_
+  from ref 130218 z 2001 to ref 130346
+line 132138 -_-_ decenter_begin 486
+  from ref 131882 z 2001 to ref 132010
+line 135210 -_-_
+  from ref 134186 z 2001 to ref 134314
+line 136490 -_-_ decenter_end 591
+  from ref 135850 z 2001 to point 511 84
+  line 137514 z 2001 to ref 135978
+end

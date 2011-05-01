@@ -1,16 +1,23 @@
-window_sizes 1200 762 300 900 533 82
+window_sizes 1216 778 300 900 533 82
 diagrams
   activitydiagram_ref 147754 // diag
     724 497 100 4 0 0
-  active  activitydiagram_ref 147882 // diag
+  activitydiagram_ref 147882 // diag
     894 604 100 4 0 0
+  activitydiagram_ref 154410 // diag
+    724 497 100 4 0 0
+  activitydiagram_ref 154538 // diag
+    724 497 100 4 0 0
+  activitydiagram_ref 154666 // diag
+    724 496 100 4 0 0
+  active  activitydiagram_ref 154794 // diag
+    906 620 100 4 0 0
 end
 show_stereotypes
-selected 
-  package_ref 128298 // Komponents
+selected classview_ref 141226 // algoritms
 open
   classview_ref 128042 // class
   classview_ref 134570 // main
-  activity_ref 141226 // alg-losowanie
+  activity_ref 148138 // alg-sel-sel-dens
 end
 end

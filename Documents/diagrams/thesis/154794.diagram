@@ -1,0 +1,98 @@
+format 75
+
+activitynodecanvas 128042 activitynode_ref 152874 // initial_node
+  xyz 62 108 2000
+end
+activityactioncanvas 128170 activityaction_ref 152234 // activity action znajdz najblizszy wiekszy
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 24 21 2000 100 60
+end
+activitynodecanvas 128298 activitynode_ref 153002 // decision
+  xyz 183 33 2000
+end
+note 128426 "brak ?"
+  xyzwh 48 133 2000 53 35
+activityactioncanvas 128810 activityaction_ref 152362 // activity action znajdz najblizszy mniejszy
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 312 21 2000 100 60
+end
+activitynodecanvas 128938 activitynode_ref 153130 // decision
+  xyz 350 132 2000
+end
+note 129066 "brak ?"
+  xyzwh 236 76 2000 53 35
+activityactioncanvas 129578 activityaction_ref 152490 // activity action oblicz odleglosc sasiadow
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 312 216 2000 100 60
+end
+activityactioncanvas 129834 activityaction_ref 152618 // activity action oznacz rozwiazanie jako skrajne
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 145 120 2000 100 60
+end
+activityactioncanvas 130346 activityaction_ref 152746 // activity action zsynchronizuj wyniki (atomic add)
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 145 216 2000 100 60
+end
+activitynodecanvas 130602 activitynode_ref 153258 // flow_final
+  xyz 65 237 2000
+end
+flowcanvas 128682 flow_ref 160554 // <flow>
+  
+  from ref 128170 z 2001 to ref 128298
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129322 flow_ref 160682 // nie
+  
+  from ref 128298 z 2001 label "nie" xyz 252 42.5 3000 to ref 128810
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129450 flow_ref 160810 // <flow>
+  
+  from ref 128810 z 2001 to ref 128938
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129706 flow_ref 160938 // nie
+  
+  from ref 128938 z 2001 label "nie" xyz 353.5 179 3000 to ref 129578
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129962 flow_ref 161066 // tak
+  
+  from ref 128298 z 2001 label "tak" xyz 187 87 3000 to ref 129834
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130090 flow_ref 161194 // tak
+  
+  from ref 128938 z 2001 label "tak" xyz 289.5 141.5 3000 to ref 129834
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130218 flow_ref 161322 // <flow>
+  
+  from ref 128042 z 2001 to ref 128170
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130474 flow_ref 161450 // <flow>
+  
+  from ref 129578 z 2001 to ref 130346
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130730 flow_ref 161578 // <flow>
+  
+  from ref 130346 z 2001 to ref 130602
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130858 flow_ref 161706 // <flow>
+  
+  from ref 129834 z 2001 to ref 130602
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+line 128554 -_-_
+  from ref 128298 z 2001 to ref 128426
+line 129194 -_-_
+  from ref 128938 z 2001 to ref 129066
+end

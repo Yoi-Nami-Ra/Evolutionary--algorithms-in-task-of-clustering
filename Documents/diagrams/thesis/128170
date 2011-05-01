@@ -1,6 +1,6 @@
 format 75
 "app" // app
-  revision 5
+  revision 6
   modified_by 42 "Yoi"
   // class settings
   //class diagram settings
@@ -401,6 +401,377 @@ format 75
       end
 
       activitynode 143658 flow_final ""
+      end
+    end
+
+    activity 147754 "alg-sel-sort"
+      activitydiagram 154410 "diag"
+	package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations default shadow default
+	show_infonote default drawing_language default show_stereotype_properties default
+	size A4
+      end
+
+      activitynode 150186 initial_node ""
+	flow 155434 "<flow>"
+	  on activityaction_ref 150058 // activity action Ustaw pelna liste rozwiazan
+	end
+      end
+
+      activityaction 149802 "Kolejne rozwiazanie z listy"
+	opaque_action
+	flow 154666 "<flow>"
+	  on activitynode_ref 150570 // decision
+	end
+      end
+
+      activitynode 150570 decision ""
+	flow 155178 "nie"
+	  on activityaction_ref 149930 // activity action Kolejne kryterium
+	end
+
+	flow 155306 "tak"
+	  on activitynode_ref 150826 // decision
+	end
+      end
+
+      activityaction 149930 "Kolejne kryterium"
+	opaque_action
+	flow 154794 "<flow>"
+	  on activitynode_ref 150698 // decision
+	end
+
+      end
+
+      activitynode 150698 decision ""
+	flow 155050 "tak"
+	  on activityaction_ref 149802 // activity action Kolejne rozwiazanie z listy
+	end
+
+	flow 156202 "nie"
+	  on activityaction_ref 150314 // activity action dla kazdego rozwiazania z listy
+	end
+      end
+
+      activitynode 150826 decision ""
+	flow 155690 "tak"
+	  on activityaction_ref 150186 // activity action Usun rozwiazanie z listy
+	end
+
+	flow 156074 "nie"
+	  on activityaction_ref 149802 // activity action Kolejne rozwiazanie z listy
+	end
+      end
+
+      activityaction 150058 "Ustaw pelna liste rozwiazan"
+	opaque_action
+	flow 155562 "<flow>"
+	  on activityaction_ref 149930 // activity action Kolejne kryterium
+	end
+      end
+
+      activityaction 150186 "Usun rozwiazanie z listy"
+	opaque_action
+	flow 155818 "<flow>"
+	  on activityaction_ref 149802 // activity action Kolejne rozwiazanie z listy
+	end
+      end
+
+      activityaction 150314 "dla kazdego rozwiazania z listy"
+	opaque_action
+	flow 156330 "<flow>"
+	  on activitynode_ref 151082 // decision
+	end
+      end
+
+      activitynode 151082 decision ""
+	flow 156458 "tak"
+	  on activityaction_ref 150442 // activity action zwieksz licznik zdominowania dla tego rozwiazania
+	end
+
+	flow 156714 "nie"
+	  on activitynode_ref 151338 // join
+	end
+      end
+
+      activityaction 150442 "zwieksz licznik zdominowania dla tego rozwiazania"
+	opaque_action
+	flow 156586 "<flow>"
+	  on activityaction_ref 150314 // activity action dla kazdego rozwiazania z listy
+	end
+      end
+
+      activitynode 151210 decision ""
+	flow 156970 "nie"
+	  on activitynode_ref 151466 // flow_final
+	end
+
+	flow 157098 "tak"
+	  on activityaction_ref 150570 // activity action zapisz liste i liczniki do pamieci globalnej
+	end
+      end
+
+      activitynode 151338 join ""
+	flow 156842 "<flow>"
+	  on activitynode_ref 151210 // decision
+	end
+      end
+
+      activitynode 151466 flow_final ""
+      end
+
+      activityaction 150570 "zapisz liste i liczniki do pamieci globalnej"
+	opaque_action
+	flow 157226 "<flow>"
+	  on activitynode_ref 151466 // flow_final
+	end
+      end
+    end
+
+    activity 147882 "alg-sel-grup"
+      activitydiagram 154538 "diag"
+	package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations default shadow default
+	show_infonote default drawing_language default show_stereotype_properties default
+	size A4
+      end
+
+      activitynode 151594 initial_node ""
+	flow 158634 "<flow>"
+	  on activitynode_ref 151722 // decision
+	end
+      end
+
+      activityaction 150698 "kolejny front"
+	opaque_action
+	flow 157482 "<flow>"
+	  on activityaction_ref 150826 // activity action do aktualnego frontu przypis rozwiazania o liczniku zdominowania rownym 0
+	end
+      end
+
+      activitynode 151722 decision ""
+	flow 157354 "tak"
+	  on activityaction_ref 150698 // activity action kolejny front
+	end
+
+	flow 158762 "nie"
+	  on activitynode_ref 152106 // flow_final
+	end
+      end
+
+      activityaction 150826 "do aktualnego frontu przypis rozwiazania o liczniku zdominowania rownym 0"
+	opaque_action
+	flow 157610 "<flow>"
+	  on activityaction_ref 150954 // activity action dla kazdego rozwiazania z akt. frontu
+	end
+      end
+
+      activityaction 150954 "dla kazdego rozwiazania z akt. frontu"
+	opaque_action
+	flow 157738 "<flow>"
+	  on activitynode_ref 151850 // decision
+	end
+      end
+
+      activitynode 151850 decision ""
+	flow 157994 "tak"
+	  on activityaction_ref 151082 // activity action dla kazdego rozwiazania z listy zdominowanych
+	end
+
+	flow 158506 "nie"
+	  on activitynode_ref 151722 // decision
+	end
+      end
+
+      activityaction 151082 "dla kazdego rozwiazania z listy zdominowanych"
+	opaque_action
+	flow 157866 "<flow>"
+	  on activitynode_ref 151978 // decision
+	end
+      end
+
+      activitynode 151978 decision ""
+	flow 158122 "tak"
+	  on activityaction_ref 151210 // activity action zmniejsz licznik zdominowania tego rozwiazania o 1
+	end
+
+	flow 158378 "nie"
+	  on activityaction_ref 150954 // activity action dla kazdego rozwiazania z akt. frontu
+	end
+      end
+
+      activityaction 151210 "zmniejsz licznik zdominowania tego rozwiazania o 1"
+	opaque_action
+	flow 158250 "<flow>"
+	  on activityaction_ref 151082 // activity action dla kazdego rozwiazania z listy zdominowanych
+	end
+      end
+
+      activitynode 152106 flow_final ""
+      end
+    end
+
+    activity 148010 "alg-sel-sel"
+      activitydiagram 154666 "diag"
+	package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations default shadow default
+	show_infonote default drawing_language default show_stereotype_properties default
+	size A4
+      end
+
+      activitynode 152234 initial_node ""
+	flow 158890 "<flow>"
+	  on activityaction_ref 151466 // activity action ustal licznik selekcji
+	end
+      end
+
+      activityaction 151338 "dla N rozwiazan do selekcji"
+	opaque_action
+      end
+
+      activityaction 151466 "ustal licznik selekcji"
+	opaque_action
+	flow 159146 "<flow>"
+	  on activityaction_ref 151594 // activity action dla kolejnego frontu zaczynajac od dominujacego
+	end
+      end
+
+      activityaction 151594 "dla kolejnego frontu zaczynajac od dominujacego"
+	opaque_action
+	flow 159018 "<flow>"
+	  on activitynode_ref 152362 // decision
+	end
+      end
+
+      activitynode 152362 decision ""
+	flow 159274 "tak"
+	  on activitynode_ref 152490 // decision
+	end
+
+	flow 160426 "nie"
+	  on activitynode_ref 152746 // flow_final
+	end
+      end
+
+      activitynode 152490 decision ""
+	flow 159402 "tak"
+	  on activityaction_ref 151722 // activity action Przenies wszystkie rozwiazania z frontu
+	end
+
+	flow 159658 "nie"
+	  on activityaction_ref 151978 // activity action Oblicz gestosci w froncie
+	end
+      end
+
+      activityaction 151722 "Przenies wszystkie rozwiazania z frontu"
+	opaque_action
+	flow 159530 "<flow>"
+	  on activityaction_ref 151850 // activity action zmniejsz odpowiednio licznik
+	end
+      end
+
+      activityaction 151850 "zmniejsz odpowiednio licznik"
+	opaque_action
+	flow 160042 "<flow>"
+	  on activitynode_ref 152618 // decision
+	end
+      end
+
+      activityaction 151978 "Oblicz gestosci w froncie"
+	opaque_action
+	flow 159786 "<flow>"
+	  on activityaction_ref 152106 // activity action wybierz rozwiazania o najmniejszym zageszczeniu
+	end
+
+      end
+
+      activityaction 152106 "wybierz rozwiazania o najmniejszym zageszczeniu"
+	opaque_action
+	flow 159914 "<flow>"
+	  on activityaction_ref 151850 // activity action zmniejsz odpowiednio licznik
+	end
+      end
+
+      activitynode 152618 decision ""
+	flow 160170 "nie"
+	  on activityaction_ref 151594 // activity action dla kolejnego frontu zaczynajac od dominujacego
+	end
+
+	flow 160298 "tak"
+	  on activitynode_ref 152746 // flow_final
+	end
+      end
+
+      activitynode 152746 flow_final ""
+      end
+    end
+
+    activity 148138 "alg-sel-sel-dens"
+      activitydiagram 154794 "diag"
+	package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations default shadow default
+	show_infonote default drawing_language default show_stereotype_properties default
+	size A4
+      end
+
+      activitynode 152874 initial_node ""
+	flow 161322 "<flow>"
+	  on activityaction_ref 152234 // activity action znajdz najblizszy wiekszy
+	end
+      end
+
+      activityaction 152234 "znajdz najblizszy wiekszy"
+	opaque_action
+	flow 160554 "<flow>"
+	  on activitynode_ref 153002 // decision
+	end
+      end
+
+      activitynode 153002 decision ""
+	flow 160682 "nie"
+	  on activityaction_ref 152362 // activity action znajdz najblizszy mniejszy
+	end
+
+	flow 161066 "tak"
+	  on activityaction_ref 152618 // activity action oznacz rozwiazanie jako skrajne
+	end
+      end
+
+      activityaction 152362 "znajdz najblizszy mniejszy"
+	opaque_action
+	flow 160810 "<flow>"
+	  on activitynode_ref 153130 // decision
+	end
+      end
+
+      activitynode 153130 decision ""
+	flow 160938 "nie"
+	  on activityaction_ref 152490 // activity action oblicz odleglosc sasiadow
+	end
+
+	flow 161194 "tak"
+	  on activityaction_ref 152618 // activity action oznacz rozwiazanie jako skrajne
+	end
+      end
+
+      activityaction 152490 "oblicz odleglosc sasiadow"
+	opaque_action
+	flow 161450 "<flow>"
+	  on activityaction_ref 152746 // activity action zsynchronizuj wyniki (atomic add)
+	end
+      end
+
+      activityaction 152618 "oznacz rozwiazanie jako skrajne"
+	opaque_action
+	flow 161706 "<flow>"
+	  on activitynode_ref 153258 // flow_final
+	end
+      end
+
+      activityaction 152746 "zsynchronizuj wyniki (atomic add)"
+	opaque_action
+	flow 161578 "<flow>"
+	  on activitynode_ref 153258 // flow_final
+	end
+      end
+
+      activitynode 153258 flow_final ""
       end
     end
   end
