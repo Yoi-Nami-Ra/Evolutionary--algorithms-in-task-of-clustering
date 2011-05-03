@@ -66,9 +66,9 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>../../bin/win32/$(Configuration)/</OutDir>
+    <OutDir>bin/win32/$(Configuration)/</OutDir>
     <IntDir>$(Platform)/$(Configuration)/</IntDir>
-    <IncludePath>$(NVSDKCOMPUTE_ROOT)\shared\inc;$(NVSDKCOMPUTE_ROOT)\C\common\inc;f:\dxsdk_jun10\include;$(DXSDK_DIR)\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\Projects\Evolutionary--algorithms-in-task-of-clustering\code\includes;$(NVSDKCOMPUTE_ROOT)\shared\inc;$(NVSDKCOMPUTE_ROOT)\C\common\inc;f:\dxsdk_jun10\include;$(DXSDK_DIR)\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -98,7 +98,7 @@
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>cudart.lib;cutil32D.lib;shrUtils32D.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(NVSDKCOMPUTE_ROOT)\shared\lib\Win32;$(NVSDKCOMPUTE_ROOT)\C\common\lib\Win32;$(CudaToolkitLibDir);../../common/lib/$(PlatformName);../../../shared/lib/$(PlatformName)</AdditionalLibraryDirectories>
-      <OutputFile>$(OutDir)/vectorAdd.exe</OutputFile>
+      <OutputFile>$(OutDir)/Evo.exe</OutputFile>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
@@ -182,10 +182,24 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp" />
+    <ClInclude Include="includes\defs.h" />
+    <ClInclude Include="includes\errors.cuh" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="includes\defs.h" />
+    <CudaCompile Include="includes\errors.cu" />
+    <CudaCompile Include="src\dataLoader.cu" />
+    <CudaCompile Include="src\dataLoader_Iris.cu" />
+    <CudaCompile Include="src\main.cu" />
+    <CudaCompile Include="src\vectorAdd.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="includes\dataLoader.cuh" />
+    <None Include="includes\dataLoader_Iris.cuh" />
+    <None Include="includes\defs.cuh" />
+    <None Include="includes\evoEngine.cuh" />
+    <None Include="includes\globals.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

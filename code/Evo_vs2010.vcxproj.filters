@@ -12,11 +12,43 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
+    <ClInclude Include="includes\defs.h" />
+    <ClInclude Include="includes\errors.cuh">
+      <Filter>inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="includes\defs.h" />
+    <CudaCompile Include="src\dataLoader.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\dataLoader_Iris.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\main.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\vectorAdd.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+    <CudaCompile Include="includes\errors.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="includes\dataLoader.cuh">
+      <Filter>inc</Filter>
+    </None>
+    <None Include="includes\dataLoader_Iris.cuh">
+      <Filter>inc</Filter>
+    </None>
+    <None Include="includes\defs.cuh">
+      <Filter>inc</Filter>
+    </None>
+    <None Include="includes\evoEngine.cuh">
+      <Filter>inc</Filter>
+    </None>
+    <None Include="includes\globals.cuh">
+      <Filter>inc</Filter>
+    </None>
   </ItemGroup>
 </Project>

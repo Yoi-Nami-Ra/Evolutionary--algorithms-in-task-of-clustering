@@ -45,6 +45,7 @@ __global__ void VecAdd(const float* A, const float* B, float* C, int N)
 }
 
 // Host code
+/*
 int main(int argc, char** argv)
 {
     shrQAStart(argc, argv);
@@ -99,7 +100,7 @@ int main(int argc, char** argv)
     CleanupResources();
     shrQAFinishExit(argc, (const char **)argv, (i==N) ? QA_PASSED : QA_FAILED);
 }
-
+*/
 void CleanupResources(void)
 {
     // Free device memory
