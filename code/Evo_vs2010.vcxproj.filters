@@ -24,13 +24,16 @@
     <CudaCompile Include="src\dataLoader_Iris.cu">
       <Filter>src</Filter>
     </CudaCompile>
-    <CudaCompile Include="src\main.cu">
-      <Filter>src</Filter>
-    </CudaCompile>
     <CudaCompile Include="src\vectorAdd.cu">
       <Filter>src</Filter>
     </CudaCompile>
     <CudaCompile Include="includes\errors.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\main.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\distanceCalculator.cu">
       <Filter>src</Filter>
     </CudaCompile>
   </ItemGroup>
