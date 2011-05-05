@@ -36,6 +36,9 @@
     <CudaCompile Include="src\distanceCalculator.cu">
       <Filter>src</Filter>
     </CudaCompile>
+    <CudaCompile Include="distamceCalculator_Iris.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="includes\dataLoader.cuh">
@@ -51,6 +54,12 @@
       <Filter>inc</Filter>
     </None>
     <None Include="includes\globals.cuh">
+      <Filter>inc</Filter>
+    </None>
+    <None Include="includes\distanceCalculator.cuh">
+      <Filter>inc</Filter>
+    </None>
+    <None Include="includes\distanceCalculator_Iris.cuh">
       <Filter>inc</Filter>
     </None>
   </ItemGroup>

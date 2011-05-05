@@ -186,6 +186,7 @@
     <ClInclude Include="includes\errors.cuh" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="distamceCalculator_Iris.cu" />
     <CudaCompile Include="includes\errors.cu" />
     <CudaCompile Include="src\dataLoader.cu" />
     <CudaCompile Include="src\dataLoader_Iris.cu" />
@@ -199,6 +200,8 @@
     <None Include="includes\dataLoader.cuh" />
     <None Include="includes\dataLoader_Iris.cuh" />
     <None Include="includes\defs.cuh" />
+    <None Include="includes\distanceCalculator.cuh" />
+    <None Include="includes\distanceCalculator_Iris.cuh" />
     <None Include="includes\evoEngine.cuh" />
     <None Include="includes\globals.cuh" />
   </ItemGroup>
