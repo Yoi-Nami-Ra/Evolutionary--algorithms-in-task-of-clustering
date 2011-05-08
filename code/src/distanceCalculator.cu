@@ -4,7 +4,7 @@
 //== Includes
 #include "globals.cuh"
 #include "errors.cuh"
-#include "distanceClculator.cuh"
+#include "distanceCalculator.cuh"
 
 //==============================================
 //== Types

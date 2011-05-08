@@ -186,11 +186,11 @@
     <ClInclude Include="includes\errors.cuh" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="distamceCalculator_Iris.cu" />
     <CudaCompile Include="includes\errors.cu" />
     <CudaCompile Include="src\dataLoader.cu" />
     <CudaCompile Include="src\dataLoader_Iris.cu" />
     <CudaCompile Include="src\distanceCalculator.cu" />
+    <CudaCompile Include="src\distanceCalculator_Iris.cu" />
     <CudaCompile Include="src\main.cu" />
     <CudaCompile Include="src\vectorAdd.cu">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
