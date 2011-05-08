@@ -72,11 +72,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="includes\dataLoader.cuh" />
+    <None Include="includes\dataLoader_Iris.cuh" />
+    <None Include="includes\defs.cuh" />
+    <None Include="includes\distanceCalculator.cuh" />
+    <None Include="includes\distanceCalculator_Iris.cuh" />
+    <None Include="includes\errors.cu" />
+    <None Include="includes\errors.cuh" />
+    <None Include="includes\evoEngine.cuh" />
+    <None Include="includes\globals.cuh" />
     <None Include="ReadMe.txt" />
+    <None Include="src\dataLoader.cu" />
+    <None Include="src\dataLoader_Iris.cu" />
+    <None Include="src\distamceCalculator_Iris.cu" />
+    <None Include="src\distanceCalculator.cu" />
+    <None Include="src\evoEngine.cu" />
+    <None Include="src\main.cu" />
+    <None Include="src\vectorAdd.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="includes\dataLoader.h" />
-    <ClInclude Include="includes\dataLoader_Iris.h" />
     <ClInclude Include="includes\globals.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
