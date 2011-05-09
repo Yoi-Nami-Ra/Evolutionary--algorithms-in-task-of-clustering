@@ -45,5 +45,10 @@ bool CheckAlreadyConverted();
   */
  dataStore* GetCurrDataStore();
 
+ /*
+  * Cleans up the memory
+  */
+ ErrorCode ReleaseDataStore();
+
 
 #endif // DATALOADER_IRIS_H

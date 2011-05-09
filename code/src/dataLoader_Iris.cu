@@ -6,8 +6,8 @@
 
 // Constants
 
-static const char* kdataFilePath = "../../../data/iris.data";
-static const char* kConvFilePath = "../../../data/iris_converted.data";
+static const char* kdataFilePath = "./data/iris.data";
+static const char* kConvFilePath = "./data/iris_converted.data";
 static dataStore* gCurrDataStore = 0;
 
 // Functions
@@ -127,20 +127,22 @@ ErrorCode ConvertData() {
 
 	FILE* dataFile = fopen( kdataFilePath, "r" );
 	if ( dataFile == 0 ) {
-		free( gCurrDataStore );
 		free( gCurrDataStore->dataVector );
+		free( gCurrDataStore );
 		logError("File with data Not found");
 		return SetError( errFileNotFound );
 	}
 
 	// load data into memory
-	int index = 0;
+	int index = 0;	
+	char str[20];
 	while( !feof( dataFile ) && ( index < gCurrDataStore->info.numEntries )) {
-		fscanf( dataFile, "%3f%*1c%3f%*1c%3f%*1c%3f%*1c%s",
-			gCurrDataStore->dataVector[index].a,
-			gCurrDataStore->dataVector[index].b,
-			gCurrDataStore->dataVector[index].c,
-			gCurrDataStore->dataVector[index].d );
+		fscanf( dataFile, "%3f,%3f,%3f,%3f,%s",
+			&gCurrDataStore->dataVector[index].a,
+			&gCurrDataStore->dataVector[index].b,
+			&gCurrDataStore->dataVector[index].c,
+			&gCurrDataStore->dataVector[index].d, str );
+		index++;
 	}
 	fclose( dataFile );
 
@@ -148,7 +150,7 @@ ErrorCode ConvertData() {
 	dataFile = fopen( kConvFilePath, "w" );
 
 	if ( dataFile == 0 ) {		
-		LogWarning("Failed opening converted data file for writting");
+		LogWarning( "Failed opening converted data file for writting" );
 		//return SetError( errFileWrite );		
 		return errOk;
 	}
@@ -157,9 +159,9 @@ ErrorCode ConvertData() {
 	// numEntries
 	res = fwrite( &gCurrDataStore->info.numEntries, sizeof(unsigned int), 1, dataFile );
 	if ( res <= 0 ) {
-		free( gCurrDataStore );
 		free( gCurrDataStore->dataVector );
-		logError("Failed to write down converted data");
+		free( gCurrDataStore );
+		logError( "Failed to write down converted data" );
 		fclose( dataFile );
 		//return SetError( errFileWrite );	
 		return errOk;
@@ -167,8 +169,8 @@ ErrorCode ConvertData() {
 	// vector
 	res = fwrite( gCurrDataStore->dataVector, sizeof(dataEntry), gCurrDataStore->info.numEntries, dataFile );
 	if ( res <= 0 ) {
-		free( gCurrDataStore );
 		free( gCurrDataStore->dataVector );
+		free( gCurrDataStore );
 		logError("Failed to write down converted data");
 		fclose( dataFile );
 		//return SetError( errFileWrite );	
@@ -176,6 +178,15 @@ ErrorCode ConvertData() {
 	}
 
 	fclose( dataFile );
+	return errOk;
+}
+//====================================================================
+
+ErrorCode ReleaseDataStore() {
+	if ( gCurrDataStore ) {
+		free( gCurrDataStore->dataVector );
+		free( gCurrDataStore );
+	}
 	return errOk;
 }
 //====================================================================
