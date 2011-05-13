@@ -57,16 +57,16 @@ ErrorCode StartCalculatingDistances() {
 	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc( 32, 0, 0, 0, cudaChannelFormatKindFloat );
 
 	cudaArray* cuArray;
-	cudaMallocArray( &cuArray, &channelDesc, data->info.numEntries, 4 );
+	cudaMallocArray( &cuArray, &channelDesc, 4, data->info.numEntries );
 	
 	// Copy to device memory some data located at address h_data 
 	// in host memory 
-	uint size = data->info.numEntries * sizeof(dataEntry);
+	uint size = data->info.numEntries * 4 * sizeof(float);
 	cudaMemcpyToArray( cuArray, 0, 0, data->dataVector, size, cudaMemcpyHostToDevice );
 
 	// Set texture parameters
-	texRef.addressMode[ 0] = cudaAddressModeClamp;
-	texRef.addressMode[ 1] = cudaAddressModeClamp;
+	texRef.addressMode[ 0] = cudaAddressModeWrap;
+	texRef.addressMode[ 1] = cudaAddressModeWrap;
 	texRef.filterMode = cudaFilterModeLinear;
 	texRef.normalized = true;
 
@@ -87,6 +87,8 @@ ErrorCode StartCalculatingDistances() {
 
 	calculateDistances<<<dimGrid, dimBlock>>>( dDistancesVector, data->info.numEntries, BLOCK_SIZE, hGridSize );
 
+	cutilDeviceSynchronize();
+
 	hDistancesVector = (float*)malloc( outputSize * sizeof(float) );
 
 	if ( hDistancesVector == 0 ) {
@@ -98,6 +100,14 @@ ErrorCode StartCalculatingDistances() {
 	}
 
 	cudaMemcpy( hDistancesVector, dDistancesVector, outputSize * sizeof(float), cudaMemcpyDeviceToHost );
+	float a0 = hDistancesVector[0];
+	float a1 = hDistancesVector[1];
+	float a2 = hDistancesVector[2];
+	float a3 = hDistancesVector[3];
+	float a4 = hDistancesVector[4];
+	float a5 = hDistancesVector[5];
+	float a6 = hDistancesVector[6];
+	float a7 = hDistancesVector[7];
 
 	//Save results to file
 	FILE * file = fopen( kIrisDistancesPath, "w" );
@@ -140,27 +150,27 @@ __global__ void calculateDistances( float* vector, uint numEntries, uint blockSi
 	// Check if this isn't external block
 	if ( row >= col && col < numEntries && row < numEntries ) {
 		// Check if we should care for loading colums here
-		if ( threadIdx.y == 0 ) {
+		if ( threadIdx.y == 0 && false) {
 			// load columns
 			float u = (float)col / (float)numEntries;			
-			colData[ threadIdx.x].a = tex2D( texRef, u, 0.0f / (float)numEntries );
-			colData[ threadIdx.x].a = tex2D( texRef, u, 1.0f / (float)numEntries );
-			colData[ threadIdx.x].a = tex2D( texRef, u, 2.0f / (float)numEntries );
-			colData[ threadIdx.x].a = tex2D( texRef, u, 3.0f / (float)numEntries );
+			colData[ threadIdx.x].a = tex2D( texRef, col, 0 );
+			colData[ threadIdx.x].b = tex2D( texRef, col, 1 );
+			colData[ threadIdx.x].c = tex2D( texRef, col, 2 );
+			colData[ threadIdx.x].d = tex2D( texRef, col, 3 );
 		}
-		if ( row = col ) {
+		if ( row == col ) {
 			boundryBlock = true;
 			// don't load rows here
 		} 
 
 		// Check if we should care for loading rows
-		if ( threadIdx.x == 0 && !boundryBlock ) {
+		if ( threadIdx.x == 0 && !boundryBlock && false) {
 			// load rows as wel
 			float u = (float)row / (float)numEntries;
-			rowData[ threadIdx.y].a = tex2D( texRef, u, 0.0f / (float)numEntries );
-			rowData[ threadIdx.y].a = tex2D( texRef, u, 1.0f / (float)numEntries );
-			rowData[ threadIdx.y].a = tex2D( texRef, u, 2.0f / (float)numEntries );
-			rowData[ threadIdx.y].a = tex2D( texRef, u, 3.0f / (float)numEntries );
+			rowData[ threadIdx.y].a = tex2D( texRef, row, 0 );
+			rowData[ threadIdx.y].b = tex2D( texRef, row, 1 );
+			rowData[ threadIdx.y].c = tex2D( texRef, row, 2 );
+			rowData[ threadIdx.y].d = tex2D( texRef, row, 3 );
 		}
 
 		// Sync up threads
@@ -168,16 +178,17 @@ __global__ void calculateDistances( float* vector, uint numEntries, uint blockSi
 		// And do some calculations
 
 		// something to do for us here ?
-		if ( row > col ) {
+		if ( row > col /*&& row == 1 && col == 0*/) {
 			float distance = 0;
 			if (boundryBlock) {
 				distance = calculateEntries(&colData[threadIdx.x], &colData[threadIdx.y]);
 			} else {
 				distance = calculateEntries(&colData[threadIdx.x], &rowData[threadIdx.y]);
 			}
-			vector[vectorIdx(col, row)] = distance;
+			vector[vectorIdx(col, row)] = tex2D( texRef, 0, col );//distance;
+		} else {
+			vector[vectorIdx( row, col )] = 2.0f;
 		}
-
 	}
 }
 //==============================================
@@ -198,7 +209,7 @@ __device__ float calculateEntries(dataEntry* first, dataEntry* second) {
 __device__ uint vectorIdx(uint x, uint y) {
 	// Assuming that always y > x
 	// Is this safe ?
-	return y * (y - 1) / 2;
+	return y * (y - 1) / 2 + x;
 }
 //==============================================
 
