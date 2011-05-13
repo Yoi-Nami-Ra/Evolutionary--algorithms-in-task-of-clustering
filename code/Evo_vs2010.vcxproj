@@ -187,6 +187,7 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="includes\errors.cu" />
+    <CudaCompile Include="src\clustering.cu" />
     <CudaCompile Include="src\dataLoader.cu" />
     <CudaCompile Include="src\dataLoader_Iris.cu" />
     <CudaCompile Include="src\distanceCalculator.cu" />
@@ -197,6 +198,7 @@
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="includes\clustering.cuh" />
     <None Include="includes\dataLoader.cuh" />
     <None Include="includes\dataLoader_Iris.cuh" />
     <None Include="includes\defs.cuh" />
