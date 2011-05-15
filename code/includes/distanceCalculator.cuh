@@ -17,7 +17,7 @@
 /*
  * Calculates distances betwen records of current database source
  */
-ErrorCode CalculateDistances();
+ErrorCode calculateDistances();
 
 
 #endif //DISTANCECALCULATOR_CUH

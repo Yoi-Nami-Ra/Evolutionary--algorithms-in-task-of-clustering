@@ -16,4 +16,9 @@
  */
 ErrorCode LoadData();
 
+/*
+ * returns number of entries in data store.
+ */
+unsigned int numEntries();
+
 #endif //DATALOADER_H

@@ -38,7 +38,7 @@ bool CheckAlreadyConverted();
 /*
  * Start Loading Data. 
  */
- ErrorCode StartLoadingData();
+ ErrorCode startLoadingData();
 
  /*
   * Returns pointer to current data store.
@@ -48,7 +48,7 @@ bool CheckAlreadyConverted();
  /*
   * Cleans up the memory
   */
- ErrorCode ReleaseDataStore();
+ ErrorCode releaseDataStore();
 
 
 #endif // DATALOADER_IRIS_H

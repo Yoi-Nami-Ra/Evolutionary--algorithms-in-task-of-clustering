@@ -4,7 +4,6 @@
 // =======================
 // Types
 
-#define MAX_NEIGHBORS 10
 #define MAX_CLUSTER_SIZE 10
 #define MEDOID_VECTOR_SIZE 20
 
@@ -23,6 +22,11 @@ typedef struct unit {
 // Functions
 
 /*
- * 
+ * Generates Random Starting population
  */
-generateRandomPopulation();
+ErrorCode generateRandomPopulation( unsigned int popSize );
+
+/*
+ * start and run clustering algorithm
+ */
+ErrorCode runClustering( unsigned int popSize );

@@ -11,16 +11,26 @@
 /*
  * Run Calculations.
  */
-ErrorCode StartCalculatingDistances();
+ErrorCode startCalculatingDistances();
 
 /*
  * Get Array with calculated distances.
  */
-float* GetDistances();
+const float* getDistances();
 
 /*
  * Frees up memory
  */
-ErrorCode ReleaseDistances();
+ErrorCode releaseDistances();
+
+/*
+ * Gives array of neighbours
+ */
+const unsigned int* getNeighbours();
+
+/*
+ * release memory held by neighbours
+ */
+ErrorCode releaseNeighbours();
 
 #endif //DISTANCECALCULATOR_IRIS_CUH

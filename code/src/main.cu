@@ -5,6 +5,8 @@
 
 #include "dataLoader.cuh"
 #include "distanceCalculator.cuh"
+#include "clustering.cuh"
+#include "errors.cuh"
 
 // Host code
 int main(int argc, char** argv)
@@ -29,9 +31,12 @@ int main(int argc, char** argv)
 
 	ErrorCode err;
 	
-	err = CalculateDistances();
+	err = calculateDistances();
 
+	if ( err == errOk ) {
+		err = runClustering( 100 );
+	}
 
-	ReleaseDistances();
+	releaseDistances();
 	return 0;
 }

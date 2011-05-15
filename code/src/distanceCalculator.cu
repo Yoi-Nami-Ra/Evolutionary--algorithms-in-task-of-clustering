@@ -18,7 +18,7 @@
 //==============================================
 //== Functions
 
-ErrorCode CalculateDistances() {
-	return StartCalculatingDistances();
+ErrorCode calculateDistances() {
+	return startCalculatingDistances();
 }
 

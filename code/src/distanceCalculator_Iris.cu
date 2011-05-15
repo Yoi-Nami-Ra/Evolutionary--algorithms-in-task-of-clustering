@@ -25,6 +25,8 @@
 //== Constants and Globals
 static float* dDistancesVector = 0;
 static float* hDistancesVector = 0;
+static uint* dNeighbours = 0;
+static uint* hNeighbours = 0;
 
 //==============================================
 //== Declarations
@@ -34,13 +36,14 @@ __global__ void calculateDistances(float* vector, uint numEntries, uint blockSiz
 __device__ float calculateEntries(dataEntry* first, dataEntry* second);
 __device__ uint vectorIdx(uint x, uint y);
 __device__ float sqr(float a);
+__global__ void findNeighbours( uint numEntries, uint * output );
 
 #define BLOCK_SIZE 16
 static const char* kIrisDistancesPath = "./data/iris_distances.data";
 
 //==============================================
 //== Functions
-ErrorCode StartCalculatingDistances() {
+ErrorCode startCalculatingDistances() {
 
 	ErrorCode err = LoadData();
 	if (err != errOk) {
@@ -53,17 +56,12 @@ ErrorCode StartCalculatingDistances() {
 	}
 //--------------------------------------
 
-	// Allocate CUDA array in device memory
+	// Create chanel descriptor for texture bindings
 	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc( 32, 0, 0, 0, cudaChannelFormatKindFloat );
 
-	//cudaArray* cuArray;
-	//cudaMallocArray( &cuArray, &channelDesc, 4, data->info.numEntries );
 	float* dData;
-	
-	// Copy to device memory some data located at address h_data 
-	// in host memory 
+	// Allocate and copy data store to device memory
 	uint size = data->info.numEntries * 4 * sizeof(float);
-	//cudaMemcpyToArray( cuArray, 0, 0, data->dataVector, size, cudaMemcpyHostToDevice );
 	cudaMalloc( &dData, size );
 	cudaMemcpy( dData, data->dataVector, size, cudaMemcpyHostToDevice );
 
@@ -120,22 +118,45 @@ ErrorCode StartCalculatingDistances() {
 		}
 
 		fclose( file );
-	} else {
-		err = errFileWrite;
-	}	
+	} else {		
+		cudaFree( dData );
+		cudaFree( dDistancesVector );	
 
-	// Free device memory
-	//cudaFreeArray( cuArray );
+		return errFileWrite;
+	}
+
 	cudaFree( dData );
-	cudaFree( dDistancesVector );	
+
+	cudaBindTexture( &offset, &texRef, dDistancesVector, &channelDesc, outputSize * sizeof(float) );
+
+	dim3 dimBlock2( BLOCK_SIZE ); // thread per block
+	dim3 dimGrid2( hGridSize ); // blocks per grid
+
+	cudaMalloc( &dNeighbours, data->info.numEntries * MAX_NEIGHBORS * sizeof(uint) );
+	findNeighbours<<<dimGrid2, dimBlock2>>>( data->info.numEntries, dNeighbours );
+
+	cutilDeviceSynchronize();
+
+	cudaFree( dDistancesVector );
+	hNeighbours = (uint*)malloc( data->info.numEntries * MAX_NEIGHBORS * sizeof(uint) );
+
+	if ( hNeighbours == 0 ) {
+		SetError( errNoMemory );
+
+		cudaFree( dNeighbours );
+		return errNoMemory;
+	}
+
+	cudaMemcpy( hNeighbours, dNeighbours, data->info.numEntries * MAX_NEIGHBORS * sizeof(uint), cudaMemcpyDeviceToHost );
+
+	cudaFree( dNeighbours );
+
+	releaseDataStore();
 
 	return err;
 }
 //==============================================
-
 __global__ void calculateDistances( float* vector, uint numEntries, uint blockSize, uint gridSize ) {
-	// Check if thread of external block
-
 	// global position of "first" thread
 	uint firstCol = blockIdx.x * BLOCK_SIZE;
 	uint col = firstCol + threadIdx.x;
@@ -151,7 +172,6 @@ __global__ void calculateDistances( float* vector, uint numEntries, uint blockSi
 		// Check if we should care for loading colums here
 		if ( threadIdx.y == 0 ) {
 			// load columns
-			float u = (float)col / (float)numEntries;			
 			colData[ threadIdx.x].a = tex1Dfetch( texRef, col*4+0 );
 			colData[ threadIdx.x].b = tex1Dfetch( texRef, col*4+1 );
 			colData[ threadIdx.x].c = tex1Dfetch( texRef, col*4+2 );
@@ -165,7 +185,6 @@ __global__ void calculateDistances( float* vector, uint numEntries, uint blockSi
 		// Check if we should care for loading rows
 		if ( threadIdx.x == 0 && !boundryBlock ) {
 			// load rows as wel
-			float u = (float)row / (float)numEntries;
 			rowData[ threadIdx.y].a = tex1Dfetch( texRef, row*4+0 );
 			rowData[ threadIdx.y].b = tex1Dfetch( texRef, row*4+1 );
 			rowData[ threadIdx.y].c = tex1Dfetch( texRef, row*4+2 );
@@ -206,9 +225,12 @@ __device__ float calculateEntries(dataEntry* first, dataEntry* second) {
 //==============================================
 
 __device__ uint vectorIdx(uint x, uint y) {
-	// Assuming that always y > x
-	// Is this safe ?
-	return y * (y - 1) / 2 + x;
+	if ( y > x ) {
+		return y * (y - 1) / 2 + x;
+	} else {		
+		return x * (x - 1) / 2 + y;
+	}
+	
 }
 //==============================================
 
@@ -217,16 +239,81 @@ __device__ float sqr(float a) {
 }
 //==============================================
 
-float* GetDistances() {
+const float* getDistances() {
 	return hDistancesVector;
 }
 //==============================================
 
-ErrorCode ReleaseDistances() {
+ErrorCode releaseDistances() {
 	if ( hDistancesVector ) {
 		free ( hDistancesVector );
 	}
 
+	return errOk;
+}
+//==============================================
+
+__global__ void findNeighbours( uint numEntries, uint * output ) {
+	uint neighbours[ MAX_NEIGHBORS];
+	float neighboursDistances[ MAX_NEIGHBORS];
+	float distance = 0;;
+	int i;
+
+	uint record = blockIdx.x * BLOCK_SIZE + threadIdx.x;
+
+	for ( i = 0; i < MAX_NEIGHBORS; i++ ) {
+		neighbours[ i] = 0;
+		neighboursDistances[ MAX_NEIGHBORS] = 0;
+	}
+	
+
+	// for each record in the data set
+	for ( i = 0; i < numEntries; i++ ) {
+		// if it's not the same		
+		if ( record != i ) {
+			// fetch distance
+			distance = tex1Dfetch( texRef, vectorIdx( record, i ));			
+			
+			uint a = i;
+			// for each neighbour already stored
+			for ( int j = 0; j < MAX_NEIGHBORS; j++ ) {
+				// did we found proper one ?
+				if ( neighboursDistances[ j] == 0 || distance < neighboursDistances[ j]) {					
+					if ( neighboursDistances[ j] == 0 ) {
+						// found empty entry - just save it here and break
+						neighbours[ j] = a;
+						neighboursDistances[ j] = distance;
+						break;
+					} else {
+						// replace it and continue search with the one thrown out
+						float d = neighboursDistances[ j];
+						uint r = neighbours[ j];
+						neighboursDistances[ j] = distance;
+						neighbours[ j] = a;
+						distance = d;
+						a = r;
+					}
+				}
+			} // for each neighbour
+		}
+	} // for each data entry
+
+	// save results
+	for ( i =0; i < MAX_NEIGHBORS; i++ ) {
+		output[ record * MAX_NEIGHBORS + i] = neighbours[ i];
+	}
+}
+//==============================================
+
+const unsigned int* getNeighbours() {
+	return hNeighbours;
+}
+//==============================================
+
+ErrorCode releaseNeighbours() {
+	if ( hNeighbours != 0 ) {
+		free( hNeighbours );
+	}
 	return errOk;
 }
 //==============================================

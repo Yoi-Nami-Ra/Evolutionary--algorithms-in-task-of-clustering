@@ -34,7 +34,7 @@ bool CheckAlreadyConverted() {
 }
 //====================================================================
 
-ErrorCode StartLoadingData() {
+ErrorCode startLoadingData() {
 	 ErrorCode err;
 	 if ( CheckAlreadyConverted() ) {
 		 err = LoadConverted();
@@ -182,7 +182,7 @@ ErrorCode ConvertData() {
 }
 //====================================================================
 
-ErrorCode ReleaseDataStore() {
+ErrorCode releaseDataStore() {
 	if ( gCurrDataStore ) {
 		free( gCurrDataStore->dataVector );
 		free( gCurrDataStore );
