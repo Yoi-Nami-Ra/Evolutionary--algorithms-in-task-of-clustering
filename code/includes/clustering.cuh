@@ -29,4 +29,4 @@ ErrorCode generateRandomPopulation( unsigned int popSize );
 /*
  * start and run clustering algorithm
  */
-ErrorCode runClustering( unsigned int popSize );
+ErrorCode runClustering( unsigned int popSize, unsigned int steps );

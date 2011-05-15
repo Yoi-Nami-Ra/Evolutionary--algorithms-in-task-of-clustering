@@ -33,8 +33,8 @@ int main(int argc, char** argv)
 	
 	err = calculateDistances();
 
-	if ( err == errOk ) {
-		err = runClustering( 100 );
+	if ( err == errOk ) {		
+		err = runClustering( 100, 10 );
 	}
 
 	releaseDistances();
