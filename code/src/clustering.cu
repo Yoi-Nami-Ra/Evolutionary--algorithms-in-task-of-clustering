@@ -52,6 +52,8 @@ __global__ void kernelCorectness( float * fitnesResults, char * membership,
 __global__ void kernelSorting( float * fitnesResults, bool * dominanceMatrix, 
 	unsigned int blocksPerSolution, unsigned int populationSize );
 __global__ void kernelDominanceCount( bool * dominanceMatrix, unsigned int * dominanceCounts, unsigned int popSize );
+__global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize, unsigned int blocksPerSolution,
+	float * fitnesResults, float * frontDensities );
 
 //====================================================================
 //== Functions
@@ -182,6 +184,8 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 
 	bool * hDominanceMatrix = (bool*)malloc( populationSize * populationSize * sizeof(bool));
 	unsigned int * hDominanceCounts = (unsigned int*)malloc( populationSize * sizeof(unsigned int));
+	float * dFrontDensities = 0;
+	cudaMalloc( &dFrontDensities, populationSize * sizeof(float) );
 
 	for (int i = 0; i < steps; i++ ) {
 		// membership and density phase
@@ -252,22 +256,28 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 		}
 
 		// selection
-		solutionLeft = populationSize / 2; // select half size of population
+		solutionsLeft = populationSize / 2; // select half size of population
 		for ( j = 0; j < populationSize; j++ ) {
 			solutionsSelected[ j] = false;
 		}
 
 		currFront = 0;
-		while ( solutionLeft > 0 ) {
+		while ( solutionsLeft > 0 ) {
 			// if we need more than the current front can offer
-			if ( solutionLeft > solutionFronts[ currFront * populationSize] {
-				for ( j = 0; j < solutionLeft > solutionFronts[ currFront * populationSize]; j++ ) {
-					ssolutionSelected[ solutionFronts[ currFront * populationSize + j * 1]] = true;
+			if ( solutionsLeft > solutionFronts[ currFront * populationSize] ) {
+				for ( j = 0; j < solutionsLeft > solutionFronts[ currFront * populationSize]; j++ ) {
+					solutionsSelected[ solutionFronts[ currFront * populationSize + j * 1]] = true;
 				}
 			} else {
-				// this fron has more than we need
+				// this front has more than we need
+				kernelFrontDensity<<<solutionFronts[ currFront * populationSize], 4>>>( &solutionFronts[ currFront * populationSize + 1],
+					solutionFronts[ currFront * populationSize], blocks, dFitnesResults, dFrontDensities );
 			}
-		}
+
+			currFront++;
+		} // while
+
+		// crossing
 	}
 
 	return errOk;
@@ -542,11 +552,11 @@ __global__ void kernelDominanceCount( bool * dominanceMatrix, unsigned int * dom
 }
 //====================================================================
 
-// <<< 1, (numSolutions, kryterions) >>>
-__global__ void kernelFrontDensity ( unsigned int * front, unsigned int frontSize, unsigned int blocksPerSolution
-	unsigned int toBeSelected,  ) {
+// <<< numSolutions, kryterions >>>
+__global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize, unsigned int blocksPerSolution,
+	float * fitnesResults, float * frontDensities ) {
 
-	__shared__ float frontDensities [ MAX_POPULATION_SIZE * 4];
+	__shared__ float solutionDensities [ 4];
 
 	unsigned int lesser;
 	bool lesserFound = false;
@@ -555,7 +565,7 @@ __global__ void kernelFrontDensity ( unsigned int * front, unsigned int frontSiz
 	bool biggerFound = false;
 	float biggerResult;
 
-	float thisResult = fitnesResults[ front[ threadIdx.x] * 4 * blocksPerSolution + threadIdx.y * blocksPerSolution + 0];
+	float thisResult = fitnesResults[ front[ blockIdx.x] * 4 * blocksPerSolution + threadIdx.x * blocksPerSolution + 0];
 	float currResult;
 
 	for ( int i = 0; i < frontSize; i++ ) {
@@ -564,7 +574,7 @@ __global__ void kernelFrontDensity ( unsigned int * front, unsigned int frontSiz
 			continue;
 		}
 
-		currResult = fitnesResults[ front[ i] * 4 * blocksPerSolution + threadIdx.y * blocksPerSolution + 0];
+		currResult = fitnesResults[ front[ i] * 4 * blocksPerSolution + threadIdx.x * blocksPerSolution + 0];
 		// check if lesser
 		if ( thisResult > currResult ) {
 			if ( !lesserFound ) {
@@ -588,7 +598,7 @@ __global__ void kernelFrontDensity ( unsigned int * front, unsigned int frontSiz
 				biggerResult = currResult;
 			} else {
 				if ( biggerResult > currResult ) {
-					bigger = i;					
+					bigger = i;
 					biggerResult = currResult;
 				}
 			}
@@ -597,9 +607,15 @@ __global__ void kernelFrontDensity ( unsigned int * front, unsigned int frontSiz
 
 	// is this edge solution ?
 	if ( !lesserFound || !biggerFound ) {
-		frontDensities[ frontSize * threadIdx.x + threadIdx.y] = -1;  
+		frontDensities[ threadIdx.x] = -1;  
 	} else {
-		frontDensities[ frontSize * threadIdx.x + threadIdx.y] = biggerResult - lesserResult;
+		frontDensities[ threadIdx.x] = biggerResult - lesserResult;
 	}
 
+	if ( threadIdx.x == 0 ) {
+		for ( int i = 1; i < 4; i++ ) {
+			frontDensities[ 0] = frontDensities[ i];
+		}
+		frontDensities[ blockIdx.x] = solutionDensities[ 0];
+	}
 }
