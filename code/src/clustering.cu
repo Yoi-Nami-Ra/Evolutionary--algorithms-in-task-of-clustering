@@ -186,6 +186,8 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 	unsigned int * hDominanceCounts = (unsigned int*)malloc( populationSize * sizeof(unsigned int));
 	float * dFrontDensities = 0;
 	cudaMalloc( &dFrontDensities, populationSize * sizeof(float) );
+	float * hFrontDensities = (float*)malloc( populationSize * sizeof(float) );
+
 
 	for (int i = 0; i < steps; i++ ) {
 		// membership and density phase
@@ -270,8 +272,16 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 				}
 			} else {
 				// this front has more than we need
+				unsigned int currFrontSize = solutionFronts[ currFront * populationSize];
 				kernelFrontDensity<<<solutionFronts[ currFront * populationSize], 4>>>( &solutionFronts[ currFront * populationSize + 1],
-					solutionFronts[ currFront * populationSize], blocks, dFitnesResults, dFrontDensities );
+					currFrontSize, blocks, dFitnesResults, dFrontDensities );
+				cutilDeviceSynchronize();
+
+				cudaMemcpy( hFrontDensities, dFrontDensities, populationSize * sizeof(float), cudaMemcpyDeviceToHost );
+				
+				while ( currFrontSize > 0 ) {
+					
+				}
 			}
 
 			currFront++;
