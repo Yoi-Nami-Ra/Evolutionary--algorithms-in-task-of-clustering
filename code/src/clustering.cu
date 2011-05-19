@@ -268,26 +268,87 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 			// if we need more than the current front can offer
 			if ( solutionsLeft > solutionFronts[ currFront * populationSize] ) {
 				for ( j = 0; j < solutionsLeft > solutionFronts[ currFront * populationSize]; j++ ) {
-					solutionsSelected[ solutionFronts[ currFront * populationSize + j * 1]] = true;
+					solutionsSelected[ solutionFronts[ currFront * populationSize + j + 1]] = true;
 				}
 			} else {
 				// this front has more than we need
 				unsigned int currFrontSize = solutionFronts[ currFront * populationSize];
-				kernelFrontDensity<<<solutionFronts[ currFront * populationSize], 4>>>( &solutionFronts[ currFront * populationSize + 1],
+
+				// Calculate densities for solutions in this front
+				kernelFrontDensity<<<currFrontSize, 4>>>( &solutionFronts[ currFront * populationSize + 1],
 					currFrontSize, blocks, dFitnesResults, dFrontDensities );
 				cutilDeviceSynchronize();
 
-				cudaMemcpy( hFrontDensities, dFrontDensities, populationSize * sizeof(float), cudaMemcpyDeviceToHost );
+				// Export results to Host
+				cudaMemcpy( hFrontDensities, dFrontDensities, currFrontSize * sizeof(float), cudaMemcpyDeviceToHost );
 				
-				while ( currFrontSize > 0 ) {
-					
+				bool * thisFronSelection = (bool*)malloc( populationSize * sizeof(bool));
+				unsigned int smallest = 0;
+
+				// Select first selectionLeft solutions and find the smallest one (bug density)
+				for ( j = 0; j < currFrontSize; j++ ) {
+					thisFronSelection [ j] = ( j < solutionsLeft );
+					if ( thisFronSelection[ j] ) {
+						if ( hFrontDensities[ j] != -1 && ( hFrontDensities[ j] < hFrontDensities[ smallest] || hFrontDensities[ smallest] == -1 ) ) {
+							smallest = j;
+						}
+					}
+				} // for j
+
+				// Now for each solution not selected at first, check if it's bigger than the smallest
+				// If so, replece it with smallest
+				if  ( hFrontDensities[ smallest] != -1 ) {
+					for (; j < solutionFronts[ currFront * populationSize]; j++ ) {
+						if ( hFrontDensities[ j] == -1 || hFrontDensities[ j] > hFrontDensities[ smallest] ) {
+							thisFrontSelection[ smallest] = false;
+							thisFrontSelection[ j] = true;
+							smallest = j;
+							for ( int k = 0; k < j; k++ ) {
+								if ( thisFronSelection[ k] ) {
+									if ( hFrontDensities[ k] != -1 && ( hFrontDensities[ k] < hFrontDensities[ smallest] || hFrontDensities[ smallest] == -1 ) ) {
+										smallest = k;
+									}
+								}
+							} // for k
+						}
+					} // for j
 				}
+
+				// now mark solutions in main selection table
+				for ( j = 0; j < currFrontSize; j++ ) {
+					if ( thisFrontSelection[ j] ) {
+						solutionsSelected[ solutionFronts[ currFront * populationSize + j + 1]] = true;
+						solutionsLeft--;
+					}
+				}// for j
 			}
 
 			currFront++;
 		} // while
 
 		// crossing
+		unsigned int halfPopulation = populationSize / 2;
+		unsigned int * hBreedingTable = (unsigned int*)malloc( halfPopulation * 3 );
+		unsigned int currParent1 = 0;
+		unsigned int currParent2 = 0;
+		unsigned int currChild = 0;
+
+		for ( j = 0; j < populationSize; j++ ) {
+			if ( solutionsSelected[ j] ) {
+				// place for parent
+				if ( currParent1 <= currParent2 ) {
+					// place taken by first parent
+					hBreadingTable[ ( currParent1++ ) * 3] = j;
+					hBreadingTable[ ( currParent1++ ) * 3 + 1] = j;
+				} else {
+					hBreadingTable[ ( currParent2++ ) * 3 + 1] = j;
+					hBreadingTable[ ( currParent2++ ) * 3 ] = j;
+				}
+			} else {
+				// place for child
+				hBreadingTable[ ( currParent2++ ) * 3 + 2] = j;
+			}
+		}		
 	}
 
 	return errOk;
@@ -628,4 +689,60 @@ __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize
 		}
 		frontDensities[ blockIdx.x] = solutionDensities[ 0];
 	}
+}
+//====================================================================
+
+// <<< 1, popSize/2 >>>
+__global__ void kernelCrossing( unsigned int popSize, unit * population, unsigned int * breedingTable ) {
+	__shared__ bool crossTemplate[ MEDOID_VECTOR_SIZE];
+
+	unsigned int stepSize = MEDOID_VECTOR_SIZE / CROS_FACTOR;
+	bool mark = true;
+	if ( threadIdx.x == 0 ) {		
+		for ( int i = 0, j = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+			if ( j => stepSize ) mark = !mark;
+			crossTemplate[ i] = mark;
+		}
+	}
+
+	__syncthreads();
+
+	char parent1Clusters[ MEDOID_VECTOR_SIZE];
+	char parent2Clusters[ MEDOID_VECTOR_SIZE];
+	unsigned int parent1 = breedingTable[ threadIdx.x * 3];
+	unsigned int parent2 = breedingTable[ threadIdx.x * 3 + 1];
+	unsigned int child = breedingTable[ threadIdx.x * 3 + 2];
+
+
+	unsigned int index = 0;
+	cluster = 0;
+	for ( int i = 0, index = 0; i < MEDOID_VECTOR_SIZE && index < MEDOID_VECTOR_SIZE; i++ ) {
+		for ( int j = 0; j < population[ parent1Clusters].clusters[ i]; j++ ) {
+			parent1Cluster[ index++] = cluster;
+		}
+		cluster++;
+	}
+
+	index = 0;
+	cluster = 0;
+	for ( int i = 0, index = 0; i < MEDOID_VECTOR_SIZE && index < MEDOID_VECTOR_SIZE; i++ ) {
+		for ( int j = 0; j < population[ parent2Cluster].clusters[ i]; j++ ) {
+			parent2Cluster[ index++] = cluster;
+		}
+		cluster++;
+	}
+
+	char childrenClusters[ MEDOID_VECTOR_SIZE];
+
+	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		if ( crossTemplate[ i] ) {
+			childrenCluster[ i] = parent1Clusters[ i];
+			population[ child].medoids[i] = population[ parent1].medoids[ i];
+		} else {
+			childrenCluster[ i] = parent2Clusters[ i];
+			population[ child].medoids[i] = population[ parent2].medoids[ i];
+		}
+	}
+	population[ child].attr.clusterMaxSize = population[ parent1].attr.clusterMaxSize;
+	population[ child].attr.numNeighbours = population[ parent1].attr.numNeighbours;
 }
