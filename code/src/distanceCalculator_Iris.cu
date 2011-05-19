@@ -132,13 +132,13 @@ ErrorCode startCalculatingDistances() {
 	dim3 dimBlock2( BLOCK_SIZE ); // thread per block
 	dim3 dimGrid2( hGridSize ); // blocks per grid
 
-	cudaMalloc( &dNeighbours, data->info.numEntries * MAX_NEIGHBORS * sizeof(uint) );
+	cudaMalloc( &dNeighbours, data->info.numEntries * MAX_NEIGHBOURS * sizeof(uint) );
 	findNeighbours<<<dimGrid2, dimBlock2>>>( data->info.numEntries, dNeighbours );
 
 	cutilDeviceSynchronize();
 
 	cudaFree( dDistancesVector );
-	hNeighbours = (uint*)malloc( data->info.numEntries * MAX_NEIGHBORS * sizeof(uint) );
+	hNeighbours = (uint*)malloc( data->info.numEntries * MAX_NEIGHBOURS * sizeof(uint) );
 
 	if ( hNeighbours == 0 ) {
 		SetError( errNoMemory );
@@ -147,7 +147,7 @@ ErrorCode startCalculatingDistances() {
 		return errNoMemory;
 	}
 
-	cudaMemcpy( hNeighbours, dNeighbours, data->info.numEntries * MAX_NEIGHBORS * sizeof(uint), cudaMemcpyDeviceToHost );
+	cudaMemcpy( hNeighbours, dNeighbours, data->info.numEntries * MAX_NEIGHBOURS * sizeof(uint), cudaMemcpyDeviceToHost );
 
 	cudaFree( dNeighbours );
 
@@ -254,16 +254,16 @@ ErrorCode releaseDistances() {
 //==============================================
 
 __global__ void findNeighbours( uint numEntries, uint * output ) {
-	uint neighbours[ MAX_NEIGHBORS];
-	float neighboursDistances[ MAX_NEIGHBORS];
+	uint neighbours[ MAX_NEIGHBOURS];
+	float neighboursDistances[ MAX_NEIGHBOURS];
 	float distance = 0;;
 	int i;
 
 	uint record = blockIdx.x * BLOCK_SIZE + threadIdx.x;
 
-	for ( i = 0; i < MAX_NEIGHBORS; i++ ) {
+	for ( i = 0; i < MAX_NEIGHBOURS; i++ ) {
 		neighbours[ i] = 0;
-		neighboursDistances[ MAX_NEIGHBORS] = 0;
+		neighboursDistances[ MAX_NEIGHBOURS] = 0;
 	}
 	
 
@@ -276,7 +276,7 @@ __global__ void findNeighbours( uint numEntries, uint * output ) {
 			
 			uint a = i;
 			// for each neighbour already stored
-			for ( int j = 0; j < MAX_NEIGHBORS; j++ ) {
+			for ( int j = 0; j < MAX_NEIGHBOURS; j++ ) {
 				// did we found proper one ?
 				if ( neighboursDistances[ j] == 0 || distance < neighboursDistances[ j]) {					
 					if ( neighboursDistances[ j] == 0 ) {
@@ -299,8 +299,8 @@ __global__ void findNeighbours( uint numEntries, uint * output ) {
 	} // for each data entry
 
 	// save results
-	for ( i =0; i < MAX_NEIGHBORS; i++ ) {
-		output[ record * MAX_NEIGHBORS + i] = neighbours[ i];
+	for ( i =0; i < MAX_NEIGHBOURS; i++ ) {
+		output[ record * MAX_NEIGHBOURS + i] = neighbours[ i];
 	}
 }
 //==============================================

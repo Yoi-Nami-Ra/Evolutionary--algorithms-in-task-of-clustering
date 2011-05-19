@@ -16,7 +16,7 @@
 #include <cutil_math.h>
 #include <cuda.h>
 #include <time.h>
-
+#include <curand_kernel.h>
 //====================================================================
 //== Types
 
@@ -54,6 +54,8 @@ __global__ void kernelSorting( float * fitnesResults, bool * dominanceMatrix,
 __global__ void kernelDominanceCount( bool * dominanceMatrix, unsigned int * dominanceCounts, unsigned int popSize );
 __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize, unsigned int blocksPerSolution,
 	float * fitnesResults, float * frontDensities );
+__global__ void kernelCrossing( unsigned int popSize, unit * population, unsigned int * breedingTable,
+	unsigned int numEntries );
 
 //====================================================================
 //== Functions
@@ -67,7 +69,7 @@ ErrorCode generateRandomPopulation( unsigned int popSize ) {
 	for ( int k = 0; k < popSize; k++ ) {
 		// attributes
 		hPopulationPool[k].attr.clusterMaxSize = rand() % MAX_CLUSTER_SIZE + 1;
-		hPopulationPool[k].attr.numNeighbours = rand() % MAX_NEIGHBORS + 1;
+		hPopulationPool[k].attr.numNeighbours = rand() % MAX_NEIGHBOURS + 1;
 		unsigned int clustersSum = MEDOID_VECTOR_SIZE;
 		unsigned int proposal;
 		bool proposalOk = false;
@@ -128,7 +130,7 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps ) {
 	cudaBindTexture( &offset, &texRefDistances, dDistances, &channelDesc, distancesSize );
 
 	//   Allocate memory for distances	
-	unsigned int neighbourSize = numEntries() * MAX_NEIGHBORS * sizeof(unsigned int);
+	unsigned int neighbourSize = numEntries() * MAX_NEIGHBOURS * sizeof(unsigned int);
 	cudaMalloc( &dNeighbours, neighbourSize );
 	cudaMemcpy( dNeighbours, getNeighbours(), neighbourSize, cudaMemcpyHostToDevice );
 	//   bind distances to texture
@@ -282,13 +284,13 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 				// Export results to Host
 				cudaMemcpy( hFrontDensities, dFrontDensities, currFrontSize * sizeof(float), cudaMemcpyDeviceToHost );
 				
-				bool * thisFronSelection = (bool*)malloc( populationSize * sizeof(bool));
+				bool * thisFrontSelection = (bool*)malloc( populationSize * sizeof(bool));
 				unsigned int smallest = 0;
 
 				// Select first selectionLeft solutions and find the smallest one (bug density)
 				for ( j = 0; j < currFrontSize; j++ ) {
-					thisFronSelection [ j] = ( j < solutionsLeft );
-					if ( thisFronSelection[ j] ) {
+					thisFrontSelection [ j] = ( j < solutionsLeft );
+					if ( thisFrontSelection[ j] ) {
 						if ( hFrontDensities[ j] != -1 && ( hFrontDensities[ j] < hFrontDensities[ smallest] || hFrontDensities[ smallest] == -1 ) ) {
 							smallest = j;
 						}
@@ -304,7 +306,7 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 							thisFrontSelection[ j] = true;
 							smallest = j;
 							for ( int k = 0; k < j; k++ ) {
-								if ( thisFronSelection[ k] ) {
+								if ( thisFrontSelection[ k] ) {
 									if ( hFrontDensities[ k] != -1 && ( hFrontDensities[ k] < hFrontDensities[ smallest] || hFrontDensities[ smallest] == -1 ) ) {
 										smallest = k;
 									}
@@ -328,27 +330,39 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 
 		// crossing
 		unsigned int halfPopulation = populationSize / 2;
-		unsigned int * hBreedingTable = (unsigned int*)malloc( halfPopulation * 3 );
+		// breedingTable[ parent1, parent2, child, mutation probability]
+		unsigned int * hBreedingTable = (unsigned int*)malloc( halfPopulation * 4 * sizeof(unsigned int) );
 		unsigned int currParent1 = 0;
 		unsigned int currParent2 = 0;
 		unsigned int currChild = 0;
 
+		srand( time( 0 ) );
+		// generate breeding Table
 		for ( j = 0; j < populationSize; j++ ) {
 			if ( solutionsSelected[ j] ) {
 				// place for parent
 				if ( currParent1 <= currParent2 ) {
 					// place taken by first parent
-					hBreadingTable[ ( currParent1++ ) * 3] = j;
-					hBreadingTable[ ( currParent1++ ) * 3 + 1] = j;
+					hBreedingTable[ ( currParent1++ ) * 3] = j;
+					hBreedingTable[ ( currParent1++ ) * 3 + 1] = j;
 				} else {
-					hBreadingTable[ ( currParent2++ ) * 3 + 1] = j;
-					hBreadingTable[ ( currParent2++ ) * 3 ] = j;
+					hBreedingTable[ ( currParent2++ ) * 3 + 1] = j;
+					hBreedingTable[ ( currParent2++ ) * 3 ] = j;
 				}
 			} else {
 				// place for child
-				hBreadingTable[ ( currParent2++ ) * 3 + 2] = j;
+				hBreedingTable[ ( currChild++ ) * 3 + 2] = j;
+				// mutation probability
+				hBreedingTable[ ( currChild++ ) * 3 + 3] = rand() % 100; 
 			}
-		}		
+		}
+
+		unsigned int * dBreedingTable;
+		cudaMalloc( &dBreedingTable, halfPopulation * 4 );
+		cudaMemcpy( dBreedingTable, hBreedingTable, halfPopulation * 4 * sizeof(unsigned int), cudaMemcpyHostToDevice );
+		// launch crossing
+		kernelCrossing<<< 1, populationSize/2 >>>( populationSize, dPopulationPool, dBreedingTable, numEntries() );
+		cutilDeviceSynchronize();
 	}
 
 	return errOk;
@@ -429,7 +443,7 @@ __device__ uint distanceIdx(uint x, uint y) {
 //====================================================================
 
 __device__ unsigned int neighbour( unsigned int record, unsigned int num ) {
-	return tex1Dfetch( texRefNeighbour, record * MAX_NEIGHBORS + num );
+	return tex1Dfetch( texRefNeighbour, record * MAX_NEIGHBOURS + num );
 }
 //====================================================================
 
@@ -610,7 +624,7 @@ __global__ void kernelSorting( float * fitnesResults, bool * dominanceMatrix,
 }
 //====================================================================
 
-// <<< 1, ppulationSize >>>
+// <<< 1, poulationSize >>>
 __global__ void kernelDominanceCount( bool * dominanceMatrix, unsigned int * dominanceCounts, unsigned int popSize ) {
 
 	unsigned int count = 0;
@@ -629,10 +643,8 @@ __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize
 
 	__shared__ float solutionDensities [ 4];
 
-	unsigned int lesser;
 	bool lesserFound = false;
 	float lesserResult;
-	unsigned int bigger;
 	bool biggerFound = false;
 	float biggerResult;
 
@@ -649,12 +661,12 @@ __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize
 		// check if lesser
 		if ( thisResult > currResult ) {
 			if ( !lesserFound ) {
-				lesser = i;
+				//lesser = i;
 				lesserFound = true;
 				lesserResult = currResult;
 			} else {
 				if ( lesserResult < currResult ) {
-					lesser = i;
+					//lesser = i;
 					lesserFound = true;
 					lesserResult = currResult;
 				}
@@ -664,12 +676,12 @@ __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize
 		// check if bigger
 		if ( thisResult < currResult ) {
 			if ( !biggerFound ) {
-				bigger = i;
+				//bigger = i;
 				biggerFound = true;
 				biggerResult = currResult;
 			} else {
 				if ( biggerResult > currResult ) {
-					bigger = i;
+					//bigger = i;
 					biggerResult = currResult;
 				}
 			}
@@ -678,14 +690,19 @@ __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize
 
 	// is this edge solution ?
 	if ( !lesserFound || !biggerFound ) {
-		frontDensities[ threadIdx.x] = -1;  
+		solutionDensities[ threadIdx.x] = -1;  
 	} else {
-		frontDensities[ threadIdx.x] = biggerResult - lesserResult;
+		solutionDensities[ threadIdx.x] = biggerResult - lesserResult;
 	}
 
 	if ( threadIdx.x == 0 ) {
 		for ( int i = 1; i < 4; i++ ) {
-			frontDensities[ 0] = frontDensities[ i];
+			if ( solutionDensities[ i] != -1 ) {
+				solutionDensities[ 0] += solutionDensities[ i];
+			} else {
+				solutionDensities[ 0] = -1;
+				break;
+			}
 		}
 		frontDensities[ blockIdx.x] = solutionDensities[ 0];
 	}
@@ -693,14 +710,16 @@ __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize
 //====================================================================
 
 // <<< 1, popSize/2 >>>
-__global__ void kernelCrossing( unsigned int popSize, unit * population, unsigned int * breedingTable ) {
+__global__ void kernelCrossing( unsigned int popSize, unit * population, unsigned int * breedingTable, unsigned int numEntries ) {
 	__shared__ bool crossTemplate[ MEDOID_VECTOR_SIZE];
 
 	unsigned int stepSize = MEDOID_VECTOR_SIZE / CROS_FACTOR;
 	bool mark = true;
+
+	// calculate crossing template
 	if ( threadIdx.x == 0 ) {		
 		for ( int i = 0, j = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-			if ( j => stepSize ) mark = !mark;
+			if ( j >= stepSize ) mark = !mark;
 			crossTemplate[ i] = mark;
 		}
 	}
@@ -709,40 +728,108 @@ __global__ void kernelCrossing( unsigned int popSize, unit * population, unsigne
 
 	char parent1Clusters[ MEDOID_VECTOR_SIZE];
 	char parent2Clusters[ MEDOID_VECTOR_SIZE];
-	unsigned int parent1 = breedingTable[ threadIdx.x * 3];
-	unsigned int parent2 = breedingTable[ threadIdx.x * 3 + 1];
-	unsigned int child = breedingTable[ threadIdx.x * 3 + 2];
+	unsigned int parent1 = breedingTable[ threadIdx.x * 4];
+	unsigned int parent2 = breedingTable[ threadIdx.x * 4 + 1];
+	unsigned int child = breedingTable[ threadIdx.x * 4 + 2];
 
-
+	// calculate cluster groupings for parent 1
 	unsigned int index = 0;
-	cluster = 0;
+	char cluster = 0;
 	for ( int i = 0, index = 0; i < MEDOID_VECTOR_SIZE && index < MEDOID_VECTOR_SIZE; i++ ) {
-		for ( int j = 0; j < population[ parent1Clusters].clusters[ i]; j++ ) {
-			parent1Cluster[ index++] = cluster;
+		for ( int j = 0; j < population[ parent1].clusters[ i]; j++ ) {
+			parent1Clusters[ index++] = cluster;
 		}
 		cluster++;
 	}
 
+	// calculate cluster groupings for parent 2
 	index = 0;
 	cluster = 0;
 	for ( int i = 0, index = 0; i < MEDOID_VECTOR_SIZE && index < MEDOID_VECTOR_SIZE; i++ ) {
-		for ( int j = 0; j < population[ parent2Cluster].clusters[ i]; j++ ) {
-			parent2Cluster[ index++] = cluster;
+		for ( int j = 0; j < population[ parent2].clusters[ i]; j++ ) {
+			parent2Clusters[ index++] = cluster;
 		}
 		cluster++;
 	}
 
-	char childrenClusters[ MEDOID_VECTOR_SIZE];
+	char childCluster[ MEDOID_VECTOR_SIZE];
 
+	// exchange data and put it into child
 	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
 		if ( crossTemplate[ i] ) {
-			childrenCluster[ i] = parent1Clusters[ i];
+			childCluster[ i] = parent1Clusters[ i];
 			population[ child].medoids[i] = population[ parent1].medoids[ i];
 		} else {
-			childrenCluster[ i] = parent2Clusters[ i];
+			childCluster[ i] = parent2Clusters[ i];
 			population[ child].medoids[i] = population[ parent2].medoids[ i];
 		}
 	}
+	// copy attributes from first parent
 	population[ child].attr.clusterMaxSize = population[ parent1].attr.clusterMaxSize;
 	population[ child].attr.numNeighbours = population[ parent1].attr.numNeighbours;
+
+	// check groups sizes, if needed regroup
+	index = 0;
+	cluster = childCluster[ 0];
+	population[ child].clusters[ 0] = 0;
+	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		if ( childCluster[ i] == cluster && population[ child].clusters[ index] < population[ child].attr.clusterMaxSize ) {
+			population[ child].clusters[ index]++;
+		} else {
+			population[ child].clusters[ ++index] = 1;
+			cluster = childCluster[ i];
+		}
+	}
+	for ( int i = index+1; i < MEDOID_VECTOR_SIZE; i++ ) {
+		population[ child].clusters[ i] = 0;
+	}
+
+	// mutation
+
+	curandState state;
+	char mutationProb = breedingTable[ threadIdx.x * 4 + 3];
+	curand_init( mutationProb, threadIdx.x, 0, &state );	
+	// 1) attributes
+	if ( mutationProb > 50 ) {
+		if ( mutationProb > 70 ) {
+			if ( mutationProb > 90 ) {
+				// both
+				population[ child].attr.clusterMaxSize = curand( &state ) % MAX_CLUSTER_SIZE;
+				population[ child].attr.numNeighbours = curand( &state ) % MAX_NEIGHBOURS;
+			} else {
+				// neighbours
+				population[ child].attr.numNeighbours = curand( &state ) % MAX_NEIGHBOURS;
+			}
+		} else {
+			// max cluster size
+			population[ child].attr.clusterMaxSize = curand( &state ) % MAX_CLUSTER_SIZE;
+		}
+	}
+
+	// 2) medoids
+	char howMany = 0;
+	if ( mutationProb > 20 ) {
+		if ( mutationProb > 50 ) {
+			if ( mutationProb > 80 ) {
+				if ( mutationProb > 95 ) {
+					// 4
+					howMany = 4;
+				} else {
+					// 3
+					howMany = 3;
+				}
+			} else {
+				// 2
+				howMany = 2;
+			}
+		} else {
+			// 1
+			howMany = 1;
+		}
+	}
+	// generate new random medoids
+	for ( char i = 0; i < howMany; i++ ) {
+		population[ child].medoids[ curand( &state ) % MEDOID_VECTOR_SIZE] = curand( &state ) % numEntries;
+	}
+
 }
