@@ -7,6 +7,7 @@
 #define MAX_CLUSTER_SIZE 10
 #define MEDOID_VECTOR_SIZE 20
 #define CROS_FACTOR 3
+#define OBJECTIVES 4
 
 typedef struct unitAttributes {
 	unsigned int numNeighbours;
