@@ -116,6 +116,7 @@ ErrorCode generateRandomPopulation( unsigned int popSize ) {
 	cudaMemcpyToSymbol( dPopulationPool, &populationPool, sizeof(unit*) );
 
 	randomPopulation<<< 1, popSize>>>();
+	cutilDeviceSynchronize();
 
 	return errOk;
 }
