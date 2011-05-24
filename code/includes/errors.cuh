@@ -15,6 +15,7 @@ enum ErrorCode {
 	errFileRead,		// We failed to read from file
 	errNoMemory,		// There is no enough memory
 	errDataNotReady,	// LoadData didn't fail but still we receive nil
+	errNoData,			// In place where data should be procesed we got empty
 };
 
 //==============================================

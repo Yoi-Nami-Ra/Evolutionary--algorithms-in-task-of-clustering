@@ -106,27 +106,12 @@ ErrorCode startCalculatingDistances() {
 	cudaMemcpy( hDistancesVector, dDistancesVector, outputSize * sizeof(float), cudaMemcpyDeviceToHost );
 	
 	//Save results to file
-	FILE * file = fopen( kIrisDistancesPath, "w" );
-	size_t res = 0;
-	if ( file ) {
-		res = fwrite( &( data->info.numEntries ), sizeof(unsigned int), 1, file );
-		if (res == 1) {
-			res = fwrite( hDistancesVector, sizeof(float), outputSize, file );
-		}
-		if ( res!=1 && res!=outputSize ) {
-			err = errFileWrite;
-		}
+	saveDistanceData();
 
-		fclose( file );
-	} else {		
-		cudaFree( dData );
-		cudaFree( dDistancesVector );	
-
-		return errFileWrite;
-	}
-
+	// no need for raw data - free it
 	cudaFree( dData );
 
+	// now bind distances to texture, so we could use it for neighbours
 	cudaBindTexture( &offset, &texRef, dDistancesVector, &channelDesc, outputSize * sizeof(float) );
 
 	dim3 dimBlock2( BLOCK_SIZE ); // thread per block
@@ -314,6 +299,48 @@ ErrorCode releaseNeighbours() {
 	if ( hNeighbours != 0 ) {
 		free( hNeighbours );
 	}
+	return errOk;
+}
+//==============================================
+
+ErrorCode loadDistanceData() {
+	unsigned int numEntries = 0;
+	unsigned int inputSize = numEntries * ( numEntries - 1 ) / 2;
+
+	FILE * file = fopen( kIrisDistancesPath, "r" );
+	size_t res = 0;
+	if ( file ) {
+		res = fread( &numEntries, sizeof(unsigned int), 1, file );
+	}
+
+}
+//==============================================
+
+errorCode saveDistanceData() {
+	// check if we have something worh to save
+	if ( hDistancesVector == 0 ) {
+		return errNoData;
+	}
+
+	unsigned int numEntries = numEntries();
+	unsigned int outputSize = numEntries * ( numEntries - 1 ) / 2;
+
+	FILE * file = fopen( kIrisDistancesPath, "w" );
+	size_t res = 0;
+	if ( file ) {
+		res = fwrite( &( numEntries ), sizeof(unsigned int), 1, file );
+		if (res == 1) {
+			res = fwrite( hDistancesVector, sizeof(float), outputSize, file );
+		}
+		if ( res!=1 && res!=outputSize ) {
+			err = errFileWrite;
+		}
+
+		fclose( file );
+	} else {
+		return errFileWrite;
+	}
+
 	return errOk;
 }
 //==============================================

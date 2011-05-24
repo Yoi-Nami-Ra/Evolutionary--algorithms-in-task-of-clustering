@@ -68,7 +68,7 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>bin/win32/$(Configuration)/</OutDir>
     <IntDir>$(Platform)/$(Configuration)/</IntDir>
-    <IncludePath>D:\Projects\Evolutionary--algorithms-in-task-of-clustering\code\includes;$(NVSDKCOMPUTE_ROOT)\shared\inc;$(NVSDKCOMPUTE_ROOT)\C\common\inc;f:\dxsdk_jun10\include;$(DXSDK_DIR)\include;$(IncludePath)</IncludePath>
+    <IncludePath>includes;$(NVSDKCOMPUTE_ROOT)\shared\inc;$(NVSDKCOMPUTE_ROOT)\C\common\inc;f:\dxsdk_jun10\include;$(DXSDK_DIR)\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>

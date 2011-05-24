@@ -31,7 +31,9 @@ int main(int argc, char** argv)
 
 	ErrorCode err;
 	
-	err = calculateDistances();
+	if ( getDistances() == 0 ) {
+		err = calculateDistances()
+	}	
 
 	if ( err == errOk ) {		
 		err = runClustering( 100, 10 );
