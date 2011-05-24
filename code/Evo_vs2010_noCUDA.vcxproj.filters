@@ -64,6 +64,12 @@
     <None Include="src\dataLoader.cu">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="includes\clustering.cuh">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="src\clustering.cu">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

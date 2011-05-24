@@ -21,4 +21,10 @@ ErrorCode LoadData();
  */
 unsigned int numEntries();
 
+/*
+ * Set current number of entries
+ */
+void setNumEntries( unsigned int numEntries );
+
+
 #endif //DATALOADER_H

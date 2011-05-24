@@ -14,6 +14,16 @@
 ErrorCode startCalculatingDistances();
 
 /*
+ * Loads distances into memory.
+ */
+ErrorCode loadDistanceData();
+
+/*
+ * Saves Calculated distances dato into file for futher usage.
+ */
+errorCode saveDistanceData();
+
+/*
  * Get Array with calculated distances.
  */
 const float* getDistances();

@@ -20,7 +20,7 @@ static unsigned int dataStoreEntriesNumber;
 ErrorCode LoadData() {
 	ErrorCode err = startLoadingData();
 	if ( err == errOk ) {
-		dataStoreEntriesNumber = GetCurrDataStore()->info.numEntries;
+		setNumEntries( GetCurrDataStore()->info.numEntries );
 		if ( dataStoreEntriesNumber == 0 ) {
 			printf("[E] LoadData(): 0 Entries after succesgul load\n");
 			err = errGeneral;
@@ -32,5 +32,11 @@ ErrorCode LoadData() {
 
 unsigned int numEntries() {
 	return dataStoreEntriesNumber;
+}
+//====================================================================
+
+
+void setNumEntries( unsigned int numEntries ) {
+	dataStoreEntriesNumber = numEntries;
 }
 //====================================================================
