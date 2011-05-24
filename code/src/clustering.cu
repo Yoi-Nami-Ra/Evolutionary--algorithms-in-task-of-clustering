@@ -686,7 +686,7 @@ __global__ void kernelDominanceCount() {
 		}
 	}
 
-	dDominanceCounts[ threadIdx.x] = count;
+	dDominanceCounts[ threadIdx.x] = 1; //count;
 }
 //====================================================================
 
