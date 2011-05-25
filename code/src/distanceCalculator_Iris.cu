@@ -307,12 +307,25 @@ ErrorCode loadDistanceData() {
 	unsigned int numEntries = 0;
 	unsigned int inputSize = numEntries * ( numEntries - 1 ) / 2;
 
+	ErrorCode ret = errOk;
+
 	FILE * file = fopen( kIrisDistancesPath, "r" );
 	size_t res = 0;
 	if ( file ) {
 		res = fread( &numEntries, sizeof(unsigned int), 1, file );
+		if ( res == 1 ) {
+			if ( hDistancesVector == 0 ) {
+				hDistancesVector = (float*)malloc( inputSize * sizeof(float) );
+			}
+			res = fread( &hDistancesVector, sizeof(float), inputSize, file );
+			if ( res != inputSize ) {
+				ret = errFileCorupted;
+			}
+		}
+		fclose( file );
 	}
 
+	return ret;
 }
 //==============================================
 
