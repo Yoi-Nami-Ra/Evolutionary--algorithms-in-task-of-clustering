@@ -21,7 +21,7 @@ ErrorCode loadDistanceData();
 /*
  * Saves Calculated distances dato into file for futher usage.
  */
-errorCode saveDistanceData();
+ErrorCode saveDistanceData();
 
 /*
  * Get Array with calculated distances.

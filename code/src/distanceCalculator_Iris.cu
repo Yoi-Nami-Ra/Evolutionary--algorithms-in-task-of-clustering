@@ -112,13 +112,10 @@ ErrorCode startCalculatingDistances() {
 	cudaFree( dData );
 
 	// now bind distances to texture, so we could use it for neighbours
-	cudaBindTexture( &offset, &texRef, dDistancesVector, &channelDesc, outputSize * sizeof(float) );
-
-	dim3 dimBlock2( BLOCK_SIZE ); // thread per block
-	dim3 dimGrid2( hGridSize ); // blocks per grid
+	cudaBindTexture( &offset, &texRef, dDistancesVector, &channelDesc, outputSize * sizeof(float) );	
 
 	cudaMalloc( &dNeighbours, data->info.numEntries * MAX_NEIGHBOURS * sizeof(uint) );
-	findNeighbours<<<dimGrid2, dimBlock2>>>( data->info.numEntries, dNeighbours );
+	findNeighbours<<< BLOCK_SIZE, hGridSize >>>( data->info.numEntries, dNeighbours );
 
 	cutilDeviceSynchronize();
 
@@ -225,6 +222,9 @@ __device__ float sqr(float a) {
 //==============================================
 
 const float* getDistances() {
+	if ( hDistancesVector == 0 ) {
+		loadDistanceData();
+	}
 	return hDistancesVector;
 }
 //==============================================
@@ -248,7 +248,7 @@ __global__ void findNeighbours( uint numEntries, uint * output ) {
 
 	for ( i = 0; i < MAX_NEIGHBOURS; i++ ) {
 		neighbours[ i] = 0;
-		neighboursDistances[ MAX_NEIGHBOURS] = 0;
+		neighboursDistances[ i] = 0;
 	}
 	
 
@@ -291,6 +291,9 @@ __global__ void findNeighbours( uint numEntries, uint * output ) {
 //==============================================
 
 const unsigned int* getNeighbours() {
+	if ( hNeighbours == 0 ) {
+		loadDistanceData();
+	}
 	return hNeighbours;
 }
 //==============================================
@@ -305,21 +308,29 @@ ErrorCode releaseNeighbours() {
 
 ErrorCode loadDistanceData() {
 	unsigned int numEntries = 0;
-	unsigned int inputSize = numEntries * ( numEntries - 1 ) / 2;
+	unsigned int inputSize = 0;
 
 	ErrorCode ret = errOk;
 
 	FILE * file = fopen( kIrisDistancesPath, "r" );
 	size_t res = 0;
 	if ( file ) {
+		// read numOfEntries
 		res = fread( &numEntries, sizeof(unsigned int), 1, file );
 		if ( res == 1 ) {
+			inputSize = numEntries * ( numEntries - 1 ) / 2;
+			setNumEntries( numEntries );
 			if ( hDistancesVector == 0 ) {
 				hDistancesVector = (float*)malloc( inputSize * sizeof(float) );
 			}
+			// read distances
 			res = fread( &hDistancesVector, sizeof(float), inputSize, file );
 			if ( res != inputSize ) {
 				ret = errFileCorupted;
+			} else {
+				if
+				// read neighbours
+				res = fread( 
 			}
 		}
 		fclose( file );
@@ -329,17 +340,18 @@ ErrorCode loadDistanceData() {
 }
 //==============================================
 
-errorCode saveDistanceData() {
+ErrorCode saveDistanceData() {
 	// check if we have something worh to save
 	if ( hDistancesVector == 0 ) {
 		return errNoData;
 	}
 
-	unsigned int numEntries = numEntries();
-	unsigned int outputSize = numEntries * ( numEntries - 1 ) / 2;
+	unsigned int entries = numEntries();
+	unsigned int outputSize = entries * ( entries - 1 ) / 2;
 
 	FILE * file = fopen( kIrisDistancesPath, "w" );
 	size_t res = 0;
+	ErrorCode err = errOk;
 	if ( file ) {
 		res = fwrite( &( numEntries ), sizeof(unsigned int), 1, file );
 		if (res == 1) {
@@ -351,9 +363,9 @@ errorCode saveDistanceData() {
 
 		fclose( file );
 	} else {
-		return errFileWrite;
+		err = errFileWrite;
 	}
 
-	return errOk;
+	return err;
 }
 //==============================================

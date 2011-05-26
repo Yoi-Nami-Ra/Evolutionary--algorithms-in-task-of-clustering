@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 	ErrorCode err;
 	
 	if ( getDistances() == 0 ) {
-		err = calculateDistances()
+		err = calculateDistances();
 	}	
 
 	if ( err == errOk ) {		
