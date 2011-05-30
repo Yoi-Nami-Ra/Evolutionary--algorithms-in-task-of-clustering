@@ -136,7 +136,7 @@ __device__ unsigned int fitnesResultIndex( unsigned int solution, char objective
 __global__ void kernelConnectivity();
 __global__ void kernelDisconnectivity();
 __global__ void kernelCorectness();
-__global__ void kernelSorting( bool * dominanceMatrix );
+__global__ void kernelSorting( bool * dominanceMatrix, float * testBuffer );
 __global__ void kernelDominanceCount( bool * dominanceMatrix, unsigned int * dominanceCount );
 __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize, float * frontDensities );
 __global__ void kernelCrossing();
@@ -773,7 +773,7 @@ __global__ void kernelCorectness() {
 //====================================================================
 
 // <<< populationSize, populationSize >>>
-__global__ void kernelSorting( bool * dominanceMatrix ) {
+__global__ void kernelSorting( bool * dominanceMatrix, float * testBuffer ) {
 
 	__shared__ float thisSolutionFitnesResults[ 4];
 	bool currDominance = true;
@@ -787,12 +787,28 @@ __global__ void kernelSorting( bool * dominanceMatrix ) {
 
 	__syncthreads();
 	
-	for ( int i = 0; i < 4 ;i++ ) {		
-		if ( dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0)] >
-			thisSolutionFitnesResults[ i] ) {
-				currDominance = false;
-				break;
-		}
+	for ( int i = 0; i < 4 ;i++ ) {
+		switch ( i ) {
+			case 0: // Density
+			case 3: {// Correctnes
+				// smaller better
+				if ( dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0)] <
+					thisSolutionFitnesResults[ i] ) {
+					currDominance = false;
+					break;
+				}
+			} break;
+			case 1: // Connectivity
+			case 2: { // Disconnectivity
+				// bigger better
+				if ( dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0)] >
+					thisSolutionFitnesResults[ i] ) {
+					currDominance = false;
+					break;
+				}
+			} break;
+		};
+
 	}
 
 	dominanceMatrix[ blockIdx.x * dPopulationSize + threadIdx.x] = currDominance;
