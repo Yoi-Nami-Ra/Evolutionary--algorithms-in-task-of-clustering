@@ -103,10 +103,7 @@ ErrorCode startCalculatingDistances() {
 		return errNoMemory;
 	}
 
-	cudaMemcpy( hDistancesVector, dDistancesVector, outputSize * sizeof(float), cudaMemcpyDeviceToHost );
-	
-	//Save results to file
-	saveDistanceData();
+	cudaMemcpy( hDistancesVector, dDistancesVector, outputSize * sizeof(float), cudaMemcpyDeviceToHost );	
 
 	// no need for raw data - free it
 	cudaFree( dData );
@@ -130,6 +127,9 @@ ErrorCode startCalculatingDistances() {
 	}
 
 	cudaMemcpy( hNeighbours, dNeighbours, data->info.numEntries * MAX_NEIGHBOURS * sizeof(uint), cudaMemcpyDeviceToHost );
+
+	//Save results to file
+	saveDistanceData();
 
 	cudaFree( dNeighbours );
 
@@ -307,7 +307,7 @@ ErrorCode releaseNeighbours() {
 //==============================================
 
 ErrorCode loadDistanceData() {
-	unsigned int numEntries = 0;
+	unsigned int entries = 0;
 	unsigned int inputSize = 0;
 
 	ErrorCode ret = errOk;
@@ -316,24 +316,37 @@ ErrorCode loadDistanceData() {
 	size_t res = 0;
 	if ( file ) {
 		// read numOfEntries
-		res = fread( &numEntries, sizeof(unsigned int), 1, file );
+		res = fread( &entries, sizeof(unsigned int), 1, file );
 		if ( res == 1 ) {
-			inputSize = numEntries * ( numEntries - 1 ) / 2;
-			setNumEntries( numEntries );
+			inputSize = entries * ( entries - 1 ) / 2;
+			setNumEntries( entries );
 			if ( hDistancesVector == 0 ) {
 				hDistancesVector = (float*)malloc( inputSize * sizeof(float) );
 			}
 			// read distances
-			res = fread( &hDistancesVector, sizeof(float), inputSize, file );
+			res = fread( hDistancesVector, sizeof(float), inputSize, file );
 			if ( res != inputSize ) {
 				ret = errFileCorupted;
 			} else {
-				if
+
+				if ( hNeighbours == 0 ) {
+					hNeighbours = (unsigned int*)malloc( entries * MAX_NEIGHBOURS * sizeof(unsigned int) );
+				}
 				// read neighbours
-				res = fread( 
+				res = fread( hNeighbours, MAX_NEIGHBOURS * sizeof(unsigned int), entries, file );
+				if ( res != entries ) {
+					res = errFileCorupted;
+				}
 			}
 		}
 		fclose( file );
+		if ( ret != errOk ) {
+			if ( hNeighbours != 0 ) free( hNeighbours );
+			if ( hDistancesVector != 0 ) free( hDistancesVector );
+			hNeighbours = 0;
+			hDistancesVector = 0;
+			setNumEntries( 0 );
+		}
 	}
 
 	return ret;
@@ -353,11 +366,20 @@ ErrorCode saveDistanceData() {
 	size_t res = 0;
 	ErrorCode err = errOk;
 	if ( file ) {
-		res = fwrite( &( numEntries ), sizeof(unsigned int), 1, file );
+		res = fwrite( &( entries ), sizeof(unsigned int), 1, file );
 		if (res == 1) {
 			res = fwrite( hDistancesVector, sizeof(float), outputSize, file );
 		}
-		if ( res!=1 && res!=outputSize ) {
+
+		if ( res == outputSize ) {
+			if ( hNeighbours != 0 ) {
+				res = 0;
+				// read neighbours
+				res = fwrite( hNeighbours, (MAX_NEIGHBOURS) * sizeof(unsigned int), entries, file );
+			}
+		}
+
+		if ( res!=1 && res!=outputSize && res!=entries ) {
 			err = errFileWrite;
 		}
 

@@ -4,8 +4,6 @@
 
 // Types
 
-
-
 enum ErrorCode {
 	errOk = 0,			// Everything under control
 	errGeneral,			// When we can't say what's wrong
@@ -17,7 +15,6 @@ enum ErrorCode {
 	errDataNotReady,	// LoadData didn't fail but still we receive nil
 	errNoData,			// In place where data should be procesed we got empty
 };
-
 //==============================================
 //== Functions
 

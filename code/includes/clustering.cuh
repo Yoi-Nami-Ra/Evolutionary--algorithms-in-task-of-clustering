@@ -20,6 +20,11 @@ typedef struct unit {
 	char clusters[ MEDOID_VECTOR_SIZE];
 } unit;
 
+typedef struct index2d {
+	unsigned int x;
+	unsigned int y;
+} index2d;
+
 // =======================
 // Functions
 

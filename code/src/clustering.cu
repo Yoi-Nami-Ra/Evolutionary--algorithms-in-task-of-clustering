@@ -21,6 +21,36 @@
 //== Types
 
 //====================================================================
+//== Defines
+ErrorCode translateCudaError( cudaError cuErr ) {
+	ErrorCode err = errOk;
+
+	switch( cuErr ) {
+		case cudaErrorMemoryAllocation:
+			err = errNoMemory; break;
+		case cudaSuccess:
+			err = errOk; break;
+		default:
+			err = errGeneral;
+	};
+
+	return err;
+}
+
+#define enableErrorControl ErrorCode myErr = errOk;\
+	cudaError_t cuErr = cudaSuccess;\
+	unsigned int lineNum
+
+#define checkCuda(x) cuErr = x; if ( cuErr != cudaSuccess ) { lineNum = __LINE__; goto cudaErrorLabel; }
+
+// catch and log errors
+#define catchCudaError cudaErrorLabel:\
+	if ( cuErr != cudaSuccess ) {\
+		printf( "[E][cuda] (%d) \"%s\"\n", cuErr, cudaGetErrorString( cuErr ) );\
+		return translateCudaError( cuErr );\
+	}
+
+//====================================================================
 //== Constants and Globals
 // Host
 static float * dDistances;
@@ -28,12 +58,19 @@ static float * dNeighbours;
 
 static unsigned int populationSize;
 const char threadsPerBlock = 50;
+unsigned int blocksPerEntires = 0;
+
+unsigned int * hDominanceCounts = 0;
+bool * hDominanceMatrix = 0;
+
+unsigned int hNumEntries;
 
 // Device
 __constant__ unsigned int dNumEntries; //< number of records - database size.
 __constant__ unsigned int dThreadsPerBlock; //< how many entries to be calculated in single block.
 __constant__ unsigned int dBlocksPerSolution; //< numEntries / threadsPerBlock.
 __constant__ unsigned int dPopulationSize; //< size of population for EA.
+
 
 /*
  * array to hold EA fitnes results.
@@ -58,13 +95,13 @@ __constant__ char * dMembership;
  * [ populationSize x populationSize]
  * if [ x, y]==true then x dominates y
  */
-__constant__ bool * dDominanceMatrix;
+bool * dDominanceMatrix;
 
 /*
  * array to hold dominance counts ( how many other solutions are dominating this one ).
  * [ populationSize]
  */
-__constant__ unsigned int * dDominanceCounts;
+unsigned int * dDominanceCounts;
 
 /*
  * array to hold current Breeding plan for EA.
@@ -89,6 +126,7 @@ texture<float, cudaTextureType1D, cudaReadModeElementType> texRefNeighbour;
 
 // host
 ErrorCode runAlgorithms( unsigned int steps );
+void hostRandomPopulation( unsigned int popSize, unit * dPopulationPool );
 // device
 __global__ void randomPopulation();
 __global__ void kernelMembershipAndDensity();
@@ -98,8 +136,8 @@ __device__ unsigned int fitnesResultIndex( unsigned int solution, char objective
 __global__ void kernelConnectivity();
 __global__ void kernelDisconnectivity();
 __global__ void kernelCorectness();
-__global__ void kernelSorting();
-__global__ void kernelDominanceCount();
+__global__ void kernelSorting( bool * dominanceMatrix );
+__global__ void kernelDominanceCount( bool * dominanceMatrix, unsigned int * dominanceCount );
 __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize, float * frontDensities );
 __global__ void kernelCrossing();
 __global__ void kernelSumResults();
@@ -108,15 +146,20 @@ __global__ void kernelSumResults();
 //== Functions
 
 ErrorCode generateRandomPopulation( unsigned int popSize ) {
-
 	populationSize = popSize;
 	cudaMemcpyToSymbol( dPopulationSize, &populationSize, sizeof(unsigned int) );
 	unit * populationPool;
 	cudaMalloc( &populationPool, popSize * sizeof(unit) );
 	cudaMemcpyToSymbol( dPopulationPool, &populationPool, sizeof(unit*) );
 
-	randomPopulation<<< 1, popSize>>>();
-	cutilDeviceSynchronize();
+	//randomPopulation<<< 1, popSize>>>();
+	hostRandomPopulation( popSize, populationPool );
+	//cutilDeviceSynchronize();
+
+	cudaError_t cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf("[E][cuda] Error in random population" );
+	}
 
 	return errOk;
 }
@@ -138,15 +181,17 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps ) {
 
 	//   Allocate memory for distances
 	unsigned int offset = 0;
+
+	hNumEntries = numEntries();
 	
-	unsigned int distancesSize = numEntries() * ( numEntries() -1 ) /2 * sizeof(float);
+	unsigned int distancesSize = hNumEntries * ( hNumEntries -1 ) /2 * sizeof(float);
 	cudaMalloc( &dDistances, distancesSize );
 	cudaMemcpy( dDistances, getDistances(), distancesSize, cudaMemcpyHostToDevice );
 	//   bind distances to texture
 	cudaBindTexture( &offset, &texRefDistances, dDistances, &channelDesc, distancesSize );
 
 	//   Allocate memory for neighbours	
-	unsigned int neighbourSize = numEntries() * MAX_NEIGHBOURS * sizeof(unsigned int);
+	unsigned int neighbourSize = hNumEntries * MAX_NEIGHBOURS * sizeof(unsigned int);
 	cudaMalloc( &dNeighbours, neighbourSize );
 	cudaMemcpy( dNeighbours, getNeighbours(), neighbourSize, cudaMemcpyHostToDevice );
 	//   bind neighbours to texture
@@ -161,8 +206,59 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps ) {
 }
 //====================================================================
 
+
+void hostRandomPopulation( unsigned int popSize, unit * dPopulationPool ) {
+	srand( time( 0 ));
+
+	index2d threadIdx;
+
+	unit * populationPool = (unit*)malloc( popSize * sizeof(unit) );
+		
+	unsigned int clustersSum = MEDOID_VECTOR_SIZE;
+	unsigned int proposal;
+	bool proposalOk = false;
+
+	for ( threadIdx.x = 0;  threadIdx.x < populationSize; threadIdx.x++ ) {
+		// attributes
+		populationPool[ threadIdx.x].attr.clusterMaxSize = rand() % MAX_CLUSTER_SIZE + 1;
+		populationPool[ threadIdx.x].attr.numNeighbours = rand() % MAX_NEIGHBOURS + 1;
+
+		// medoids and clusters
+		unsigned int clustersSum = MEDOID_VECTOR_SIZE;
+		unsigned int proposal;
+		bool proposalOk = false;
+		for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+			do {
+				proposalOk = true;
+				proposal = rand() % hNumEntries;
+				for ( int j = 0; j < i; j++ ) {
+					if ( proposal == populationPool[ threadIdx.x].medoids[ j] ) {
+						proposalOk = false;						
+					}
+				}
+			} while ( !proposalOk );
+			populationPool[ threadIdx.x].medoids[ i] = proposal;
+
+			if ( clustersSum > 0 ) {
+				proposal = rand() % populationPool[ threadIdx.x].attr.clusterMaxSize + 1;
+				if ( clustersSum < proposal ) {
+					proposal += clustersSum - proposal;
+				}
+				clustersSum -= proposal;
+				populationPool[ threadIdx.x].clusters[ i] = proposal;
+			} else {
+				populationPool[ threadIdx.x].clusters[ i] = 0;
+			}
+		} // for each medoid in vector
+	}
+
+	cudaMemcpy( dPopulationPool, populationPool, popSize * sizeof(unit), cudaMemcpyHostToDevice );
+}
+//====================================================================
+
+
 // <<< 1, populationSize >>>
-__global__ void randomPopulation() {
+__global__ void kernelRandomPopulation() {
 	if ( threadIdx.x == 0 ) {
 		curand_init( dPopulationSize, dNumEntries, 0, &randState );
 	}
@@ -202,44 +298,65 @@ __global__ void randomPopulation() {
 }
 //====================================================================
 
-ErrorCode runAlgorithms( unsigned int steps ) {
-	// Set ups
-	//float * hFitnesResults = (float*)malloc( populationSize * 4 * sizeof(float) );
+ErrorCode configureAlgoritms() {
+	// Set things up
 	float * fitnesResults = 0;
 	char * membership = 0;
-	unsigned int blocks = numEntries() / threadsPerBlock;
-	while ( blocks * threadsPerBlock < numEntries()) {
-		blocks++;
+	cudaError err = cudaSuccess;
+
+	blocksPerEntires = numEntries() / threadsPerBlock;
+	while ( blocksPerEntires * threadsPerBlock < numEntries()) {
+		blocksPerEntires++;
 	}
 
+	enableErrorControl;
+	//checkCuda(x)	
+
 	// populationSize x numObjectives x blocksPerSolution
-	cudaMalloc( &fitnesResults, populationSize * OBJECTIVES * blocks * sizeof(float) );
-	cudaMemcpyToSymbol( dFitnesResults, &fitnesResults, sizeof(float*) );
-	cudaMalloc( &membership, populationSize * numEntries() * sizeof(char) );
-	cudaMemcpyToSymbol( dMembership, &membership, sizeof(char*) );
+	checkCuda( cudaMalloc( &fitnesResults, populationSize * OBJECTIVES * blocksPerEntires * sizeof(float)));
+	checkCuda( cudaMemcpyToSymbol( dFitnesResults, &fitnesResults, sizeof(float*) ));
+	checkCuda( cudaMalloc( &membership, populationSize * numEntries() * sizeof(char) ));
+	checkCuda( cudaMemcpyToSymbol( dMembership, &membership, sizeof(char*) ));
 
 	// population dominations
 	bool * dominanceMatrix = 0;
 	unsigned int * dominanceCounts = 0;
-	cudaMalloc( &dominanceMatrix, populationSize * populationSize * sizeof(bool) );
-	cudaMemcpyToSymbol( dDominanceMatrix, &dominanceMatrix, sizeof(bool) );
-	cudaMalloc( &dominanceCounts, populationSize * sizeof(unsigned int) );
-	cudaMemcpyToSymbol( dDominanceCounts, &dominanceCounts, sizeof(unsigned int*) );
+	checkCuda( cudaMalloc( &dDominanceMatrix, populationSize * populationSize * sizeof(bool) ));	
+	checkCuda( cudaMalloc( &dDominanceCounts, populationSize * sizeof(unsigned int) ));
+	
+	//=-
 
-	dim3 dimGrid( blocks, populationSize );
-	dim3 dimBlock( threadsPerBlock );
+	hDominanceMatrix = (bool*)malloc( populationSize * populationSize * sizeof(bool));
+	hDominanceCounts = (unsigned int*)malloc( populationSize * sizeof(unsigned int));
+	
+	return errOk;
 
-	dim3 dimGrid2( populationSize );
-	dim3 dimBlock2( MEDOID_VECTOR_SIZE );
+	catchCudaError;
+}
+
+ErrorCode runAlgorithms( unsigned int steps ) {
+
+	enableErrorControl;
+
+	// Set ups
+	myErr = configureAlgoritms();	
+
+	if (myErr != errOk) {
+		return myErr;
+	}
+
+	dim3 dimGrid( blocksPerEntires, populationSize );
+	//dim3 dimBlock( threadsPerBlock );
+
+	//dim3 dimGrid2( populationSize );
+	//dim3 dimBlock2( MEDOID_VECTOR_SIZE );
 
 	unsigned int solutionsLeft = 0;
 	bool * solutionsSelected = (bool*)malloc( populationSize * sizeof(bool) );
 	unsigned int * solutionFronts = (unsigned int*)malloc( populationSize * ( populationSize + 1 ) * sizeof(unsigned int));
 	unsigned int currFront;
 	unsigned int currFrontSize;
-
-	bool * hDominanceMatrix = (bool*)malloc( populationSize * populationSize * sizeof(bool));
-	unsigned int * hDominanceCounts = (unsigned int*)malloc( populationSize * sizeof(unsigned int));
+	
 	float * dFrontDensities = 0;
 	cudaMalloc( &dFrontDensities, populationSize * sizeof(float) );	
 	float * hFrontDensities = (float*)malloc( populationSize * sizeof(float) );
@@ -248,14 +365,14 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 	unsigned int halfPopulation = populationSize / 2;
 	cudaMalloc( &breedingTable, halfPopulation * 4 );
 	cudaMemcpyToSymbol( dBreedingTable, &breedingTable, sizeof(unsigned int*) );
-	
+
 	for (int i = 0; i < steps; i++ ) {
 		// membership and density phase
-		kernelMembershipAndDensity<<<dimGrid, dimBlock>>>();
+		kernelMembershipAndDensity<<<dimGrid, threadsPerBlock>>>();
 		cutilDeviceSynchronize();
 
 		// connectivity phase
-		kernelConnectivity<<<dimGrid, dimBlock>>>();
+		kernelConnectivity<<<dimGrid, threadsPerBlock>>>();
 		cutilDeviceSynchronize();
 
 		// sum up results		
@@ -263,18 +380,30 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 		cutilDeviceSynchronize();
 
 		// disconnectivity phase
-		kernelDisconnectivity<<<dimGrid2, dimBlock2>>>();
+		kernelDisconnectivity<<<populationSize, MEDOID_VECTOR_SIZE>>>();
 		cutilDeviceSynchronize();
 
 		// correctness phase
-		kernelCorectness<<<dimGrid2, dimBlock2>>>();
+		kernelCorectness<<<populationSize, MEDOID_VECTOR_SIZE>>>();
 		cutilDeviceSynchronize();
 
 		// sorting
-		kernelSorting<<<populationSize, populationSize>>>();
+
+		float * dTestBuffer;
+		cudaMalloc( &testBuffer, populationSize * populationSize * sizeof(float) );
+
+		kernelSorting<<<populationSize, populationSize>>>( dDominanceMatrix, dTestBuffer );
 		cutilDeviceSynchronize();
 
-		kernelDominanceCount<<<1, populationSize>>>();
+		cuErr = cudaGetLastError();
+
+		float * hTestBuffer = malloc( populationSize * populationSize * sizeof(float) );
+
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E][cude] After kernelSorting - %s\n", cudaGetErrorString( cuErr ));
+		}
+
+		kernelDominanceCount<<<1, populationSize>>>( dDominanceMatrix, dDominanceCounts );
 		cutilDeviceSynchronize();
 
 		cudaMemcpy( hDominanceMatrix, dDominanceMatrix, populationSize * populationSize * sizeof(bool), cudaMemcpyDeviceToHost );
@@ -644,10 +773,10 @@ __global__ void kernelCorectness() {
 //====================================================================
 
 // <<< populationSize, populationSize >>>
-__global__ void kernelSorting() {
+__global__ void kernelSorting( bool * dominanceMatrix ) {
 
-	__shared__ bool dominating[ MAX_POPULATION_SIZE];
 	__shared__ float thisSolutionFitnesResults[ 4];
+	bool currDominance = true;
 
 	if ( threadIdx.x == 0 ) {		
 		thisSolutionFitnesResults[ 0] = dFitnesResults[ fitnesResultIndex( blockIdx.x, 0, 0)];
@@ -657,36 +786,31 @@ __global__ void kernelSorting() {
 	}
 
 	__syncthreads();
-
-	dominating[ threadIdx.x] = true;
+	
 	for ( int i = 0; i < 4 ;i++ ) {		
 		if ( dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0)] >
-			thisSolutionFitnesResults[ 0] ) {
-				dominating[ threadIdx.x] = false;
+			thisSolutionFitnesResults[ i] ) {
+				currDominance = false;
 				break;
 		}
 	}
 
-	__syncthreads();
-
-	if ( threadIdx.x == 0 ) {
-		memcpy( &dDominanceMatrix[ blockIdx.x * dPopulationSize], dominating, dPopulationSize * sizeof(bool) );
-	}
+	dominanceMatrix[ blockIdx.x * dPopulationSize + threadIdx.x] = currDominance;
 }
 //====================================================================
 
 // <<< 1, poulationSize >>>
-__global__ void kernelDominanceCount() {
+__global__ void kernelDominanceCount( bool * dominanceMatrix, unsigned int * dominanceCount ) {
 
 	unsigned int count = 0;
 
 	for ( int i = 0; i < dPopulationSize; i++ ) {
-		if ( dDominanceMatrix[ i * dPopulationSize + threadIdx.x] ) {
+		if ( dominanceMatrix[ i * dPopulationSize + threadIdx.x] ) {
 			count ++ ;
 		}
 	}
 
-	dDominanceCounts[ threadIdx.x] = 1; //count;
+	dominanceCount[ threadIdx.x] = count;
 }
 //====================================================================
 
