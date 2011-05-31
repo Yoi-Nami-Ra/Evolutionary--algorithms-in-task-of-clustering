@@ -136,7 +136,7 @@ __device__ unsigned int fitnesResultIndex( unsigned int solution, char objective
 __global__ void kernelConnectivity();
 __global__ void kernelDisconnectivity();
 __global__ void kernelCorectness();
-__global__ void kernelSorting( bool * dominanceMatrix, float * testBuffer );
+__global__ void kernelSorting( bool * dominanceMatrix );
 __global__ void kernelDominanceCount( bool * dominanceMatrix, unsigned int * dominanceCount );
 __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize, float * frontDensities );
 __global__ void kernelCrossing();
@@ -183,6 +183,7 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps ) {
 	unsigned int offset = 0;
 
 	hNumEntries = numEntries();
+	cudaMemcpyToSymbol( dNumEntries, &hNumEntries, sizeof(unsigned int) );
 	
 	unsigned int distancesSize = hNumEntries * ( hNumEntries -1 ) /2 * sizeof(float);
 	cudaMalloc( &dDistances, distancesSize );
@@ -304,18 +305,20 @@ ErrorCode configureAlgoritms() {
 	char * membership = 0;
 	cudaError err = cudaSuccess;
 
-	blocksPerEntires = numEntries() / threadsPerBlock;
-	while ( blocksPerEntires * threadsPerBlock < numEntries()) {
+	blocksPerEntires = hNumEntries / threadsPerBlock;
+	while ( blocksPerEntires * threadsPerBlock <  hNumEntries ) {
 		blocksPerEntires++;
 	}
 
 	enableErrorControl;
-	//checkCuda(x)	
+
+	checkCuda( cudaMemcpyToSymbol( dBlocksPerSolution, &blocksPerEntires, sizeof(unsigned int) ));
+	checkCuda( cudaMemcpyToSymbol( dThreadsPerBlock, &threadsPerBlock, sizeof(unsigned int) ));
 
 	// populationSize x numObjectives x blocksPerSolution
 	checkCuda( cudaMalloc( &fitnesResults, populationSize * OBJECTIVES * blocksPerEntires * sizeof(float)));
 	checkCuda( cudaMemcpyToSymbol( dFitnesResults, &fitnesResults, sizeof(float*) ));
-	checkCuda( cudaMalloc( &membership, populationSize * numEntries() * sizeof(char) ));
+	checkCuda( cudaMalloc( &membership, populationSize * hNumEntries * sizeof(char) ));
 	checkCuda( cudaMemcpyToSymbol( dMembership, &membership, sizeof(char*) ));
 
 	// population dominations
@@ -363,41 +366,39 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 
 	unsigned int * breedingTable;
 	unsigned int halfPopulation = populationSize / 2;
-	cudaMalloc( &breedingTable, halfPopulation * 4 );
+	cudaMalloc( &breedingTable, halfPopulation * 4 * sizeof(unsigned int));
 	cudaMemcpyToSymbol( dBreedingTable, &breedingTable, sizeof(unsigned int*) );
 
 	for (int i = 0; i < steps; i++ ) {
 		// membership and density phase
 		kernelMembershipAndDensity<<<dimGrid, threadsPerBlock>>>();
 		cutilDeviceSynchronize();
+		cuErr = cudaGetLastError();
 
 		// connectivity phase
 		kernelConnectivity<<<dimGrid, threadsPerBlock>>>();
 		cutilDeviceSynchronize();
+		cuErr = cudaGetLastError();
 
 		// sum up results		
 		kernelSumResults<<< populationSize,  2 >>>();
 		cutilDeviceSynchronize();
+		cuErr = cudaGetLastError();
 
 		// disconnectivity phase
 		kernelDisconnectivity<<<populationSize, MEDOID_VECTOR_SIZE>>>();
 		cutilDeviceSynchronize();
+		cuErr = cudaGetLastError();
 
 		// correctness phase
 		kernelCorectness<<<populationSize, MEDOID_VECTOR_SIZE>>>();
 		cutilDeviceSynchronize();
-
-		// sorting
-
-		float * dTestBuffer;
-		cudaMalloc( &testBuffer, populationSize * populationSize * sizeof(float) );
-
-		kernelSorting<<<populationSize, populationSize>>>( dDominanceMatrix, dTestBuffer );
-		cutilDeviceSynchronize();
-
 		cuErr = cudaGetLastError();
 
-		float * hTestBuffer = malloc( populationSize * populationSize * sizeof(float) );
+		// sorting
+		kernelSorting<<<populationSize, populationSize>>>( dDominanceMatrix );
+		cutilDeviceSynchronize();
+		cuErr = cudaGetLastError();
 
 		if ( cuErr != cudaSuccess ) {
 			printf( "[E][cude] After kernelSorting - %s\n", cudaGetErrorString( cuErr ));
@@ -405,12 +406,13 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 
 		kernelDominanceCount<<<1, populationSize>>>( dDominanceMatrix, dDominanceCounts );
 		cutilDeviceSynchronize();
+		cuErr = cudaGetLastError();
 
 		cudaMemcpy( hDominanceMatrix, dDominanceMatrix, populationSize * populationSize * sizeof(bool), cudaMemcpyDeviceToHost );
 		cudaMemcpy( hDominanceCounts, dDominanceCounts, populationSize * sizeof( unsigned int ), cudaMemcpyDeviceToHost );
 
 		// setup fronts
-		solutionsLeft = populationSize;
+		solutionsLeft = populationSize / 2; // no need to sort all
 		currFront = 0;
 
 		int j;
@@ -422,7 +424,8 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 		while ( solutionsLeft > 0 ) {
 			currFrontSize = 0;
 			// select solutions for current front - where domination count is 0
-			for ( j = 0; j < populationSize; j++ ) {
+			for ( j = 0; j < populationSize && solutionsLeft > 0; j++ ) {
+				printf( " Dominance count [ %d] = %d \n", j, hDominanceCounts[ j] );
 				if ( !solutionsSelected[ j] && hDominanceCounts[ j] == 0 ) {
 					solutionFronts[ currFront * populationSize + (++currFrontSize)] = j;
 					solutionsSelected[ j] = true;
@@ -430,7 +433,7 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 				}
 			}
 			solutionFronts[ currFront * populationSize] = currFrontSize;
-			solutionsLeft -= currFrontSize;
+			//solutionsLeft -= currFrontSize;
 			
 			if ( solutionsLeft > 0 ) {
 				// for each solution dominated by solution from this front - reduce domination count
@@ -456,9 +459,10 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 		currFront = 0;
 		while ( solutionsLeft > 0 ) {
 			// if we need more than the current front can offer
-			if ( solutionsLeft > solutionFronts[ currFront * populationSize] ) {
-				for ( j = 0; j < solutionsLeft > solutionFronts[ currFront * populationSize]; j++ ) {
+			if ( solutionsLeft >= solutionFronts[ currFront * populationSize] ) {
+				for ( j = 0; j < solutionFronts[ currFront * populationSize]; j++ ) {
 					solutionsSelected[ solutionFronts[ currFront * populationSize + j + 1]] = true;
+					solutionsLeft--;
 				}
 			} else {
 				// this front has more than we need
@@ -544,10 +548,13 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 			}
 		}
 		
-		cudaMemcpy( dBreedingTable, hBreedingTable, halfPopulation * 4 * sizeof(unsigned int), cudaMemcpyHostToDevice );
+		cudaMemcpy( breedingTable, hBreedingTable, halfPopulation * 4 * sizeof(unsigned int), cudaMemcpyHostToDevice );
+		cuErr = cudaGetLastError();
 		// launch crossing
 		kernelCrossing<<< 1, populationSize/2 >>>();
+		cuErr = cudaGetLastError();
 		cutilDeviceSynchronize();
+		cuErr = cudaGetLastError();
 	}
 
 	return errOk;
@@ -586,7 +593,8 @@ __global__ void kernelMembershipAndDensity() {
 	dMembership[ solution * dNumEntries + record] = res;
 
 	// Sync up threads
-	__syncthreads();	
+	__syncthreads();
+
 	if ( threadIdx.x == 0 ) {
 		// sum solutions from all threads in this block
 		currDistance = 0;
@@ -595,8 +603,7 @@ __global__ void kernelMembershipAndDensity() {
 		}
 
 		// sum all solutions for this block
-		dFitnesResults[ fitnesResultIndex( solution, 0, blockIdx.x )] = currDistance;
-		//fitnesResults[ solution * OBJECTIVES * blocksPerSolution + 0 * blocksPerSolution + blockIdx.x] = currDistance;
+		dFitnesResults[ fitnesResultIndex( solution, 0, blockIdx.x )] = currDistance;		
 	}	
 }
 //====================================================================
@@ -670,7 +677,8 @@ __global__ void kernelSumResults() {
 	for ( int i = 0; i < dBlocksPerSolution; i++ ) {
 		result += dFitnesResults[ fitnesResultIndex( blockIdx.x, threadIdx.x, i )];
 	}
-	
+
+	dFitnesResults[ fitnesResultIndex( blockIdx.x, threadIdx.x, 0 )] = result;
 }
 //====================================================================
 
@@ -773,10 +781,15 @@ __global__ void kernelCorectness() {
 //====================================================================
 
 // <<< populationSize, populationSize >>>
-__global__ void kernelSorting( bool * dominanceMatrix, float * testBuffer ) {
+__global__ void kernelSorting( bool * dominanceMatrix ) {
 
 	__shared__ float thisSolutionFitnesResults[ 4];
-	bool currDominance = true;
+
+	// true if this solution (blockIdx.x) dominates the other one (threadIdx.x)
+	bool currDominance = false;
+	float currResult;
+	bool hasBetter = false;
+	bool hasWorse = false;
 
 	if ( threadIdx.x == 0 ) {		
 		thisSolutionFitnesResults[ 0] = dFitnesResults[ fitnesResultIndex( blockIdx.x, 0, 0)];
@@ -786,29 +799,35 @@ __global__ void kernelSorting( bool * dominanceMatrix, float * testBuffer ) {
 	}
 
 	__syncthreads();
-	
-	for ( int i = 0; i < 4 ;i++ ) {
-		switch ( i ) {
-			case 0: // Density
-			case 3: {// Correctnes
-				// smaller better
-				if ( dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0)] <
-					thisSolutionFitnesResults[ i] ) {
-					currDominance = false;
-					break;
-				}
-			} break;
-			case 1: // Connectivity
-			case 2: { // Disconnectivity
-				// bigger better
-				if ( dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0)] >
-					thisSolutionFitnesResults[ i] ) {
-					currDominance = false;
-					break;
-				}
-			} break;
-		};
 
+	for ( int i = 0; i < 4 ;i++ ) {
+		currResult = dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0)];
+		if ( currResult != thisSolutionFitnesResults[ i] ) {
+			switch ( i ) {
+				case 0: // Density
+				case 3: {// Correctnes
+					// smaller better
+					if ( currResult < thisSolutionFitnesResults[ i] ) {
+						hasWorse = true;						
+					} else {
+						hasBetter = true;
+					}
+				} break;
+				case 1: // Connectivity
+				case 2: { // Disconnectivity
+					// bigger better
+					if ( currResult > thisSolutionFitnesResults[ i] ) {
+						hasWorse = true;						
+					} else {
+						hasBetter = true;
+					}
+				} break;
+			}; // switch
+		} // if
+	} // for
+
+	if ( hasBetter && !hasWorse ) {
+		currDominance = true;
 	}
 
 	dominanceMatrix[ blockIdx.x * dPopulationSize + threadIdx.x] = currDominance;
@@ -915,6 +934,9 @@ __global__ void kernelCrossing() {
 			crossTemplate[ i] = mark;
 		}
 	}
+
+	curandState randState;
+	curand_init( dPopulationSize, dNumEntries, 0, &randState );
 
 	__syncthreads();
 
