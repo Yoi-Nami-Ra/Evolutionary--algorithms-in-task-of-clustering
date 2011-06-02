@@ -25,6 +25,13 @@ typedef struct index2d {
 	unsigned int y;
 } index2d;
 
+typedef struct breedDescriptor {
+	unsigned int parent1;
+	unsigned int parent2;
+	unsigned int child;
+	unsigned int factor;
+} breedDescriptor;
+
 // =======================
 // Functions
 
