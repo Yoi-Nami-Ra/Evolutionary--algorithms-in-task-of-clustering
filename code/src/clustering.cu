@@ -139,7 +139,7 @@ __global__ void kernelCorectness();
 __global__ void kernelSorting( bool * dominanceMatrix );
 __global__ void kernelDominanceCount( bool * dominanceMatrix, unsigned int * dominanceCount );
 __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize, float * frontDensities );
-__global__ void kernelCrossing( breedDescriptor * breedingTable, unsigned int * testBuff );
+__global__ void kernelCrossing( breedDescriptor * breedingTable );
 __global__ void kernelSumResults();
 
 //====================================================================
@@ -551,7 +551,7 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 		cudaMemcpy( breedingTable, hBreedingTable, halfPopulation * sizeof(breedDescriptor), cudaMemcpyHostToDevice );
 		cuErr = cudaGetLastError();
 		// launch crossing
-		kernelCrossing<<< 1, halfPopulation >>>( breedingTable, dTestBuff );
+		kernelCrossing<<< 1, halfPopulation >>>( breedingTable );
 		cutilDeviceSynchronize();
 		cuErr = cudaGetLastError();
 	}
@@ -920,7 +920,7 @@ __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize
 //====================================================================
 
 // <<< 1, popSize/2 >>>
-__global__ void kernelCrossing( breedDescriptor * breedingTable, unsigned int * testBuff ) {
+__global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 	
 	__shared__ bool crossTemplate[ MEDOID_VECTOR_SIZE];
 
@@ -1047,7 +1047,6 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable, unsigned int * 
 	}
 
 	// now save the child into memory
-	testBuff[ threadIdx.x] = descriptor.parent1; //descriptor.parent1;
 	dPopulationPool[ descriptor.child] = childUnit;
 }
 //====================================================================
