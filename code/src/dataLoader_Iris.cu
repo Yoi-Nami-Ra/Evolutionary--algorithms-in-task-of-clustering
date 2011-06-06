@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "errors.cuh"
 #include "dataLoader_Iris.cuh"
+#include "dataLoader.cuh"
 
 // Constants
 
@@ -188,5 +189,21 @@ ErrorCode releaseDataStore() {
 		free( gCurrDataStore );
 	}
 	return errOk;
+}
+//====================================================================
+
+unsigned char * loadPreclasifiedData() {
+	unsigned int entries = numEntries();
+	unsigned char * entriesTable = (unsigned char*)malloc( entries * sizeof(unsigned char) );
+
+	unsigned char cluster = 0;
+	for ( int i = 0; i < entries; i++ ) {
+		if ( ( i % 50 ) == 0 ) {
+			cluster++;
+		}
+		entriesTable[ i] = cluster;
+	}
+
+	return entriesTable;
 }
 //====================================================================

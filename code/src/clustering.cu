@@ -125,7 +125,7 @@ texture<float, cudaTextureType1D, cudaReadModeElementType> texRefDistances;
 texture<float, cudaTextureType1D, cudaReadModeElementType> texRefNeighbour;
 
 // host
-ErrorCode runAlgorithms( unsigned int steps );
+ErrorCode runAlgorithms( unsigned int steps, algResults * results );
 void hostRandomPopulation( unsigned int popSize, unit * dPopulationPool );
 // device
 __global__ void randomPopulation();
@@ -165,7 +165,7 @@ ErrorCode generateRandomPopulation( unsigned int popSize ) {
 }
 //====================================================================
 
-ErrorCode runClustering( unsigned int popSize, unsigned int steps ) {
+ErrorCode runClustering( unsigned int popSize, unsigned int steps, algResults * results ) {
 	// Bind textures
 	//   Chanel descriptor
 	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc( 32, 0, 0, 0, cudaChannelFormatKindFloat );
@@ -201,7 +201,7 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps ) {
 	// generate startup population
 	generateRandomPopulation( popSize );
 
-	runAlgorithms( steps );
+	runAlgorithms( steps, results );
 
 	return errOk;
 }
@@ -337,7 +337,7 @@ ErrorCode configureAlgoritms() {
 	catchCudaError;
 }
 
-ErrorCode runAlgorithms( unsigned int steps ) {
+ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 
 	enableErrorControl;
 
@@ -369,31 +369,58 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 	cudaMalloc( &breedingTable, halfPopulation * sizeof(breedDescriptor));
 	cudaMemcpyToSymbol( dBreedingTable, &breedingTable, sizeof(breedDescriptor*) );
 
+	time_t startTime = time( 0 );
+
 	for (int i = 0; i < steps; i++ ) {
 		// membership and density phase
 		kernelMembershipAndDensity<<<dimGrid, threadsPerBlock>>>();
 		cutilDeviceSynchronize();
 		cuErr = cudaGetLastError();
 
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E][cude] After kernelMembershipAndDensity - %s\n", cudaGetErrorString( cuErr ));
+			break;
+		}
+
 		// connectivity phase
 		kernelConnectivity<<<dimGrid, threadsPerBlock>>>();
 		cutilDeviceSynchronize();
 		cuErr = cudaGetLastError();
+
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E][cude] After kernelConnectivity - %s\n", cudaGetErrorString( cuErr ));
+			break;
+		}
 
 		// sum up results		
 		kernelSumResults<<< populationSize,  2 >>>();
 		cutilDeviceSynchronize();
 		cuErr = cudaGetLastError();
 
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E][cude] After kernelSumResults - %s\n", cudaGetErrorString( cuErr ));
+			break;
+		}
+
 		// disconnectivity phase
 		kernelDisconnectivity<<<populationSize, MEDOID_VECTOR_SIZE>>>();
 		cutilDeviceSynchronize();
 		cuErr = cudaGetLastError();
 
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E][cude] After kernelDisconnectivity - %s\n", cudaGetErrorString( cuErr ));
+			break;
+		}
+
 		// correctness phase
 		kernelCorectness<<<populationSize, MEDOID_VECTOR_SIZE>>>();
 		cutilDeviceSynchronize();
 		cuErr = cudaGetLastError();
+
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E][cude] After kernelCorectness - %s\n", cudaGetErrorString( cuErr ));
+			break;
+		}
 
 		// sorting
 		kernelSorting<<<populationSize, populationSize>>>( dDominanceMatrix );
@@ -402,14 +429,26 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 
 		if ( cuErr != cudaSuccess ) {
 			printf( "[E][cude] After kernelSorting - %s\n", cudaGetErrorString( cuErr ));
+			break;
 		}
 
 		kernelDominanceCount<<<1, populationSize>>>( dDominanceMatrix, dDominanceCounts );
 		cutilDeviceSynchronize();
 		cuErr = cudaGetLastError();
 
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E][cude] After kernelDominanceCount - %s\n", cudaGetErrorString( cuErr ));
+			break;
+		}
+
 		cudaMemcpy( hDominanceMatrix, dDominanceMatrix, populationSize * populationSize * sizeof(bool), cudaMemcpyDeviceToHost );
 		cudaMemcpy( hDominanceCounts, dDominanceCounts, populationSize * sizeof( unsigned int ), cudaMemcpyDeviceToHost );
+		cuErr = cudaGetLastError();
+
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E][cude] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
+			break;
+		}
 
 		// setup fronts
 		solutionsLeft = populationSize / 2; // no need to sort all
@@ -424,8 +463,7 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 		while ( solutionsLeft > 0 ) {
 			currFrontSize = 0;
 			// select solutions for current front - where domination count is 0
-			for ( j = 0; j < populationSize && solutionsLeft > 0; j++ ) {
-				printf( " Dominance count [ %d] = %d \n", j, hDominanceCounts[ j] );
+			for ( j = 0; j < populationSize && solutionsLeft > 0; j++ ) {				
 				if ( !solutionsSelected[ j] && hDominanceCounts[ j] == 0 ) {
 					solutionFronts[ currFront * populationSize + (++currFrontSize)] = j;
 					solutionsSelected[ j] = true;
@@ -433,8 +471,7 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 				}
 			}
 			solutionFronts[ currFront * populationSize] = currFrontSize;
-			//solutionsLeft -= currFrontSize;
-			
+						
 			if ( solutionsLeft > 0 ) {
 				// for each solution dominated by solution from this front - reduce domination count
 				for ( j = 0; j < currFrontSize; j++ ) {
@@ -472,6 +509,11 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 				kernelFrontDensity<<<currFrontSize, 4>>>( &solutionFronts[ currFront * populationSize + 1],
 					currFrontSize, dFrontDensities );
 				cutilDeviceSynchronize();
+				cuErr = cudaGetLastError();
+				if ( cuErr != cudaSuccess ) {
+					printf( "[E][cude] After kernelFrontDensity - %s\n", cudaGetErrorString( cuErr ));
+					break;
+				}
 
 				// Export results to Host
 				cudaMemcpy( hFrontDensities, dFrontDensities, currFrontSize * sizeof(float), cudaMemcpyDeviceToHost );
@@ -554,7 +596,21 @@ ErrorCode runAlgorithms( unsigned int steps ) {
 		kernelCrossing<<< 1, halfPopulation >>>( breedingTable );
 		cutilDeviceSynchronize();
 		cuErr = cudaGetLastError();
-	}
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E][cude] After kernelCrossing - %s\n", cudaGetErrorString( cuErr ));
+			break;
+		}
+	} // evolution
+
+	results->time = difftime( time( 0 ), startTime );
+
+	printf( " Finished:\n=====\n  populationSize(%d), steps(%d)\n  timeSpent(%f)\n", populationSize, steps, results->time );
+
+	calculateBDI( results->bdi, results->k );
+
+	calculateDI( results->di );
+
+	calculateRand( results->rand );
 
 	return errOk;
 }
@@ -939,6 +995,7 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 	__syncthreads();
 	
 	
+	
 	char parent1Clusters[ MEDOID_VECTOR_SIZE];
 	char parent2Clusters[ MEDOID_VECTOR_SIZE];
 	
@@ -957,7 +1014,7 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 		parent1Clusters[ i] = j - 1;
 		if ( toSign != 0 ) toSign--;
 	}
-
+	
 	toSign = 0;
 	j = 0;
 	for ( unsigned int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
@@ -969,7 +1026,7 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 	}
 		
 	char childCluster[ MEDOID_VECTOR_SIZE];
-
+	/*
 	// exchange data and put it into child
 	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
 		if ( crossTemplate[ i] ) {
@@ -1048,5 +1105,281 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 
 	// now save the child into memory
 	dPopulationPool[ descriptor.child] = childUnit;
+	*/
+}
+//====================================================================
+
+__device__ unsigned int devCalculateClustersAndDensities( unsigned char * clusters, float * densities ) {
+	// which medoid to what cluster
+	float numbers[ MEDOID_VECTOR_SIZE]; //< number of entries per cluster
+
+
+	// calculate cluster groupings for p
+	unsigned int toSign = 0;
+	unsigned int j = 0;
+	unsigned int i = 0;
+	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		if ( toSign == 0 ) {
+			toSign = dPopulationPool[ threadIdx.x].clusters[ j++];			
+		}
+		clusters[ i] = j - 1;
+		if ( toSign != 0 ) toSign--;
+	}
+	
+	// == 1 == Densities
+	// first clear the array
+	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		densities[ i] = 0;
+		numbers[ i] = 0;
+	}
+
+	// now calculate it
+	for ( i = 0; i < dNumEntries; i++ ) {
+		densities[ clusters[ dMembership[ threadIdx.x * dNumEntries + i]]] += distance( i, dMembership[threadIdx.x * dNumEntries + i] );
+		numbers[ clusters[ dMembership[ threadIdx.x * dNumEntries + i]]] += 1;
+	}
+
+	// means
+	for ( i = 0; i < j; i++ ) {
+		densities[ i] /= (float)numbers[ i];
+	}
+
+	return j;
+}
+
+// <<< 1, dPopulationSize >>>
+__global__ void kernelBDI( float * indexes, unsigned char * clustersCount ) {
+
+	// which medoid to what cluster
+	unsigned char clusters[ MEDOID_VECTOR_SIZE]; //< what medoid to what cluster
+	float densities[ MEDOID_VECTOR_SIZE]; //< densities of each cluster
+	float numbers[ MEDOID_VECTOR_SIZE]; //< number of entries per cluster
+
+
+	// calculate cluster groupings for p
+	unsigned int toSign = 0;
+	unsigned int j = 0;
+	unsigned int i = 0;
+	
+	j = devCalculateClustersAndDensities( clusters, densities );
+	
+	// == 2 == Distances betwen clusters
+	unsigned int k = j;
+	float prevDistance;
+	float currDistance;
+
+	// first clear the array once more
+	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {		
+		numbers[ i] = 0;
+	}
+
+	// for each medoid
+	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		// compare it withe every else medoid
+		prevDistance = 0;
+		for ( j = 0 ; j < MEDOID_VECTOR_SIZE; j++ ) {
+			// if not the same and from the same cluster
+			if ( j != i && clusters[ i] != clusters[ j] ) {
+				currDistance = (( densities[ i] + densities[ j] ) /
+					distance( dPopulationPool[ threadIdx.x].medoids[ i],
+					dPopulationPool[ threadIdx.x].medoids[ j] ));
+
+				// find the biggest one
+				if ( currDistance > prevDistance || prevDistance == 0 ) {
+					prevDistance = currDistance;
+				}
+			}
+		} // for j
+
+		// save it
+		if ( numbers[ clusters[ i]] < prevDistance || numbers[ clusters[ i]] == 0 ) {
+			numbers[ clusters[ i]] = prevDistance;
+		}
+	} // for i
+	
+	// Now calculate the index
+	currDistance = 0;
+	for ( i = 0; i < k; i++ ) {
+		currDistance += numbers[ i];
+	}
+	currDistance /= (float)k;
+	
+	// return results
+	indexes[ threadIdx.x] = currDistance;
+	clustersCount[ threadIdx.x] = k;
+}
+//====================================================================
+ErrorCode calculateBDI( float & topBDI, unsigned int & clusters ) {
+
+	float * dResults;
+	unsigned char * dClusters;
+	cudaMalloc( &dResults, populationSize * sizeof(float) );
+	cudaMalloc( &dClusters, populationSize * sizeof(unsigned int) );
+
+	kernelBDI<<< 1, populationSize >>>( dResults, dClusters );
+	cutilDeviceSynchronize();
+
+	float * hResults = (float*)malloc( populationSize * sizeof(float) );
+	unsigned char * hClusters = (unsigned char*)malloc( populationSize * sizeof(unsigned int) );
+	cudaMemcpy( hResults, dResults, populationSize * sizeof(float), cudaMemcpyDeviceToHost );
+	cudaMemcpy( hClusters, dClusters, populationSize * sizeof(unsigned int), cudaMemcpyDeviceToHost );
+
+	printf( " \n BDI index: \n" );
+	topBDI = hResults[ 0];
+	unsigned int res = 0;
+	for ( int i = 1; i < populationSize; i++ ) {
+		if ( hResults[ i] < topBDI ) {
+			topBDI = hResults[ i];
+			clusters = hClusters[ i];
+			res = i;
+		}
+	}
+	printf( "======\n (%d) %f\n", res, topBDI );
+
+	return errOk;
+}
+//====================================================================
+
+// <<< 1, dPopulationSize >>>
+__global__ void kernelCalculateDI( float * indexes ) {
+	unsigned char clusters[ MEDOID_VECTOR_SIZE];
+	float densities[ MEDOID_VECTOR_SIZE];
+	float lowestDensity = 0;
+
+	unsigned int k = devCalculateClustersAndDensities( clusters, densities );
+	unsigned int j = 0, i = 0;
+
+	float prevDistance = 0;
+	float currDistnace = 0;
+
+	for ( i = 0; i < k; i++ ) {
+		for ( j = 0; j < k; j++ ) {
+			if ( i != j && clusters[ i] != clusters[ j] ) {
+				currDistnace = distance( dPopulationPool[ threadIdx.x].medoids[ i],
+					dPopulationPool[ threadIdx.x].medoids[ j] );
+
+				if ( prevDistance < currDistnace || prevDistance == 0 ) {
+					prevDistance = currDistnace;
+				}
+			}
+		} // j
+	}// i
+
+	lowestDensity = prevDistance;
+	prevDistance = 0;
+	for ( i = 0; i < k; i++ ) {
+		if ( prevDistance < densities[ i] || prevDistance == 0 ) {
+			prevDistance = densities[ i];
+		}
+	}
+
+	lowestDensity /= prevDistance;
+
+	indexes[ threadIdx.x] = lowestDensity;
+}
+
+//====================================================================
+ErrorCode calculateDI( float & topDi ) {
+
+	float * dResults;
+	cudaMalloc( &dResults, populationSize * sizeof(float) );
+
+	kernelCalculateDI<<< 1, populationSize >>>( dResults );
+	cutilDeviceSynchronize();
+
+	float * hResults = (float*)malloc( populationSize * sizeof(float) );
+	cudaMemcpy( hResults, dResults, populationSize * sizeof(float), cudaMemcpyDeviceToHost );
+	unsigned int res = 0;
+
+	printf( " \n DI index: \n" );
+	topDi = hResults[ 0];
+	for ( int i = 1; i < populationSize; i++ ) {
+		if ( hResults[ i] > topDi ) {
+			topDi = hResults[ i];
+			res = i;
+		}
+	}
+	printf( "======\n (%d) %f\n", res, topDi );
+
+	return errOk;
+}
+//====================================================================
+
+// <<< 1, dPopulationSize >>>
+__global__ void kernelCalculateRand( unsigned char * preclasified, float * rand) {
+	unsigned char clusters[ MEDOID_VECTOR_SIZE];
+	float densities[ MEDOID_VECTOR_SIZE];
+	
+	unsigned int k = devCalculateClustersAndDensities( clusters, densities );
+
+	unsigned int i,j;
+	unsigned int tp = 0, tn = 0, fp = 0, fn = 0;
+	bool we, they;
+
+	for ( i = 0; i < dNumEntries; i++ ) {
+		for ( j = 0; j < dNumEntries; j++ ) {
+			if ( i != j ) {
+				we = ( clusters[ dMembership[ threadIdx.x * dNumEntries + i]] ==
+				clusters[ dMembership[ threadIdx.x * dNumEntries + j]] );
+
+				they = ( preclasified[ i] == preclasified[ j] );
+
+				if ( we == they ) {
+					// true
+					if ( we ) {
+						// positive
+						tp++;
+					} else {
+						// negative
+						tn++;
+					}
+				} else {
+					// false
+					if ( we ) {
+						// positive
+						fp++;
+					} else {
+						// negative
+						fn++;
+					}
+				}
+			}
+		} // for j
+	} // for i
+
+	rand[ threadIdx.x] = (float)( tp + tn ) / (float)( tp + fp + tn + fn );
+}
+//====================================================================
+
+ErrorCode calculateRand( float & topRand ) {
+	// Get Clasified data
+	unsigned char * preclasifiedEntires = loadPreclasifiedData();
+
+	unsigned char * dPreclasified;
+	cudaMalloc( &dPreclasified, hNumEntries * sizeof(unsigned char) );
+	cudaMemcpy( dPreclasified, preclasifiedEntires, hNumEntries * sizeof(unsigned char), cudaMemcpyHostToDevice ); 
+
+	float * dRandIndex;
+	cudaMalloc( &dRandIndex, populationSize * sizeof(float) );
+	
+	// run comparision
+	kernelCalculateRand<<< 1, populationSize >>>( dPreclasified, dRandIndex );
+
+	// display results
+	float * hRandIndex = (float*)malloc( populationSize * sizeof(float) );
+	cudaMemcpy( hRandIndex, dRandIndex, populationSize * sizeof(float), cudaMemcpyDeviceToHost );
+
+	topRand = hRandIndex[ 0];
+	unsigned int res = 0;	
+	for ( int i = 1; i < populationSize; i++ ) {
+		if ( hRandIndex[ i] > topRand ) {
+			topRand = hRandIndex[ i];
+			res = i;
+		}
+	}
+	printf( "\n Rand Index:\n" );
+	printf( "======\n (%d) %f\n", res, topRand );
+	
+	return errOk;
 }
 //====================================================================

@@ -26,5 +26,10 @@ unsigned int numEntries();
  */
 void setNumEntries( unsigned int numEntries );
 
+/*
+ * Loads preclasified data. Used for Rand Index.
+ */
+unsigned char * loadPreclasifiedData();
+
 
 #endif //DATALOADER_H
