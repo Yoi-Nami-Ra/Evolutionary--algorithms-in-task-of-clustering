@@ -72,27 +72,21 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stdafx.h">
+    <ClInclude Include="dataLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="targetver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\globals.h">
+    <ClInclude Include="errors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Evo_vs2010_noCUDA.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\dataLoader.cpp">
+    <ClCompile Include="dataLoader.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\dataLoader_Iris.cpp">
+    <ClCompile Include="errors.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
