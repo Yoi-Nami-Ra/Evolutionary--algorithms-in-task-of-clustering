@@ -55,9 +55,6 @@
     <None Include="src\distanceCalculator.cu">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="src\distamceCalculator_Iris.cu">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="src\dataLoader_Iris.cu">
       <Filter>Source Files</Filter>
     </None>
@@ -78,15 +75,33 @@
     <ClInclude Include="errors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dataLoader_Iris.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="distanceCalculator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="loops.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Evo_vs2010_noCUDA.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="dataLoader.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="errors.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dataLoader_Iris.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Evo_vs2010_noCUDA.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="distanceCalculator.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="loops.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

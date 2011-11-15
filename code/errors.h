@@ -28,6 +28,7 @@ typedef enum {
 	errNoData,			// In place where data should be procesed we got empty
 	errOutOfRange,		// We're asking for element pointing outside the range
 	errWrongParameter,	// The parameter we got is wrong.
+	errFailProcessData,	// Failed to process data.
 } ErrorCode;
 
 //==============================================

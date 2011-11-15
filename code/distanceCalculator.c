@@ -62,6 +62,14 @@ float CalculateEntries( unsigned int x, unsigned int y, DataStore * dataStore );
 ErrorCode SaveCalculatedDistances( DataStore * dataStore );
 
 /**
+ * Loads data from file.
+ * @param dataStore - [in,out] pointer to structure with info about file to be oppened.
+ *
+ * @return error code if any
+ */
+ErrorCode LoadCalculatedDistances( DataStore * dataStore );
+
+/**
  * Calculates list of closests neighbours for each entry.
  * @param dataStore	- [in,out] holds required data and used to store results
  *
@@ -197,8 +205,112 @@ float CalculateEntries( unsigned int x, unsigned int y, DataStore * dataStore) {
 }
 //----------------------------------------------
 
+ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
+	// NAME_distances.data
+	unsigned int nameLen = 0;
+	char * fileName = NULL;
+	FILE * file = NULL;
+	unsigned int read = 0;
+
+	if ( dataStore == NULL ||
+		dataStore->info.name == NULL ||
+		dataStore->distances == NULL ||
+		dataStore->neighbours == NULL ) {
+			reportError( errWrongParameter, "Got wrong parameters dataStore:%x, name:%x", dataStore, dataStore->info.name );
+			return errWrongParameter;
+	}
+
+	nameLen = strlen( dataStore->info.name );
+	nameLen += strlen( "_distances.data" );
+	nameLen += 1; // for null
+	fileName = (char*)malloc( nameLen * sizeof(char) );
+	sprintf( fileName, "%s_distances.data", dataStore->info.name );
+
+	if ( fileName == NULL ) {
+		reportError( errFailProcessData, "Failed to generate fileName. Got NULL" );
+		return errFailProcessData;
+	}
+
+	file = fopen( fileName, "r" );
+	if ( file == NULL ) {
+		reportError( errFileWrite, "Failed to open file(%s) for reading.", fileName );
+		return errFileRead;
+	}
+
+	dataStore->info.distancesSize = dataStore->info.numEntries * ( dataStore->info.numEntries - 1 ) / 2;
+	dataStore->distances = (float*)malloc( dataStore->info.distancesSize * sizeof(float) );
+	checkAlloc( dataStore->distances )
+		return GetLastErrorCode();
+	}
+	read = fread( dataStore->distances, sizeof(float), dataStore->info.distancesSize, file );
+	if ( read != dataStore->info.distancesSize ) {
+		reportError( errFileRead, "Failed to read distances data properly." );
+		return errFileRead;
+	}
+
+	dataStore->neighbours = (unsigned int*)malloc( dataStore->info.numEntries * kMaxNeighbours * sizeof( unsigned int ) );
+	checkAlloc( dataStore->neighbours )
+		return GetLastErrorCode();
+	}
+	read = fread( dataStore->neighbours, kMaxNeighbours * sizeof(unsigned int), dataStore->info.numEntries, file );
+	if ( read != dataStore->info.numEntries ) {
+		reportError( errFileRead, "Failed to read neighbours data properly." );
+		return errFileRead;
+	}
+
+	fclose( file );
+
+	return errOk;
+}
+//----------------------------------------------
+
 ErrorCode SaveCalculatedDistances( DataStore * dataStore ) {
-	// save the results
+	// NAME_distances.data
+	unsigned int nameLen = 0;
+	char * fileName = NULL;
+	FILE * file = NULL;
+	unsigned int written = 0;
+
+	if ( dataStore == NULL ||
+		dataStore->info.name == NULL ||
+		dataStore->distances == NULL ||
+		dataStore->neighbours == NULL ) {
+			reportError( errWrongParameter, "Got wrong parameters dataStore:%x, name:%x", dataStore, dataStore->info.name );
+			return errWrongParameter;
+	}
+
+	nameLen = strlen( dataStore->info.name );
+	nameLen += strlen( "_distances.data" );
+	nameLen += 1; // for null
+	fileName = (char*)malloc( nameLen * sizeof(char) );
+	sprintf( fileName, "%s_distances.data", dataStore->info.name );
+
+	if ( fileName == NULL ) {
+		reportError( errFailProcessData, "Failed to generate fileName. Got NULL" );
+		return errFailProcessData;
+	}
+
+	file = fopen( fileName, "w" );
+	if ( file == NULL ) {
+		reportError( errFileWrite, "Failed to open file(%s) for writting.", fileName );
+		return errFileWrite;
+	}
+
+	// write distances
+	written = fwrite( dataStore->distances, sizeof(float), dataStore->info.distancesSize, file );
+	if ( written != dataStore->info.distancesSize ) {
+		reportError( errFileWrite, "Failed to write distances data properly.", fileName );
+		return errFileWrite;
+	}
+	// write neighbours
+	written = fwrite( dataStore->neighbours, kMaxNeighbours * sizeof(unsigned int), dataStore->info.numEntries, file );
+	if ( written != dataStore->info.numEntries ) {
+		reportError( errFileWrite, "Failed to write neighbours data properly.", fileName );
+		return errFileWrite;
+	}
+
+	fclose( file );
+
 	return errOk;
 }
 //----------------------------------------------
@@ -240,7 +352,7 @@ ErrorCode CalculateNeighbours( DataStore *dataStore ) {
 	neighbourLoop.kernel = CalculateNeighboursKernel;
 	neighbourLoop.params = (void*)&params;
 
-	err = RunLoop( neighbourLoop );
+ 	err = RunLoop( neighbourLoop );
 
 	if ( err != errOk ) {
 		reportError( err, "Run loop returned with error" );
@@ -262,26 +374,34 @@ void CalculateNeighboursKernel( LoopContext loop ) {
 	DistancesParams *params = (DistancesParams*)loop.params;
 	record = loop.blockIdx.x * kBlockSize + loop.threadIdx.x;
 
+	if ( record >= params->dataStore->info.numEntries ) {
+		return;
+	}
+
 	// fill with first records from the list as candidates
 	for ( j = 0; j < kMaxNeighbours; j++ ) {
-		if ( j == record ) shift = 1;
-		params->dataStore->neighbours[ record * kMaxNeighbours + j + shift] = j + shift;
-		distancesArray[ j] = params->dataStore->distances[ DistanceVIdx( record, j + shift )];
+		distancesArray[ j] = 0;
 	}
 	
 	// for each record in the data set
-	for ( i = kMaxNeighbours; i < params->dataStore->info.numEntries; i++ ) {
+	for ( i = 0; i < params->dataStore->info.numEntries; i++ ) {
 		if ( record == i ) {
 			// skip this one
 			continue;
 		}
 
-		distance = params->dataStore->distances[ DistanceVIdx( record, i )];
+ 		distance = params->dataStore->distances[ DistanceVIdx( record, i )];
 		candidate = i;
 
 		for ( j = 0; j < kMaxNeighbours; j++ ) {
 			if ( params->dataStore->neighbours[ record * kMaxNeighbours + j] == i ) {
 				// it's already here - break;
+				break;
+			}
+
+			if ( distancesArray[ j] == 0 ) {
+				params->dataStore->neighbours[ record * kMaxNeighbours + j] = candidate;
+				distancesArray[ j] = distance;
 				break;
 			}
 

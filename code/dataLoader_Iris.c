@@ -10,6 +10,7 @@
 #include "dataLoader_Iris.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 //==============================================
 //== Globals
@@ -36,6 +37,9 @@ ErrorCode IrisLoaderFunc( DataStore * irisStore, char loadAll ) {
 	irisStore->info.dimSize = kIrisDimensions;
 	irisStore->info.numEntries = kIrisEntries;
 	irisStore->dataVector = NULL;
+	irisStore->distances = NULL;
+	irisStore->neighbours == NULL;
+	irisStore->info.name = strdup( kDataName );
 
 	if ( !loadAll ) {
 		return err;
@@ -69,6 +73,7 @@ ErrorCode LoadData( DataStore * irisStore ) {
 		return errNoMemory;
 	}
 
+	
 	// open file
 	dataFile = fopen( kDataFilePath, "r" );
 	if ( dataFile == 0 ) {

@@ -108,6 +108,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		// -- Load
 		err = GetCalculatedDistances( selectedLoader - 1, &dataStore );
 
+		// -- Run Algorithms
+
 	}
 
 
