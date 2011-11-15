@@ -49,10 +49,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ShowProgress>LinkVerbose</ShowProgress>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -86,7 +89,6 @@
     <None Include="src\clustering.cu" />
     <None Include="src\dataLoader.cu" />
     <None Include="src\dataLoader_Iris.cu" />
-    <None Include="src\distamceCalculator_Iris.cu" />
     <None Include="src\distanceCalculator.cu" />
     <None Include="src\evoEngine.cu" />
     <None Include="src\main.cu" />
@@ -94,12 +96,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dataLoader.h" />
+    <ClInclude Include="dataLoader_Iris.h" />
+    <ClInclude Include="distanceCalculator.h" />
     <ClInclude Include="errors.h" />
+    <ClInclude Include="loops.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dataLoader.c" />
+    <ClCompile Include="dataLoader_Iris.c" />
+    <ClCompile Include="distanceCalculator.c" />
     <ClCompile Include="errors.c" />
-    <ClCompile Include="Evo_vs2010_noCUDA.cpp" />
+    <ClCompile Include="Evo_vs2010_noCUDA.c" />
+    <ClCompile Include="loops.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

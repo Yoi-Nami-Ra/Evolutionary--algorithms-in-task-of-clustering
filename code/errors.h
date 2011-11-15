@@ -10,10 +10,12 @@
 #ifndef ERRORS_H
 #define ERRORS_H
 
+#include <stdio.h>
+
 //==============================================
 //== Types
 
-typedef enum ErrorCode {
+typedef enum {
 	errOk = 0,			// Everything under control
 	errGeneral,			// When we can't say what's wrong
 	errFileNotFound,	// Requestet file not found
@@ -22,7 +24,10 @@ typedef enum ErrorCode {
 	errFileRead,		// We failed to read from file
 	errNoMemory,		// There is no enough memory
 	errDataNotReady,	// LoadData didn't fail but still we receive nil
+	errBadParam,		// Parameters we received are wrong
 	errNoData,			// In place where data should be procesed we got empty
+	errOutOfRange,		// We're asking for element pointing outside the range
+	errWrongParameter,	// The parameter we got is wrong.
 } ErrorCode;
 
 //==============================================
@@ -31,13 +36,19 @@ typedef enum ErrorCode {
 /*
  * Sets Error code to be retrived as the last one.
  */
-ErrorCode SetLastError( ErrorCode error );
+ErrorCode SetLastErrorCode( ErrorCode error );
 
 /*
  * Returns the last set error code.
  */
 ErrorCode GetLastErrorCode();
 
+/*
+ * Returns short and simple error description
+ */
+char * ErrorDesc( ErrorCode errorType );
+
+//---------------------------------------------------------
 //== Log Functions
 
 #define timeStamp
@@ -47,7 +58,7 @@ ErrorCode GetLastErrorCode();
 /*
  * Log given message as an error.
  */
-#define logError(A, B, ...) logMessage("[E %X] " B, A, __VA_ARGS__)
+#define logError(A, B, ...) logMessage("[E %s]\n%s:%d - %s\n" B, ErrorDesc(A), __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 
 /*
  * Log given message as a warning.
@@ -63,5 +74,12 @@ ErrorCode GetLastErrorCode();
  #define logDebug(A, ...)
 #endif //_DEBUG
 
+#define checkAlloc(A) if(A==NULL) {\
+	SetLastErrorCode( errNoMemory );\
+	logError( errNoMemory, "A" );
+
+#define reportError(A, B, ...) SetLastErrorCode(A); logError(A, B, __VA_ARGS__)
+
+#define checkError
 
 #endif //ERRORS_H

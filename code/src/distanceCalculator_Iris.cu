@@ -38,7 +38,8 @@ __device__ uint vectorIdx(uint x, uint y);
 __device__ float sqr(float a);
 __global__ void findNeighbours( uint numEntries, uint * output );
 
-#define BLOCK_SIZE 16
+
+\
 static const char* kIrisDistancesPath = "./data/iris_distances.data";
 
 //==============================================
@@ -246,11 +247,14 @@ __global__ void findNeighbours( uint numEntries, uint * output ) {
 
 	uint record = blockIdx.x * BLOCK_SIZE + threadIdx.x;
 
+	if ( record >= numEntries ) {
+		return;
+	}
+
 	for ( i = 0; i < MAX_NEIGHBOURS; i++ ) {
 		neighbours[ i] = 0;
 		neighboursDistances[ i] = 0;
 	}
-	
 
 	// for each record in the data set
 	for ( i = 0; i < numEntries; i++ ) {
