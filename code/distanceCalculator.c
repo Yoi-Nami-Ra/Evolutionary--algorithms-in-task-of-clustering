@@ -188,7 +188,7 @@ unsigned int DistanceVIdx( unsigned int a, unsigned int b ) {
 	if ( a > b ) {
 		return a * (a - 1) / 2 + b;
 	} else {		
-		return b * (b - 1) / 2 + b;
+		return b * (b - 1) / 2 + a;
 	}
 }
 //----------------------------------------------

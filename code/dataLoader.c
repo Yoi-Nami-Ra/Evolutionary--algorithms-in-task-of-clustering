@@ -57,15 +57,15 @@ ErrorCode ListAllFunctions( unsigned char *num, char ***list ) {
 	unsigned char i;
 
 	*num = gLoadersListCount;
-	*list = (char**)malloc( sizeof(char**) * gLoadersListCount );
+	list[ 0] = (char**)malloc( sizeof(char**) * gLoadersListCount );
 	if ( *list == NULL ) {
 		return SetLastErrorCode( errNoMemory );
 	}
 	for ( i = 0; i < (*num); i++ ) {
-		*list[ i] = strdup( gLoadersList[i]->name );
-		if ( *list[ i] == NULL ) {
+		list[ 0][ i] = gLoadersList[i]->name;
+		if ( list[ 0][ i] == NULL ) {
 			for (i--; i > 0; i--) {
-				free( *list[ i]);
+				free( list[ 0][ i]);
 			}
 			return SetLastErrorCode( errNoMemory );
 		}

@@ -30,7 +30,7 @@ static const unsigned int kIrisEntries = 150;
  *
  * @return 
  */
-ErrorCode LoadData( DataStore * irisStore );
+static ErrorCode LoadData( DataStore * irisStore );
 
 ErrorCode IrisLoaderFunc( DataStore * irisStore, char loadAll ) {
 	ErrorCode err = errOk;

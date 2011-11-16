@@ -4,6 +4,7 @@
 #include <tchar.h>
 #include "dataLoader.h"
 #include "dataLoader_Iris.h"
+#include "dataLoader_Test.h"
 #include "distanceCalculator.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -82,6 +83,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// -- Setting up all loaders
 	SetupIrisLoader();
+	SetupTestLoader();
 
 	for (;;) {
 
