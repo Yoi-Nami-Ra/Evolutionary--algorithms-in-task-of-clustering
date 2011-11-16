@@ -144,12 +144,12 @@ ErrorCode CalculateDistances( DataStore * dataStore ) {
 	//Check Params:
 	//1) Wrong pointer
 	if ( dataStore == NULL ) {
-		reportError( errBadParam, "NULL given" );
+		reportError( errBadParam, "NULL given%s", "" );
 		return SetLastErrorCode( errBadParam );
 	}
 	//2) got no data
 	if ( dataStore->dataVector ==  NULL || dataStore->info.numEntries == 0 ) {
-		reportError( errNoData, "vector=%x entries=%u", dataStore->dataVector, dataStore->info.numEntries );
+		reportError( errNoData, "vector=%x entries=%u", (unsigned int)dataStore->dataVector, dataStore->info.numEntries );
 		return SetLastErrorCode( errNoData );
 	}
 
@@ -177,7 +177,7 @@ ErrorCode CalculateDistances( DataStore * dataStore ) {
 	err = RunLoop( distanceLoop );
 
 	if ( err != errOk ) {
-		reportError( err, "Run loop returned with error" );
+		reportError( err, "Run loop returned with error%s", "" );
 	}
 
 	return err;
@@ -207,16 +207,16 @@ float CalculateEntries( unsigned int x, unsigned int y, DataStore * dataStore) {
 
 ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 	// NAME_distances.data
-	unsigned int nameLen = 0;
+	unsigned long nameLen = 0;
 	char * fileName = NULL;
 	FILE * file = NULL;
-	unsigned int read = 0;
+	unsigned long read = 0;
 
 	if ( dataStore == NULL ||
 		dataStore->info.name == NULL ||
 		dataStore->distances == NULL ||
 		dataStore->neighbours == NULL ) {
-			reportError( errWrongParameter, "Got wrong parameters dataStore:%x, name:%x", dataStore, dataStore->info.name );
+			reportError( errWrongParameter, "Got wrong parameters dataStore:%x, name:%x", (unsigned int)dataStore, (unsigned int)dataStore->info.name );
 			return errWrongParameter;
 	}
 
@@ -227,7 +227,7 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 	sprintf( fileName, "%s_distances.data", dataStore->info.name );
 
 	if ( fileName == NULL ) {
-		reportError( errFailProcessData, "Failed to generate fileName. Got NULL" );
+		reportError( errFailProcessData, "Failed to generate fileName. Got NULL%s", "" );
 		return errFailProcessData;
 	}
 
@@ -244,7 +244,7 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 	}
 	read = fread( dataStore->distances, sizeof(float), dataStore->info.distancesSize, file );
 	if ( read != dataStore->info.distancesSize ) {
-		reportError( errFileRead, "Failed to read distances data properly." );
+		reportError( errFileRead, "Failed to read distances data properly.%s", "" );
 		return errFileRead;
 	}
 
@@ -254,7 +254,7 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 	}
 	read = fread( dataStore->neighbours, kMaxNeighbours * sizeof(unsigned int), dataStore->info.numEntries, file );
 	if ( read != dataStore->info.numEntries ) {
-		reportError( errFileRead, "Failed to read neighbours data properly." );
+		reportError( errFileRead, "Failed to read neighbours data properly.%s", "" );
 		return errFileRead;
 	}
 
@@ -266,16 +266,16 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 
 ErrorCode SaveCalculatedDistances( DataStore * dataStore ) {
 	// NAME_distances.data
-	unsigned int nameLen = 0;
+	unsigned long nameLen = 0;
 	char * fileName = NULL;
 	FILE * file = NULL;
-	unsigned int written = 0;
+	unsigned long written = 0;
 
 	if ( dataStore == NULL ||
 		dataStore->info.name == NULL ||
 		dataStore->distances == NULL ||
 		dataStore->neighbours == NULL ) {
-			reportError( errWrongParameter, "Got wrong parameters dataStore:%x, name:%x", dataStore, dataStore->info.name );
+			reportError( errWrongParameter, "Got wrong parameters dataStore:%x, name:%x", (unsigned int)dataStore, (unsigned int)dataStore->info.name );
 			return errWrongParameter;
 	}
 
@@ -286,7 +286,7 @@ ErrorCode SaveCalculatedDistances( DataStore * dataStore ) {
 	sprintf( fileName, "%s_distances.data", dataStore->info.name );
 
 	if ( fileName == NULL ) {
-		reportError( errFailProcessData, "Failed to generate fileName. Got NULL" );
+		reportError( errFailProcessData, "Failed to generate fileName. Got NULL%s", "" );
 		return errFailProcessData;
 	}
 
@@ -299,13 +299,13 @@ ErrorCode SaveCalculatedDistances( DataStore * dataStore ) {
 	// write distances
 	written = fwrite( dataStore->distances, sizeof(float), dataStore->info.distancesSize, file );
 	if ( written != dataStore->info.distancesSize ) {
-		reportError( errFileWrite, "Failed to write distances data properly.", fileName );
+		reportError( errFileWrite, "Failed to write distances data properly.%s","" );
 		return errFileWrite;
 	}
 	// write neighbours
 	written = fwrite( dataStore->neighbours, kMaxNeighbours * sizeof(unsigned int), dataStore->info.numEntries, file );
 	if ( written != dataStore->info.numEntries ) {
-		reportError( errFileWrite, "Failed to write neighbours data properly.", fileName );
+		reportError( errFileWrite, "Failed to write neighbours data properly.%s", "" );
 		return errFileWrite;
 	}
 
@@ -323,12 +323,12 @@ ErrorCode CalculateNeighbours( DataStore *dataStore ) {
 	//Check Params:
 	//1) Wrong pointer
 	if ( dataStore == NULL ) {
-		reportError( errBadParam, "NULL given" );
+		reportError( errBadParam, "NULL given%s", "" );
 		return SetLastErrorCode( errBadParam );
 	}
 	//2) got no data
 	if ( dataStore->distances ==  NULL || dataStore->info.distancesSize == 0 ) {
-		reportError( errNoData, "vector=%x entries=%u", dataStore->dataVector, dataStore->info.numEntries );
+		reportError( errNoData, "vector=%x entries=%u", (unsigned int)dataStore->dataVector, dataStore->info.numEntries );
 		return SetLastErrorCode( errNoData );
 	}
 
@@ -355,8 +355,10 @@ ErrorCode CalculateNeighbours( DataStore *dataStore ) {
  	err = RunLoop( neighbourLoop );
 
 	if ( err != errOk ) {
-		reportError( err, "Run loop returned with error" );
+		reportError( err, "Run loop returned with error%s", "" );
 	}
+
+    return err;
 }
 //----------------------------------------------
 
@@ -366,7 +368,6 @@ void CalculateNeighboursKernel( LoopContext loop ) {
 	int j = 0;
 	float distance = 0;
 	float distancesArray[ kMaxNeighbours];
-	char shift = 0;
 	unsigned int candidate = 0;
 	unsigned int a = 0;
 	float b = 0;

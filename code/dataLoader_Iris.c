@@ -8,6 +8,7 @@
  **/
 
 #include "dataLoader_Iris.h"
+#include "errors.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -38,7 +39,7 @@ ErrorCode IrisLoaderFunc( DataStore * irisStore, char loadAll ) {
 	irisStore->info.numEntries = kIrisEntries;
 	irisStore->dataVector = NULL;
 	irisStore->distances = NULL;
-	irisStore->neighbours == NULL;
+	irisStore->neighbours = NULL;
 	irisStore->info.name = strdup( kDataName );
 
 	if ( !loadAll ) {
@@ -63,7 +64,7 @@ ErrorCode LoadData( DataStore * irisStore ) {
 	char read = 0;
 
 	if ( irisStore == NULL ) {
-		reportError ( errWrongParameter, "Should be not NULL." );
+		reportError ( errWrongParameter, "Should be not NULL.%s", "" );
 		return SetLastErrorCode( errWrongParameter );
 	}
 

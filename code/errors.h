@@ -77,7 +77,7 @@ char * ErrorDesc( ErrorCode errorType );
 
 #define checkAlloc(A) if(A==NULL) {\
 	SetLastErrorCode( errNoMemory );\
-	logError( errNoMemory, "A" );
+	logError( errNoMemory, "A%s", "" );
 
 #define reportError(A, B, ...) SetLastErrorCode(A); logError(A, B, __VA_ARGS__)
 
