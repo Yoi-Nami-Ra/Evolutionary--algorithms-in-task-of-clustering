@@ -29,7 +29,7 @@ int main(int argc, char** argv)
 	fwrite("klopik", 1, 6, testFile);
 	fclose(testFile);
 
-	ErrorCode err;
+	ErrorCode err = errOk;
 	
 	if ( getDistances() == 0 ) {
 		err = calculateDistances();

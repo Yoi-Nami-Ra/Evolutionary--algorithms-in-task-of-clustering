@@ -207,7 +207,6 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps, algResults * 
 }
 //====================================================================
 
-
 void hostRandomPopulation( unsigned int popSize, unit * dPopulationPool ) {
 	srand( time( 0 ));
 

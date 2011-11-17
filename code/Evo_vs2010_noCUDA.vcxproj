@@ -95,6 +95,7 @@
     <None Include="src\vectorAdd.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="clustering.h" />
     <ClInclude Include="dataLoader.h" />
     <ClInclude Include="dataLoader_Iris.h" />
     <ClInclude Include="dataLoader_Test.h" />
@@ -104,6 +105,7 @@
     <ClInclude Include="loops.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="clustering.c" />
     <ClCompile Include="dataLoader.c" />
     <ClCompile Include="dataLoader_Iris.c" />
     <ClCompile Include="dataLoader_test.c" />

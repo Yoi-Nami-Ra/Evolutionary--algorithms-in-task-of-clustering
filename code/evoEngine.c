@@ -27,7 +27,7 @@ unsigned char DisplayLoadersList() {
 	// 1) Get the list
 	err = ListAllFunctions( &num, &list );
 	if ( err != errOk ) {
-		reportError( err );
+		reportError( err, "Error while fetching list of loaders%s.", "" );
 	}
 	// 2) Print
 	for ( i = 0; i < num; i++ ) {
