@@ -100,6 +100,7 @@
     <ClInclude Include="dataLoader_Test.h" />
     <ClInclude Include="distanceCalculator.h" />
     <ClInclude Include="errors.h" />
+    <ClInclude Include="evoEngine.h" />
     <ClInclude Include="loops.h" />
   </ItemGroup>
   <ItemGroup>
@@ -108,6 +109,7 @@
     <ClCompile Include="dataLoader_test.c" />
     <ClCompile Include="distanceCalculator.c" />
     <ClCompile Include="errors.c" />
+    <ClCompile Include="evoEngine.c" />
     <ClCompile Include="Evo_vs2010_noCUDA.c" />
     <ClCompile Include="loops.c" />
   </ItemGroup>
