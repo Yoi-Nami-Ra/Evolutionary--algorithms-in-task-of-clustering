@@ -32,7 +32,7 @@ ErrorCode RunLoop( LoopDefinition loop ) {
 		LOOP_THREAD(z) { 
 			LOOP_THREAD(y) { 
 				LOOP_THREAD(x) {
-			context.err == errOk; // reset error
+			context.err = errOk; // reset error
 			loop.kernel( context );
 			if ( context.err != errOk ) {
 				logError( context.err, "block(%u,%u,%u) thread(%u,%u,%u) returned with error.",

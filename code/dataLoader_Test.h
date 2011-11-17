@@ -18,6 +18,6 @@
 /**
  * Setups Iris Loader and ads it to the list.
  */
-void SetupTestLoader();
+void SetupTestLoader( void );
 
 #endif //DATALOADER_IRIS_H

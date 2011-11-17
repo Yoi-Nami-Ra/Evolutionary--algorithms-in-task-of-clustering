@@ -23,7 +23,7 @@ const unsigned char kStepSize = 4;
 
 ErrorCode AddFunction( const char * name, LoaderFunc func ) {
 	DataLoaderEntry* newEntry;
-	int len;
+	unsigned long len;
 
 	logDebug( "Adding Function (%s)", name );
 

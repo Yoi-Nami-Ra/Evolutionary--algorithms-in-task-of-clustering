@@ -32,6 +32,8 @@ static const unsigned int kIrisEntries = 150;
  */
 static ErrorCode LoadData( DataStore * irisStore );
 
+ErrorCode IrisLoaderFunc( DataStore * irisStore, char loadAll );
+
 ErrorCode IrisLoaderFunc( DataStore * irisStore, char loadAll ) {
 	ErrorCode err = errOk;
 
@@ -53,7 +55,7 @@ ErrorCode IrisLoaderFunc( DataStore * irisStore, char loadAll ) {
 }
 //----------------------------------------------
 
-void SetupIrisLoader() {
+void SetupIrisLoader( void ) {
 	AddFunction( kDataName, IrisLoaderFunc );
 }
 

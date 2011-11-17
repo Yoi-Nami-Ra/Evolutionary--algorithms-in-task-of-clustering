@@ -42,7 +42,7 @@ ErrorCode SetLastErrorCode( ErrorCode error );
 /*
  * Returns the last set error code.
  */
-ErrorCode GetLastErrorCode();
+ErrorCode GetLastErrorCode( void );
 
 /*
  * Returns short and simple error description

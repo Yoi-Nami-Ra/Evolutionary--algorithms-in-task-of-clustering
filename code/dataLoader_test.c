@@ -38,6 +38,8 @@ static float kData[] = { 3.0, 2.0,
  */
 static ErrorCode LoadData( DataStore * testStore );
 
+ErrorCode TestLoaderFunc( DataStore * testStore, char loadAll );
+
 ErrorCode TestLoaderFunc( DataStore * testStore, char loadAll ) {
 	ErrorCode err = errOk;
 
@@ -59,13 +61,11 @@ ErrorCode TestLoaderFunc( DataStore * testStore, char loadAll ) {
 }
 //----------------------------------------------
 
-void SetupTestLoader() {
+void SetupTestLoader( void ) {
 	AddFunction( kDataName, TestLoaderFunc );
 }
 
 ErrorCode LoadData( DataStore * testStore ) {
-	int i = 0;
-
 	testStore->dataVector = kData;
 
 	return errOk;
