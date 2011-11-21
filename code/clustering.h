@@ -14,6 +14,13 @@
 #include "dataLoader.h"
 
 //==============================================
+//== Globals
+
+
+#define MAX_CLUSTER_SIZE 10
+#define MEDOID_VECTOR_SIZE 20
+
+//==============================================
 //== Types
 
 /**

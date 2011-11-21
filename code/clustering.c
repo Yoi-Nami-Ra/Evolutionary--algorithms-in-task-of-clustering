@@ -41,7 +41,7 @@ ErrorCode RunAlgorithms( EvolutionProps * props );
  * Just some defaults.
  */
 ErrorCode GenerateDefaultProps( EvolutionProps * props ) {
-#warning TODO: implement
+//TODO: implement
 	return errOk;
 }
 //----------------------------------------------
@@ -55,7 +55,7 @@ ErrorCode RunClustering( EvolutionProps * props ) {
 		return err;
 	}
 
-	err = runAlgorithms( props );
+	err = RunAlgorithms( props );
 
 	if ( err != errOk ) {
 		reportError( err, "Failed with algorithms%s", "" );
@@ -86,7 +86,7 @@ ErrorCode GenerateRandomPopulation( EvolutionProps * props ) {
 		return GetLastErrorCode();
 	}
 
-	srand( time( NULL ) );
+	srand( (unsigned int)time( NULL ) );
 
 	distanceLoop.blockSize.x = props->popSize;
 	distanceLoop.blockSize.y = distanceLoop.gridSize.x = 
@@ -104,8 +104,8 @@ ErrorCode GenerateRandomPopulation( EvolutionProps * props ) {
 }
 //----------------------------------------------
 
-ErrorCode runAlgorithms( EvolutionProps * props ) {
-#warning TODO: implement
+ErrorCode RunAlgorithms( EvolutionProps * props ) {
+//TODO: implement
 	return errOk;
 }
 //----------------------------------------------
