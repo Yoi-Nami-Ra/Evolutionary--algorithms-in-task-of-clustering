@@ -213,9 +213,7 @@ void hostRandomPopulation( unsigned int popSize, unit * dPopulationPool ) {
 	index2d threadIdx;
 
 	unit * populationPool = (unit*)malloc( popSize * sizeof(unit) );
-		
-	unsigned int clustersSum = MEDOID_VECTOR_SIZE;
-	unsigned int proposal;
+
 	bool proposalOk = false;
 
 	for ( threadIdx.x = 0;  threadIdx.x < populationSize; threadIdx.x++ ) {
@@ -377,7 +375,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		cuErr = cudaGetLastError();
 
 		if ( cuErr != cudaSuccess ) {
-			printf( "[E][cude] After kernelMembershipAndDensity - %s\n", cudaGetErrorString( cuErr ));
+			printf( "[E][cuda] After kernelMembershipAndDensity - %s\n", cudaGetErrorString( cuErr ));
 			break;
 		}
 
@@ -387,7 +385,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		cuErr = cudaGetLastError();
 
 		if ( cuErr != cudaSuccess ) {
-			printf( "[E][cude] After kernelConnectivity - %s\n", cudaGetErrorString( cuErr ));
+			printf( "[E][cuda] After kernelConnectivity - %s\n", cudaGetErrorString( cuErr ));
 			break;
 		}
 
@@ -397,7 +395,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		cuErr = cudaGetLastError();
 
 		if ( cuErr != cudaSuccess ) {
-			printf( "[E][cude] After kernelSumResults - %s\n", cudaGetErrorString( cuErr ));
+			printf( "[E][cuda] After kernelSumResults - %s\n", cudaGetErrorString( cuErr ));
 			break;
 		}
 
@@ -407,7 +405,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		cuErr = cudaGetLastError();
 
 		if ( cuErr != cudaSuccess ) {
-			printf( "[E][cude] After kernelDisconnectivity - %s\n", cudaGetErrorString( cuErr ));
+			printf( "[E][cuda] After kernelDisconnectivity - %s\n", cudaGetErrorString( cuErr ));
 			break;
 		}
 
@@ -696,6 +694,7 @@ __global__ void kernelConnectivity() {
 	unit thisSolution = dPopulationPool[ solution];
 	unsigned int memberOf = dMembership[ solution * dNumEntries + record];
 	unsigned int numOfNeighbours = thisSolution.attr.numNeighbours;
+#error commpared should be klasters not single medoids
 
 	__shared__ float blockResults[256];
 	float result = 0;

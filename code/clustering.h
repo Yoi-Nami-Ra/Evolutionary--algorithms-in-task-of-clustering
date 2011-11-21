@@ -19,6 +19,7 @@
 
 #define MAX_CLUSTER_SIZE 10
 #define MEDOID_VECTOR_SIZE 20
+#define MAX_NEIGHBOURS 10
 
 //==============================================
 //== Types
@@ -41,16 +42,27 @@ typedef struct {
 } PopMember;
 
 /**
+ * To hold solution results for each poppulation member.
+ */
+typedef struct {
+	float densities; ///< sum of all densities
+	unsigned int membership[ MEDOID_VECTOR_SIZE]; ///< cluster this medoid belongs to
+	unsigned int clusterMembership[ MEDOID_VECTOR_SIZE]; ///< cluster number this 
+} Solution;
+
+/**
  * Holds data required for algorithms to run.
  */
 typedef struct {
 	unsigned int popSize;
 	unsigned int evoSteps;
 	DataStore *dataStore;
-	unsigned int maxClusterSize;
-	unsigned int medoidsVectorSize;
+	//unsigned int maxClusterSize;
+	//unsigned int medoidsVectorSize;
 	unsigned int crosFactor;
 	PopMember * population;
+	Solution * solutions;
+	unsigned int blocksPerEntries;
 } EvolutionProps;
 //==============================================
 //== Functions
