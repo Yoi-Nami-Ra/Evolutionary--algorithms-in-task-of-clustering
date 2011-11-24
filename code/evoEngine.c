@@ -120,5 +120,5 @@ void runEvo( void ) {
 
 
 	// -- 
-	return 0;
+	return;
 }

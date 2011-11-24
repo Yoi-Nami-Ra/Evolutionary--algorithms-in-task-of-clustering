@@ -49,6 +49,7 @@ typedef struct {
 	unsigned int clusterMembership[ MEDOID_VECTOR_SIZE]; ///< cluster this medoid belongs to
 	unsigned int * recordMembership;
 	float connectivity;
+	float disconnectivity;
 } Solution;
 
 /**

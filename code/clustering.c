@@ -326,4 +326,79 @@ ErrorCode Connectivity( EvolutionProps * props ) {
 	return err;
 }
 //----------------------------------------------
+
+void DisconnectivityKernel( LoopContext loop ) {
+	// For each medoid in solution
+	// check distance to medoids from different clusters
+	// for each such pair, find medoids with smaller distance
+	// to any of the two, and count the ones found
+	// -- more it founds, more the bigger "distance" is betwen clusters
+	unsigned int solution = loop.blockIdx.x;
+	unsigned int medoid = loop.threadIdx.x;
+	EvolutionProps * props = (EvolutionProps*)loop.params;
+	Solution *thisSolution = props->solutions + solution;
+	PopMember *thisMember = props->population + solution;
+	unsigned int counts;
+	unsigned int comparisions;
+	float currDistance;
+	unsigned int i, j;
+
+	comparisions= 0;
+	counts = 0;
+	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		if ( i == medoid || (*thisSolution).clusterMembership[ i] == (*thisSolution).clusterMembership[ medoid] ) {
+			// if same medoid or same cluster - skip
+			continue;
+		}
+
+		comparisions++;
+		currDistance = props->dataStore->distances[ DistanceVIdx( (*thisMember).medoids[ medoid], (*thisMember).medoids[ i] )];
+		for ( j = 0; j < MEDOID_VECTOR_SIZE; j++ ) {
+			if ( j == medoid || j == i ) {
+				// if one of the pair - skip
+				continue;
+			}
+			
+			if ( props->dataStore->distances[ DistanceVIdx( (*thisMember).medoids[ medoid], (*thisMember).medoids[ i] )] <
+				currDistance ) {
+				counts++;
+			}
+		}
+	}
+
+	if ( medoid == 0 ) {
+		// first medoid from the list - do the cleaning
+		(*thisSolution).disconnectivity = 0;
+	}
+
+	(*thisSolution).disconnectivity += ((float)counts) / (float)comparisions;
+}
+//----------------------------------------------
+
+ErrorCode Disconnectivity( EvolutionProps * props ) {
+	ErrorCode err = errOk;
+	LoopDefinition disconnectivityLoop;
+
+	if ( props == NULL || props->solutions == NULL ) {
+		return SetLastErrorCode( errWrongParameter );
+	}
+
+	// <<< populationSize, medoidsVectorSize >>>
+	disconnectivityLoop.gridSize.x = props->popSize;
+	disconnectivityLoop.gridSize.y = 1;
+	disconnectivityLoop.gridSize.z = 1;
+	disconnectivityLoop.blockSize.x = MEDOID_VECTOR_SIZE;
+	disconnectivityLoop.blockSize.y = 1;
+	disconnectivityLoop.blockSize.z = 1;
+	disconnectivityLoop.kernel = DisconnectivityKernel;
+	disconnectivityLoop.params = (void*)&props;
+
+	err = RunLoop( disconnectivityLoop );
+
+	if ( err != errOk ) {
+		reportError( err, "Run loop returned with error%s", "" );
+	}
+	return err;
+}
+//----------------------------------------------
 //----------------------------------------------

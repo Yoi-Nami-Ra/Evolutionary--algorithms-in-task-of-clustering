@@ -774,9 +774,6 @@ __global__ void kernelDisconnectivity() {
 			if ( distance( dPopulationPool[ blockIdx.x].medoids[ threadIdx.x], dPopulationPool[ blockIdx.x].medoids[ j] ) < currDistance ) {
 				counts[ threadIdx.x]++;
 			}
-			if ( distance( i, j ) < currDistance ) {
-				counts[ threadIdx.x]++;
-			}
 		}
 	}
 
@@ -786,6 +783,7 @@ __global__ void kernelDisconnectivity() {
 		float compars = 0;
 		float count = 0;
 		for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+			// TODO: mayby should it be summed up by compar/count each
 			compars += comparisions[ i];
 			count += counts[ i];
 		}
