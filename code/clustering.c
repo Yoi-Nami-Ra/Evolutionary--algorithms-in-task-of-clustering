@@ -202,6 +202,7 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 
 ErrorCode ConfigureAlgoritms( EvolutionProps * props ) {
 	unsigned int i;
+	unsigned int j;
 
 	props->solutions = (Solution*)malloc( props->popSize * sizeof(Solution) );
 
@@ -211,12 +212,17 @@ ErrorCode ConfigureAlgoritms( EvolutionProps * props ) {
 	// clear all densities
 	for ( i = 0; i < props->popSize; i++ ) {
 		props->solutions[ i].densities = 0;
+		for ( j = 0; j < props->dataStore->info.numEntries; i++ ) {
+			props->solutions[ i].recordMembership[j];
+		}
 	}
 
 	props->blocksPerEntries = props->dataStore->info.numEntries / threadsPerBlock;
 	while ( props->blocksPerEntries * threadsPerBlock <  props->dataStore->info.numEntries ) {
 		props->blocksPerEntries++;
 	}
+
+	return errOk;
 }
 //----------------------------------------------
 void MembershipAndDensityKernel( LoopContext loop ) {
@@ -225,21 +231,30 @@ void MembershipAndDensityKernel( LoopContext loop ) {
 	unsigned int record = loop.blockIdx.x + loop.threadIdx.x;
 	unsigned int i;
 	EvolutionProps * props = (EvolutionProps*)loop.params;
+	Solution *thisSolution = props->solutions + solution;
+	PopMember *thisMember = props->population + solution;
+	unsigned int clusterPos = 0;
+	unsigned int clusterSize = (*thisMember).clusters[ clusterPos];
 	float currentDistance = 0;
-	float smallestDistance = props->dataStore->distances[ DistanceVIdx( record, 0 )];
-	props->solutions[ solution].membership[ record] = 0;
+	float smallestDistance = props->dataStore->distances[ DistanceVIdx( record, (*thisMember).medoids[ 0] )];
+	(*thisSolution).recordMembership[ record] = clusterPos;
+	clusterSize--;
 
 	// find closest medoid to this record
 	for ( i = 1; i < MEDOID_VECTOR_SIZE; i++ ) {
-		 currentDistance = props->dataStore->distances[ DistanceVIdx( record, 0 )];
+		if ( clusterSize <= 0 ) {
+			clusterPos++;
+			clusterSize = (*thisMember).clusters[ clusterPos];
+		}
+
+		currentDistance = props->dataStore->distances[ DistanceVIdx( record, (*thisMember).medoids[ i] )];
 		 if ( currentDistance < smallestDistance ) {
 			 smallestDistance = currentDistance;
-			 props->solutions[ solution].membership[ record] = i;
+			 (*thisSolution).clusterMembership[ record] = clusterPos;
 		 }
 	}
-
 	
-	props->solutions[ solution].densities += smallestDistance;
+	(*thisSolution).densities += smallestDistance;
 }
 //----------------------------------------------
 
@@ -272,6 +287,18 @@ ErrorCode MembershipAndDensity( EvolutionProps * props ) {
 void ConnectivityKernel( LoopContext loop ) {
 	unsigned int solution = loop.blockIdx.y;
 	unsigned int record = loop.blockIdx.x + loop.threadIdx.x;
+	EvolutionProps * props = (EvolutionProps*)loop.params;
+	Solution *thisSolution = props->solutions + solution;
+	PopMember *thisMember = props->population + solution;
+	unsigned int i;
+	unsigned int memberOf = (*thisSolution).recordMembership[ record];
+
+	(*thisSolution).connectivity = 0;
+	for ( i = 0; i < (*thisMember).attr.numNeighbours; i++ ) {
+		if ( memberOf == (*thisSolution).recordMembership[ props->dataStore->neighbours[ record * kMaxNeighbours + i]] ) {
+			(*thisSolution).connectivity += 1.0 / (float)(*thisMember).attr.numNeighbours;
+		}
+	}
 }
 //----------------------------------------------
 ErrorCode Connectivity( EvolutionProps * props ) {
@@ -290,6 +317,13 @@ ErrorCode Connectivity( EvolutionProps * props ) {
 	connectivityLoop.blockSize.y = connectivityLoop.blockSize.z = 1;
 	connectivityLoop.kernel = ConnectivityKernel;
 	connectivityLoop.params = (void*)&props;
+
+	err = RunLoop( connectivityLoop );
+
+	if ( err != errOk ) {
+		reportError( err, "Run loop returned with error%s", "" );
+	}
+	return err;
 }
 //----------------------------------------------
 //----------------------------------------------

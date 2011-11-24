@@ -46,8 +46,9 @@ typedef struct {
  */
 typedef struct {
 	float densities; ///< sum of all densities
-	unsigned int membership[ MEDOID_VECTOR_SIZE]; ///< cluster this medoid belongs to
-	unsigned int clusterMembership[ MEDOID_VECTOR_SIZE]; ///< cluster number this 
+	unsigned int clusterMembership[ MEDOID_VECTOR_SIZE]; ///< cluster this medoid belongs to
+	unsigned int * recordMembership;
+	float connectivity;
 } Solution;
 
 /**

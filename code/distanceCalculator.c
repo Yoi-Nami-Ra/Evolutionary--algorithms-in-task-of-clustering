@@ -18,7 +18,6 @@
 //== Globals
 
 #define kBlockSize 16
-#define kMaxNeighbours 10
 
 //==============================================
 //== Functions
@@ -364,8 +363,8 @@ ErrorCode CalculateNeighbours( DataStore *dataStore ) {
 
 void CalculateNeighboursKernel( LoopContext loop ) {
 	unsigned int record = 0;
-	int i = 0;
-	int j = 0;
+	unsigned int i = 0;
+	unsigned int j = 0;
 	float distance = 0;
 	float distancesArray[ kMaxNeighbours];
 	unsigned int candidate = 0;
