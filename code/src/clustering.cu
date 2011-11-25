@@ -822,11 +822,12 @@ __global__ void kernelCorectness() {
 
 	__syncthreads();
 
+	count = 0;
 	if ( threadIdx.x == 0 )  {
 		for ( int i = 0; i < dThreadsPerBlock; i++ ) {
 			count += checks[ i];
 		}
-		dFitnesResults[ fitnesResultIndex( blockIdx.x, 3, 0 )];
+		dFitnesResults[ fitnesResultIndex( blockIdx.x, 3, 0 )] = count;
 	}
 }
 //====================================================================

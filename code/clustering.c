@@ -401,4 +401,62 @@ ErrorCode Disconnectivity( EvolutionProps * props ) {
 	return err;
 }
 //----------------------------------------------
+
+void CorrectnessKernel( LoopContext loop ) {
+	// For this medoid check all other medoids from this solution.
+	// +1 if there are some that repeat
+	// +1 if they're both from different clusters
+	unsigned int solution = loop.blockIdx.x;
+	unsigned int medoid = loop.threadIdx.x;
+	EvolutionProps * props = (EvolutionProps*)loop.params;
+	Solution *thisSolution = props->solutions + solution;
+	PopMember *thisMember = props->population + solution;
+	unsigned int i;
+
+	if ( medoid == 0 ) {
+		(*thisSolution).errors = 0;
+	}
+
+	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		if ( i == medoid ) {
+			continue;
+		}
+
+		if ( (*thisMember).medoids[ i] == (*thisMember).medoids[ medoid] ) {
+			(*thisSolution).errors++;
+		}
+
+		if ( (*thisSolution).clusterMembership[ i] = (*thisSolution).clusterMembership[ medoid] ) {
+			(*thisSolution).errors++;
+		}
+	}
+}
+//----------------------------------------------
+
+ErrorCode Correctness( EvolutionProps * props ) {
+	ErrorCode err = errOk;
+	LoopDefinition correctnessLoop;
+
+	if ( props == NULL || props->solutions == NULL ) {
+		return SetLastErrorCode( errWrongParameter );
+	}
+
+	// <<< populationSize, medoidsVectorSize >>>
+	correctnessLoop.gridSize.x = props->popSize;
+	correctnessLoop.gridSize.y = 1;
+	correctnessLoop.gridSize.z = 1;
+	correctnessLoop.blockSize.x = MEDOID_VECTOR_SIZE;
+	correctnessLoop.blockSize.y = 1;
+	correctnessLoop.blockSize.z = 1;
+	correctnessLoop.kernel = DisconnectivityKernel;
+	correctnessLoop.params = (void*)&props;
+
+	err = RunLoop( correctnessLoop );
+
+	if ( err != errOk ) {
+		reportError( err, "Run loop returned with error%s", "" );
+	}
+	return err;
+}
+//----------------------------------------------
 //----------------------------------------------

@@ -50,6 +50,7 @@ typedef struct {
 	unsigned int * recordMembership;
 	float connectivity;
 	float disconnectivity;
+	unsigned int errors; ///< how much errors has been found
 } Solution;
 
 /**
