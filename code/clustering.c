@@ -227,6 +227,8 @@ ErrorCode ConfigureAlgoritms( EvolutionProps * props ) {
 		return GetLastErrorCode();
 	}
 
+	props->dominanceCounts = (unsigned int*)malloc( props->popSize * sizeof(unsigned int) );
+
 	return errOk;
 }
 //----------------------------------------------
@@ -549,6 +551,49 @@ ErrorCode Sorting( EvolutionProps * props ) {
 	sortingLoop.params = (void*)&props;
 
 	err = RunLoop( sortingLoop );
+
+	if ( err != errOk ) {
+		reportError( err, "Run loop returned with error%s", "" );
+	}
+	return err;
+}
+//----------------------------------------------
+
+void DominanceCountKernel( LoopContext loop ) {
+	// Counts how many other solutions dominate over this one
+	EvolutionProps * props = (EvolutionProps*)loop.params;
+	int i;
+	
+
+	props->dominanceCounts[ loop.threadIdx.x] = 0;
+	for ( int i = 0; i < props->popSize; i++ ) {
+		if ( props->dominanceMatrix[ i * props->popSize + loop.threadIdx.x] ) {
+			// i dominates over threadIdx.x
+			props->dominanceCounts[ loop.threadIdx.x]++ ;
+		}
+	}
+}
+//----------------------------------------------
+
+ErrorCode DominanceCount( EvolutionProps * props ) {
+	ErrorCode err = errOk;
+	LoopDefinition dominanceLoop;
+
+	if ( props == NULL || props->solutions == NULL ) {
+		return SetLastErrorCode( errWrongParameter );
+	}
+
+	// <<< 1, poulationSize >>>
+	dominanceLoop.gridSize.x = 1;
+	dominanceLoop.gridSize.y = 1;
+	dominanceLoop.gridSize.z = 1;
+	dominanceLoop.blockSize.x = props->popSize;
+	dominanceLoop.blockSize.y = 1;
+	dominanceLoop.blockSize.z = 1;
+	dominanceLoop.kernel = SortingKernel;
+	dominanceLoop.params = (void*)&props;
+
+	err = RunLoop( dominanceLoop );
 
 	if ( err != errOk ) {
 		reportError( err, "Run loop returned with error%s", "" );

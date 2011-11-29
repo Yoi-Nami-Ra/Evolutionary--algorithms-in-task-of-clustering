@@ -66,6 +66,7 @@ typedef struct {
 	PopMember * population;
 	Solution * solutions;
 	char * dominanceMatrix; ///< Describes which solution dominates which
+	unsigned int * dominanceCounts; ///< 
 	unsigned int blocksPerEntries;
 } EvolutionProps;
 //==============================================

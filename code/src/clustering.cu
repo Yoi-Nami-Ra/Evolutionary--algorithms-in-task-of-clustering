@@ -882,6 +882,7 @@ __global__ void kernelSorting( bool * dominanceMatrix ) {
 		currDominance = true;
 	}
 
+	// if blockIdx.x dominates over threadIdx.x then true
 	dominanceMatrix[ blockIdx.x * dPopulationSize + threadIdx.x] = currDominance;
 }
 //====================================================================
@@ -893,6 +894,7 @@ __global__ void kernelDominanceCount( bool * dominanceMatrix, unsigned int * dom
 
 	for ( int i = 0; i < dPopulationSize; i++ ) {
 		if ( dominanceMatrix[ i * dPopulationSize + threadIdx.x] ) {
+			// i dominates over threadIdx.x
 			count ++ ;
 		}
 	}
