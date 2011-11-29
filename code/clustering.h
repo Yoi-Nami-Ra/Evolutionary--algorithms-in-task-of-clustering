@@ -50,7 +50,7 @@ typedef struct {
 	unsigned int * recordMembership;
 	float connectivity;
 	float disconnectivity;
-	unsigned int errors; ///< how much errors has been found
+	float errors; ///< how much errors has been found
 } Solution;
 
 /**
@@ -65,6 +65,7 @@ typedef struct {
 	unsigned int crosFactor;
 	PopMember * population;
 	Solution * solutions;
+	char * dominanceMatrix; ///< Describes which solution dominates which
 	unsigned int blocksPerEntries;
 } EvolutionProps;
 //==============================================

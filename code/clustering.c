@@ -222,6 +222,11 @@ ErrorCode ConfigureAlgoritms( EvolutionProps * props ) {
 		props->blocksPerEntries++;
 	}
 
+	props->dominanceMatrix = (char*)malloc( props->popSize * props->popSize * sizeof(char) );
+	checkAlloc( props->dominanceMatrix )
+		return GetLastErrorCode();
+	}
+
 	return errOk;
 }
 //----------------------------------------------
@@ -448,7 +453,7 @@ ErrorCode Correctness( EvolutionProps * props ) {
 	correctnessLoop.blockSize.x = MEDOID_VECTOR_SIZE;
 	correctnessLoop.blockSize.y = 1;
 	correctnessLoop.blockSize.z = 1;
-	correctnessLoop.kernel = DisconnectivityKernel;
+	correctnessLoop.kernel = CorrectnessKernel;
 	correctnessLoop.params = (void*)&props;
 
 	err = RunLoop( correctnessLoop );
@@ -459,4 +464,95 @@ ErrorCode Correctness( EvolutionProps * props ) {
 	return err;
 }
 //----------------------------------------------
+void SortingKernel( LoopContext loop ) {
+	// true if this solution (blockIdx.x) dominates the other one (threadIdx.x)
+	char currDominance = 0;
+	unsigned int i;
+	char hasBetter = 0, hasWorse = 0;
+	EvolutionProps * props = (EvolutionProps*)loop.params;
+	unsigned int me = loop.blockIdx.x;
+	unsigned int he = loop.threadIdx.x;
+
+	for ( i = 0; i < OBJECTIVES; i++ ) {
+		if ( hasWorse && hasBetter ) {
+			// it's already equal so no need for more tests
+			break;
+		}
+		switch ( i ) {
+			case 0: {// Density
+				// smaller better
+				if ( props->solutions[ me].densities == props->solutions[ he].densities ) {
+					continue;
+				} else if ( props->solutions[ me].densities < props->solutions[ he].densities ) {
+					hasBetter = 1;
+				} else {
+					hasWorse = 1;
+				}
+			} break;
+			case 3: {// Correctnes
+				// smaller better
+				if ( props->solutions[ me].errors == props->solutions[ he].errors ) {
+					continue;
+				} else if ( props->solutions[ me].errors < props->solutions[ he].errors ) {
+					hasBetter = 1;
+				} else {
+					hasWorse = 1;
+				}
+			} break;
+			case 1: {// Connectivity
+				// bigger better
+				if ( props->solutions[ me].connectivity == props->solutions[ he].connectivity ) {
+					continue;
+				} else if ( props->solutions[ me].connectivity > props->solutions[ he].connectivity ) {
+					hasBetter = 1;
+				} else {
+					hasWorse = 1;
+				}
+			} break;
+			case 2: { // Disconnectivity
+				// bigger better
+				if ( props->solutions[ me].disconnectivity == props->solutions[ he].disconnectivity ) {
+					continue;
+				} else if ( props->solutions[ me].disconnectivity > props->solutions[ he].disconnectivity ) {
+					hasBetter = 1;
+				} else {
+					hasWorse = 1;
+				}
+			} break;
+		}
+	}
+
+	if ( hasBetter && !hasWorse ) {
+		currDominance = 1
+			;
+	}
+
+	props->dominanceMatrix[ me * props->popSize + he] = currDominance;
+}
+//----------------------------------------------
+ErrorCode Sorting( EvolutionProps * props ) {
+	ErrorCode err = errOk;
+	LoopDefinition sortingLoop;
+
+	if ( props == NULL || props->solutions == NULL ) {
+		return SetLastErrorCode( errWrongParameter );
+	}
+
+	// <<< populationSize, populationSize >>>
+	sortingLoop.gridSize.x = props->popSize;
+	sortingLoop.gridSize.y = 1;
+	sortingLoop.gridSize.z = 1;
+	sortingLoop.blockSize.x = MEDOID_VECTOR_SIZE;
+	sortingLoop.blockSize.y = 1;
+	sortingLoop.blockSize.z = 1;
+	sortingLoop.kernel = SortingKernel;
+	sortingLoop.params = (void*)&props;
+
+	err = RunLoop( sortingLoop );
+
+	if ( err != errOk ) {
+		reportError( err, "Run loop returned with error%s", "" );
+	}
+	return err;
+}
 //----------------------------------------------
