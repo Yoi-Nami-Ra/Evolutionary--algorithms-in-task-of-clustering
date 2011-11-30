@@ -429,6 +429,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 			break;
 		}
 
+		// dominance count
 		kernelDominanceCount<<<1, populationSize>>>( dDominanceMatrix, dDominanceCounts );
 		cutilDeviceSynchronize();
 		cuErr = cudaGetLastError();
@@ -462,18 +463,18 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 			// select solutions for current front - where domination count is 0
 			for ( j = 0; j < populationSize && solutionsLeft > 0; j++ ) {				
 				if ( !solutionsSelected[ j] && hDominanceCounts[ j] == 0 ) {
-					solutionFronts[ currFront * populationSize + (++currFrontSize)] = j;
+					solutionFronts[ currFront * ( populationSize + 1 ) + (++currFrontSize)] = j;
 					solutionsSelected[ j] = true;
 					solutionsLeft--;
 				}
 			}
-			solutionFronts[ currFront * populationSize] = currFrontSize;
+			solutionFronts[ currFront * ( populationSize + 1 ) + 0] = currFrontSize;
 						
 			if ( solutionsLeft > 0 ) {
 				// for each solution dominated by solution from this front - reduce domination count
 				for ( j = 0; j < currFrontSize; j++ ) {
 					for ( int k = 0; k < populationSize; k++ ) {
-						if ( hDominanceMatrix[ solutionFronts[ currFront * populationSize + j + 1] * populationSize + k] ) {
+						if ( hDominanceMatrix[ solutionFronts[ currFront * ( populationSize + 1 ) + j + 1] * populationSize + k] ) {
 							hDominanceCounts[ k] -= 1;
 						}
 					}
@@ -493,17 +494,17 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		currFront = 0;
 		while ( solutionsLeft > 0 ) {
 			// if we need more than the current front can offer
-			if ( solutionsLeft >= solutionFronts[ currFront * populationSize] ) {
-				for ( j = 0; j < solutionFronts[ currFront * populationSize]; j++ ) {
-					solutionsSelected[ solutionFronts[ currFront * populationSize + j + 1]] = true;
+			if ( solutionsLeft >= solutionFronts[ currFront * ( populationSize + 1 ) + 0] ) {
+				for ( j = 0; j < solutionFronts[ currFront * ( populationSize + 1 ) + 0]; j++ ) {
+					solutionsSelected[ solutionFronts[ currFront * ( populationSize + 1 ) + j + 1]] = true;
 					solutionsLeft--;
 				}
 			} else {
 				// this front has more than we need
-				unsigned int currFrontSize = solutionFronts[ currFront * populationSize];
+				currFrontSize = solutionFronts[ currFront * ( populationSize + 1 ) + 0];
 
 				// Calculate densities for solutions in this front
-				kernelFrontDensity<<<currFrontSize, 4>>>( &solutionFronts[ currFront * populationSize + 1],
+				kernelFrontDensity<<<currFrontSize, 4>>>( &solutionFronts[ currFront * ( populationSize + 1 ) + 1],
 					currFrontSize, dFrontDensities );
 				cutilDeviceSynchronize();
 				cuErr = cudaGetLastError();
@@ -519,6 +520,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 				unsigned int smallest = 0;
 
 				// Select first selectionLeft solutions and find the smallest one (bug density)
+				smallest = 0;
 				for ( j = 0; j < currFrontSize; j++ ) {
 					thisFrontSelection [ j] = ( j < solutionsLeft );
 					if ( thisFrontSelection[ j] ) {
@@ -529,9 +531,11 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 				} // for j
 
 				// Now for each solution not selected at first, check if it's bigger than the smallest
-				// If so, replece it with smallest
+				// If so, find new smallest
 				if  ( hFrontDensities[ smallest] != -1 ) {
-					for (; j < solutionFronts[ currFront * populationSize]; j++ ) {
+					for ( j = 0; j < currFrontSize; j++ ) {
+						if ( thisFrontSelection[ j] ) continue;
+
 						if ( hFrontDensities[ j] == -1 || hFrontDensities[ j] > hFrontDensities[ smallest] ) {
 							thisFrontSelection[ smallest] = false;
 							thisFrontSelection[ j] = true;
@@ -550,7 +554,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 				// now mark solutions in main selection table
 				for ( j = 0; j < currFrontSize; j++ ) {
 					if ( thisFrontSelection[ j] ) {
-						solutionsSelected[ solutionFronts[ currFront * populationSize + j + 1]] = true;
+						solutionsSelected[ solutionFronts[ currFront * ( populationSize + 1 ) + j + 1]] = true;
 						solutionsLeft--;
 					}
 				}// for j
@@ -917,7 +921,7 @@ __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize
 	float currResult;
 
 	for ( int i = 0; i < frontSize; i++ ) {
-		if ( threadIdx.x == i ) {
+		if ( blockIdx.x == i ) {
 			// skip if same
 			continue;
 		}

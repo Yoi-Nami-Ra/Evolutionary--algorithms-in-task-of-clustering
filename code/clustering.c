@@ -54,6 +54,7 @@ ErrorCode Connectivity( EvolutionProps * props );
  */
 ErrorCode GenerateDefaultProps( EvolutionProps * props ) {
 //TODO: implement
+	props;
 	return errOk;
 }
 //----------------------------------------------
@@ -113,7 +114,7 @@ void GenerateRandomPopulationKernel( LoopContext loop ) {
 				proposal += clustersSum - proposal;
 			}
 			clustersSum -= proposal;
-			props->population[ loop.threadIdx.x].clusters[ i] = proposal;
+			props->population[ loop.threadIdx.x].clusters[ i] = (char)proposal;
 		} else {
 			props->population[ loop.threadIdx.x].clusters[ i] = 0;
 		}
@@ -158,7 +159,16 @@ ErrorCode GenerateRandomPopulation( EvolutionProps * props ) {
 
 ErrorCode RunAlgorithms( EvolutionProps * props ) {
 	ErrorCode err = errOk;
-	unsigned int i;
+	unsigned int i, j, k;
+	char * solutionsSelected = (char*)malloc( props->popSize * sizeof(char) );
+	unsigned int solutionsLeft = 0;
+	unsigned int currFront = 0;
+	unsigned int currFrontSize = 0;
+	unsigned int * solutionFronts = (unsigned int*)malloc( props->popSize * ( props->popSize + 1 ) * sizeof(unsigned int) );
+	FrontDensities frontDensitiesProps;
+	char * thisFrontSelection = (char*)malloc( props->popSize * sizeof(char) );
+	unsigned int smallest = 0;
+	float * currFrontDensities = NULL;
 
 	err = ConfigureAlgoritms( props );
 	if ( err != errOk ) {
@@ -173,24 +183,148 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 		}
 
 		// connectivity
-
-		// sum up results
+		err = Connectivity( props );
+		if ( err != errOk ) {
+			break;
+		}
 
 		// disconnectivity
+		err = Disconnectivity( props );
+		if ( err != errOk ) {
+			break;
+		}
 
 		// correctness
+		err = Correctness( props );
+		if ( err != errOk ) {
+			break;
+		}
 
 		// sorting
+		err = Correctness( props );
+		if ( err != errOk ) {
+			break;
+		}
 
 		// dominance count
+		err = DominanceCount( props );
+		if ( err != errOk ) {
+			break;
+		}
 
 		// setup fronts
+		solutionsLeft = props->popSize / 2; // no need to sort all
+		currFront = 0;
+
+		for ( j = 0; j < props->popSize; j++ ) {
+			solutionsSelected[ j] = 0; // false
+		}
 
 		// group fronts
+		while ( solutionsLeft > 0 ) {
+			currFrontSize = 0;
+			// select solutions for current front - where domination count is 0
+			for ( j = 0; j < props->popSize && solutionsLeft > 0; j++ ) {				
+				if ( !solutionsSelected[ j] && props->dominanceCounts[ j] == 0 ) {
+					solutionFronts[ currFront * (props->popSize + 1) + (++currFrontSize)] = j;
+					solutionsSelected[ j] = 1; // true
+					solutionsLeft--;
+				}
+			}
+			solutionFronts[ currFront * props->popSize + 0] = currFrontSize;
+						
+			if ( solutionsLeft > 0 ) {
+				// for each solution dominated by solution from this front - reduce domination count
+				for ( j = 0; j < currFrontSize; j++ ) {
+					for ( k = 0; k < props->popSize; k++ ) {
+						if ( props->dominanceMatrix[ solutionFronts[ currFront * ( props->popSize + 1 ) + j + 1] * props->popSize + k] ) {
+							props->dominanceCounts[ k] -= 1;
+						}
+					}
+				}
+			}
+
+			// now for next front
+			currFront++;
+		}
 
 		// selection
+		solutionsLeft = props->popSize / 2; // select half size of population
+		for ( j = 0; j < props->popSize; j++ ) {
+			solutionsSelected[ j] = 0; //false;
+		}
 
-		// 
+		currFront = 0;
+		while ( solutionsLeft > 0 ) {
+			// if we need more than the current front can offer
+			if ( solutionsLeft >= solutionFronts[ currFront * ( props->popSize + 1 ) + 0] ) {
+				for ( j = 0; j < solutionFronts[ currFront * ( props->popSize + 1 ) + 0]; j++ ) {
+					solutionsSelected[ solutionFronts[ currFront * ( props->popSize + 1 ) + j + 1]] = 1; //true;
+					solutionsLeft--;
+				}
+			} else {
+				// this front has more than we need
+				currFrontSize = solutionFronts[ currFront * ( props->popSize + 1 ) + 0];
+
+				// Calculate densities for solutions in this front
+				frontDensitiesProps.props = props;
+				frontDensitiesProps.front = &solutionFronts[ currFront * ( props->popSize + 1 ) + 1];
+				frontDensitiesProps.frontSize = currFrontSize;
+				frontDensitiesProps.densities = NULL;
+				err = FrontDensity( &frontDensitiesProps );
+				if ( err != errOk ) {
+					break;
+				}
+
+				// Select first selectionLeft solutions and find the smallest one (bug density)
+				smallest = 0;
+				for ( j = 0; j < currFrontSize; j++ ) {
+					thisFrontSelection [ j] = ( j < solutionsLeft );
+					if ( thisFrontSelection[ j] ) {
+						if ( frontDensitiesProps.densities[ j] != -1 && 
+							( frontDensitiesProps.densities[ j] < frontDensitiesProps.densities[ smallest] || frontDensitiesProps.densities[ smallest] == -1 ) ) {
+							smallest = j;
+						}
+					}
+				} // for j
+
+				// Now for each solution not selected at first, check if it's bigger than the smallest
+				// If so, replece it with smallest
+				if  ( frontDensitiesProps.densities[ smallest] != -1 ) {
+					for ( j = 0; j < currFrontSize; j++ ) {
+						if ( thisFrontSelection[ j]) {
+							continue;
+						}
+
+						if ( frontDensitiesProps.densities[ j] == -1 || 
+							frontDensitiesProps.densities[ j] > frontDensitiesProps.densities[ smallest] ) {
+							thisFrontSelection[ smallest] = false;
+							thisFrontSelection[ j] = true;
+							smallest = j;
+							for ( int k = 0; k < j; k++ ) {
+								if ( thisFrontSelection[ k] ) {
+									if ( frontDensitiesProps.densities[ k] != -1 && 
+										( frontDensitiesProps.densities[ k] < frontDensitiesProps.densities[ smallest] || 
+										frontDensitiesProps.densities[ smallest] == -1 ) ) {
+										smallest = k;
+									}
+								}
+							} // for k
+						}
+					} // for j
+				}
+
+				// now mark solutions in main selection table
+				for ( j = 0; j < currFrontSize; j++ ) {
+					if ( thisFrontSelection[ j] ) {
+						solutionsSelected[ solutionFronts[ currFront * ( populationSize + 1 ) + j + 1]] = true;
+						solutionsLeft--;
+					}
+				}// for j
+			}
+
+			currFront++;
+		} // while
 
 
 
@@ -303,7 +437,7 @@ void ConnectivityKernel( LoopContext loop ) {
 	(*thisSolution).connectivity = 0;
 	for ( i = 0; i < (*thisMember).attr.numNeighbours; i++ ) {
 		if ( memberOf == (*thisSolution).recordMembership[ props->dataStore->neighbours[ record * kMaxNeighbours + i]] ) {
-			(*thisSolution).connectivity += 1.0 / (float)(*thisMember).attr.numNeighbours;
+			(*thisSolution).connectivity += (float)1.0 / (float)(*thisMember).attr.numNeighbours;
 		}
 	}
 }
@@ -433,7 +567,7 @@ void CorrectnessKernel( LoopContext loop ) {
 			(*thisSolution).errors++;
 		}
 
-		if ( (*thisSolution).clusterMembership[ i] = (*thisSolution).clusterMembership[ medoid] ) {
+		if ( (*thisSolution).clusterMembership[ i] == (*thisSolution).clusterMembership[ medoid] ) {
 			(*thisSolution).errors++;
 		}
 	}
@@ -525,8 +659,7 @@ void SortingKernel( LoopContext loop ) {
 	}
 
 	if ( hasBetter && !hasWorse ) {
-		currDominance = 1
-			;
+		currDominance = 1;
 	}
 
 	props->dominanceMatrix[ me * props->popSize + he] = currDominance;
@@ -562,11 +695,11 @@ ErrorCode Sorting( EvolutionProps * props ) {
 void DominanceCountKernel( LoopContext loop ) {
 	// Counts how many other solutions dominate over this one
 	EvolutionProps * props = (EvolutionProps*)loop.params;
-	int i;
+	unsigned int i;
 	
 
 	props->dominanceCounts[ loop.threadIdx.x] = 0;
-	for ( int i = 0; i < props->popSize; i++ ) {
+	for ( i = 0; i < props->popSize; i++ ) {
 		if ( props->dominanceMatrix[ i * props->popSize + loop.threadIdx.x] ) {
 			// i dominates over threadIdx.x
 			props->dominanceCounts[ loop.threadIdx.x]++ ;
@@ -590,7 +723,7 @@ ErrorCode DominanceCount( EvolutionProps * props ) {
 	dominanceLoop.blockSize.x = props->popSize;
 	dominanceLoop.blockSize.y = 1;
 	dominanceLoop.blockSize.z = 1;
-	dominanceLoop.kernel = SortingKernel;
+	dominanceLoop.kernel = DominanceCountKernel;
 	dominanceLoop.params = (void*)&props;
 
 	err = RunLoop( dominanceLoop );
@@ -600,4 +733,117 @@ ErrorCode DominanceCount( EvolutionProps * props ) {
 	}
 	return err;
 }
+//----------------------------------------------
+
+void FrontDensityKernel( LoopContext loop ) {
+	FrontDensities * frontProps = (FrontDensities*)loop.params;
+
+	char lesserFound = 0; //false;
+	float lesserResult;
+	char biggerFound = 0; //false;
+	float biggerResult;
+
+	float thisResult = SolutionResult( &frontProps->props->solutions[ frontProps->front[ loop.blockIdx.x]], loop.threadIdx.x );
+	float currResult;
+
+	// find the smallest score bigger than this
+	// and biggest score smaller than this
+	for ( int i = 0; i < frontProps->frontSize; i++ ) {
+		if ( loop.blockIdx.x == i ) {
+			// skip if same
+			continue;
+		}
+
+		currResult = SolutionResult( &frontProps->props->solutions[ frontProps->front[ i]], loop.threadIdx.x );
+		// check if lesser
+		if ( thisResult > currResult ) {
+			if ( !lesserFound ) {
+				//lesser = i;
+				lesserFound = true;
+				lesserResult = currResult;
+			} else {
+				if ( lesserResult < currResult ) {
+					//lesser = i;
+					lesserFound = true;
+					lesserResult = currResult;
+				}
+			}
+		}
+
+		// check if bigger
+		if ( thisResult < currResult ) {
+			if ( !biggerFound ) {
+				//bigger = i;
+				biggerFound = true;
+				biggerResult = currResult;
+			} else {
+				if ( biggerResult > currResult ) {
+					//bigger = i;
+					biggerResult = currResult;
+				}
+			}
+		}
+	} // for each solution in this front
+
+	// if first objective of this solution, clean
+	if ( loop.threadIdx.x == 0 ) {
+		frontProps->densities[ loop.blockIdx.x] = 0;
+	}
+
+	// is this an edge solution ?
+	if ( !lesserFound || !biggerFound || frontProps->densities[ loop.blockIdx.x] == -1) {
+		frontProps->densities[ loop.blockIdx.x] = -1;
+	} else {
+		frontProps->densities[ loop.blockIdx.x] += biggerResult - lesserResult;
+	}
+}
+//----------------------------------------------
+
+ErrorCode FrontDensity( FrontDensities * frontProps ) {
+	ErrorCode err = errOk;
+	LoopDefinition dominanceLoop;
+
+	if ( frontProps == NULL || frontProps->props == NULL || frontProps->props->solutions == NULL ) {
+		return SetLastErrorCode( errWrongParameter );
+	}
+
+	// <<< numSolutions, kryterions >>>
+	dominanceLoop.gridSize.x = frontProps->props->popSize;
+	dominanceLoop.gridSize.y = 1;
+	dominanceLoop.gridSize.z = 1;
+	dominanceLoop.blockSize.x = OBJECTIVES;
+	dominanceLoop.blockSize.y = 1;
+	dominanceLoop.blockSize.z = 1;
+	dominanceLoop.kernel = FrontDensityKernel;
+	dominanceLoop.params = (void*)&frontProps;
+
+	err = RunLoop( dominanceLoop );
+
+	if ( err != errOk ) {
+		reportError( err, "Run loop returned with error%s", "" );
+	}
+	return err;
+}
+//----------------------------------------------
+
+float SolutionResult( Solution * solution, char objective ) {
+	switch ( objective ) {
+		case 0: { // Density
+			return solution->densities;
+		} break;
+		case 1: { // Connectivity
+			return solution->connectivity;
+		} break;
+		case 2: { // Disconnectivity
+			return solution->disconnectivity;
+		} break;
+		case 3: { // Correctness
+			return solution->errors;
+		} break;
+		default: {
+			return 0.0;
+		}
+	}
+}
+//----------------------------------------------
 //----------------------------------------------

@@ -69,6 +69,16 @@ typedef struct {
 	unsigned int * dominanceCounts; ///< 
 	unsigned int blocksPerEntries;
 } EvolutionProps;
+
+/**
+ * Data required to calculate
+ */
+typedef struct {
+	EvolutionProps * props;
+	unsigned int * front;
+	unsigned int frontSize;
+	float * densities;
+} FrontDensities
 //==============================================
 //== Functions
 
