@@ -47,6 +47,16 @@ ErrorCode MembershipAndDensity( EvolutionProps * props );
 
 ErrorCode Connectivity( EvolutionProps * props );
 
+ErrorCode Disconnectivity( EvolutionProps * props );
+
+ErrorCode Correctness( EvolutionProps * props );
+
+ErrorCode DominanceCount( EvolutionProps * props );
+
+ErrorCode FrontDensity( FrontDensities * frontProps );
+
+float SolutionResult( Solution * solution, char objective );
+
 //=============================================
 
 /**
@@ -298,10 +308,10 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 
 						if ( frontDensitiesProps.densities[ j] == -1 || 
 							frontDensitiesProps.densities[ j] > frontDensitiesProps.densities[ smallest] ) {
-							thisFrontSelection[ smallest] = false;
-							thisFrontSelection[ j] = true;
+							thisFrontSelection[ smallest] = 0; //false;
+							thisFrontSelection[ j] = 1; //true;
 							smallest = j;
-							for ( int k = 0; k < j; k++ ) {
+							for ( k = 0; k < j; k++ ) {
 								if ( thisFrontSelection[ k] ) {
 									if ( frontDensitiesProps.densities[ k] != -1 && 
 										( frontDensitiesProps.densities[ k] < frontDensitiesProps.densities[ smallest] || 
@@ -317,7 +327,7 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 				// now mark solutions in main selection table
 				for ( j = 0; j < currFrontSize; j++ ) {
 					if ( thisFrontSelection[ j] ) {
-						solutionsSelected[ solutionFronts[ currFront * ( populationSize + 1 ) + j + 1]] = true;
+						solutionsSelected[ solutionFronts[ currFront * ( props->popSize + 1 ) + j + 1]] = 1; //true;
 						solutionsLeft--;
 					}
 				}// for j
@@ -743,12 +753,13 @@ void FrontDensityKernel( LoopContext loop ) {
 	char biggerFound = 0; //false;
 	float biggerResult;
 
-	float thisResult = SolutionResult( &frontProps->props->solutions[ frontProps->front[ loop.blockIdx.x]], loop.threadIdx.x );
+	float thisResult = SolutionResult( &frontProps->props->solutions[ frontProps->front[ loop.blockIdx.x]], (char)loop.threadIdx.x );
 	float currResult;
+	unsigned int i;
 
 	// find the smallest score bigger than this
 	// and biggest score smaller than this
-	for ( int i = 0; i < frontProps->frontSize; i++ ) {
+	for ( i = 0; i < frontProps->frontSize; i++ ) {
 		if ( loop.blockIdx.x == i ) {
 			// skip if same
 			continue;
@@ -759,12 +770,12 @@ void FrontDensityKernel( LoopContext loop ) {
 		if ( thisResult > currResult ) {
 			if ( !lesserFound ) {
 				//lesser = i;
-				lesserFound = true;
+				lesserFound = 1; //true;
 				lesserResult = currResult;
 			} else {
 				if ( lesserResult < currResult ) {
 					//lesser = i;
-					lesserFound = true;
+					lesserFound = 1; //true;
 					lesserResult = currResult;
 				}
 			}
@@ -774,7 +785,7 @@ void FrontDensityKernel( LoopContext loop ) {
 		if ( thisResult < currResult ) {
 			if ( !biggerFound ) {
 				//bigger = i;
-				biggerFound = true;
+				biggerFound = 1; //true;
 				biggerResult = currResult;
 			} else {
 				if ( biggerResult > currResult ) {

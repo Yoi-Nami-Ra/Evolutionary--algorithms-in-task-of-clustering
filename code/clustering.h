@@ -78,7 +78,7 @@ typedef struct {
 	unsigned int * front;
 	unsigned int frontSize;
 	float * densities;
-} FrontDensities
+} FrontDensities;
 //==============================================
 //== Functions
 
