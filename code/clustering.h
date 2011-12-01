@@ -79,6 +79,16 @@ typedef struct {
 	unsigned int frontSize;
 	float * densities;
 } FrontDensities;
+
+/**
+ * Describes single child.
+ */
+typedef struct breedDescriptor {
+	unsigned int parent1;
+	unsigned int parent2;
+	unsigned int child;
+	unsigned int factor;
+} BreedDescriptor;
 //==============================================
 //== Functions
 

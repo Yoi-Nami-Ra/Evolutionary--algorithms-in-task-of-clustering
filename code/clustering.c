@@ -336,7 +336,35 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 			currFront++;
 		} // while
 
+		// crossing		
+		// breedingTable[ parent1, parent2, child, mutation probability]
+		{
+			BreedDescriptor * breedingTable = (breedDescriptor*)malloc( props->popSize / 2 * sizeof(BreedDescriptor) );
+			unsigned int currParent1 = 0;
+			unsigned int currParent2 = 0;
+			unsigned int currChild = 0;
 
+			srand( time( 0 ) );
+			// generate breeding Table
+			for ( j = 0; j < props->popSize; j++ ) {
+				if ( solutionsSelected[ j] ) {
+					// place for parent
+					if ( currParent1 <= currParent2 ) {
+						// place taken by first parent
+						breedingTable[ currParent1++].parent1 = j;
+						breedingTable[ currParent1++].parent2 = j;
+					} else {
+						breedingTable[ currParent2++].parent2 = j;
+						breedingTable[ currParent2++].parent1 = j;
+					}
+				} else {
+					// place for child
+					breedingTable[ currChild].child = j;
+					// mutation probability
+					breedingTable[ currChild++].factor = rand() % 100; 
+				}
+			}
+		}
 
 	}
 
