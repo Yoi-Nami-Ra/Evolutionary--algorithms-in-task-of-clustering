@@ -589,7 +589,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 				// mutation probability
 				hBreedingTable[ currChild++].factor = rand() % 100; 
 			}
-		}
+		} // for j
 
 		cudaMemcpy( breedingTable, hBreedingTable, halfPopulation * sizeof(breedDescriptor), cudaMemcpyHostToDevice );
 		cuErr = cudaGetLastError();
@@ -989,8 +989,11 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 
 	// calculate crossing template
 	if ( threadIdx.x == 0 ) {		
-		for ( int i = 0, j = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-			if ( j >= stepSize ) mark = !mark;
+		for ( int i = 0, j = 0; i < MEDOID_VECTOR_SIZE; i++, j++ ) {
+			if ( j >= stepSize ) {
+				mark = !mark;
+				j = 0;
+			}
 			crossTemplate[ i] = mark;
 		}
 	}
@@ -1043,22 +1046,6 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 	// copy attributes from first parent
 	childUnit.attr.clusterMaxSize = dPopulationPool[ descriptor.parent1].attr.clusterMaxSize;
 	childUnit.attr.numNeighbours = dPopulationPool[ descriptor.parent1].attr.numNeighbours;
-	
-	// check groups sizes, if needed regroup
-	unsigned int index = 0;
-	char cluster = childCluster[ 0];
-	childUnit.clusters[ 0] = 0;
-	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-		if ( childCluster[ i] == cluster && childUnit.clusters[ index] < childUnit.attr.clusterMaxSize ) {
-			childUnit.clusters[ index]++;
-		} else {
-			childUnit.clusters[ ++index] = 1;
-			cluster = childCluster[ i];
-		}
-	}
-	for ( int i = index+1; i < MEDOID_VECTOR_SIZE; i++ ) {
-		childUnit.clusters[ i] = 0;
-	}
 
 	// mutation
 	
@@ -1104,6 +1091,22 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 	// generate new random medoids
 	for ( char i = 0; i < howMany; i++ ) {
 		childUnit.medoids[ curand( &randState ) % MEDOID_VECTOR_SIZE] = curand( &randState ) % dNumEntries;
+	}
+	
+	// check groups sizes, if needed regroup
+	unsigned int index = 0;
+	char cluster = childCluster[ 0];
+	childUnit.clusters[ 0] = 0;
+	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		if ( childCluster[ i] == cluster && childUnit.clusters[ index] < childUnit.attr.clusterMaxSize ) {
+			childUnit.clusters[ index]++;
+		} else {
+			childUnit.clusters[ ++index] = 1;
+			cluster = childCluster[ i];
+		}
+	}
+	for ( int i = index+1; i < MEDOID_VECTOR_SIZE; i++ ) {
+		childUnit.clusters[ i] = 0;
 	}
 
 	// now save the child into memory

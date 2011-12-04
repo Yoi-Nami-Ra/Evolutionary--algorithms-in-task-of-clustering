@@ -38,7 +38,8 @@ typedef struct {
 typedef struct {
 	PopMemberAttributes attr;
 	unsigned int medoids[ MEDOID_VECTOR_SIZE];
-	char clusters[ MEDOID_VECTOR_SIZE];
+	unsigned int clusters[ MEDOID_VECTOR_SIZE];
+	unsigned int clusterMembership[ MEDOID_VECTOR_SIZE]; ///< cluster this medoid belongs to
 } PopMember;
 
 /**
@@ -46,7 +47,6 @@ typedef struct {
  */
 typedef struct {
 	float densities; ///< sum of all densities
-	unsigned int clusterMembership[ MEDOID_VECTOR_SIZE]; ///< cluster this medoid belongs to
 	unsigned int * recordMembership;
 	float connectivity;
 	float disconnectivity;
@@ -83,12 +83,22 @@ typedef struct {
 /**
  * Describes single child.
  */
-typedef struct breedDescriptor {
+typedef struct {
 	unsigned int parent1;
 	unsigned int parent2;
 	unsigned int child;
 	unsigned int factor;
 } BreedDescriptor;
+
+/**
+ * Breeding properties for crossing function.
+ */
+typedef struct {
+	BreedDescriptor * table;
+	PopMember * newPopulation;
+	EvolutionProps * props;
+	char crossTemplate[MEDOID_VECTOR_SIZE];
+} BreedingTable;
 //==============================================
 //== Functions
 
