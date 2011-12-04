@@ -95,7 +95,6 @@ typedef struct {
  */
 typedef struct {
 	BreedDescriptor * table;
-	PopMember * newPopulation;
 	EvolutionProps * props;
 	char crossTemplate[MEDOID_VECTOR_SIZE];
 } BreedingTable;

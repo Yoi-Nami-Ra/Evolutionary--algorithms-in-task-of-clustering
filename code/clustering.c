@@ -55,6 +55,8 @@ ErrorCode DominanceCount( EvolutionProps * props );
 
 ErrorCode FrontDensity( FrontDensities * frontProps );
 
+ErrorCode Crossing( BreedingTable * breedingProps );
+
 float SolutionResult( Solution * solution, char objective );
 
 //=============================================
@@ -178,6 +180,8 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 	FrontDensities frontDensitiesProps;
 	char * thisFrontSelection = (char*)malloc( props->popSize * sizeof(char) );
 	unsigned int smallest = 0;
+	BreedingTable breedingData;
+	breedingData.table = NULL;
 	//float * currFrontDensities = NULL;
 
 	err = ConfigureAlgorithms( props );
@@ -339,10 +343,13 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 		// crossing		
 		// breedingTable[ parent1, parent2, child, mutation probability]
 		{
-			BreedDescriptor * breedingTable = (BreedDescriptor*)malloc( props->popSize / 2 * sizeof(BreedDescriptor) );
 			unsigned int currParent1 = 0;
 			unsigned int currParent2 = 0;
 			unsigned int currChild = 0;
+
+			if ( breedingData.table == NULL ) {
+				breedingData.table = (BreedDescriptor*)malloc( props->popSize / 2 * sizeof(BreedDescriptor) );
+			}
 
 			srand( (unsigned int)time( 0 ) );
 			// generate breeding Table
@@ -351,22 +358,29 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 					// place for parent
 					if ( currParent1 <= currParent2 ) {
 						// place taken by first parent
-						breedingTable[ currParent1++].parent1 = j;
-						breedingTable[ currParent1++].parent2 = j;
+						breedingData.table[ currParent1++].parent1 = j;
+						breedingData.table[ currParent1++].parent2 = j;
 					} else {
-						breedingTable[ currParent2++].parent2 = j;
-						breedingTable[ currParent2++].parent1 = j;
+						breedingData.table[ currParent2++].parent2 = j;
+						breedingData.table[ currParent2++].parent1 = j;
 					}
-				} 
-				// place for child
-				breedingTable[ currChild].child = j;
-				// mutation probability
-				breedingTable[ currChild++].factor = rand() % 100;
+				} else {
+					// place for child
+					breedingData.table[ currChild].child = j;
+					// mutation probability
+					breedingData.table[ currChild++].factor = rand() % 100;
+				}
 			} // for j
 
-			// launch crossing
+			
 		}
 
+		// launch crossing
+		breedingData.props = props;
+		err = Crossing( &breedingData );
+		if ( err != errOk ) {
+			break;
+		}
 	}
 
 	return err;
@@ -919,18 +933,18 @@ void CrossingKernel( LoopContext loop ) {
 	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
 		if ( breedingProps->crossTemplate[ i] ) {
 			//clusterMembership
-			breedingProps->newPopulation[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent1].medoids[ i];
-			breedingProps->newPopulation[ thisChild].clusterMembership[ i] =
+			breedingProps->props->population[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent1].medoids[ i];
+			breedingProps->props->population[ thisChild].clusterMembership[ i] =
 				breedingProps->props->population[ thisParent1].clusterMembership[ i];
 		} else {
-			breedingProps->newPopulation[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent2].medoids[ i];
-			breedingProps->newPopulation[ thisChild].clusterMembership[ i] =
+			breedingProps->props->population[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent2].medoids[ i];
+			breedingProps->props->population[ thisChild].clusterMembership[ i] =
 				breedingProps->props->population[ thisParent2].clusterMembership[ i];
 		}
 	}
 
 	// copy attributes from the first parent
-	breedingProps->newPopulation[ thisChild].attr = breedingProps->props->population[ thisParent1].attr;
+	breedingProps->props->population[ thisChild].attr = breedingProps->props->population[ thisParent1].attr;
 
 	// mutation
 	// 1) attributes
@@ -938,15 +952,15 @@ void CrossingKernel( LoopContext loop ) {
 		if ( breedingProps->table[ loop.threadIdx.x].factor > 70 ) {
 			if ( breedingProps->table[ loop.threadIdx.x].factor > 90 ) {
 				// both
-				breedingProps->newPopulation[ thisChild].attr.clusterMaxSize = rand() % MAX_CLUSTER_SIZE;
-				breedingProps->newPopulation[ thisChild].attr.numNeighbours = rand() % MAX_NEIGHBOURS;
+				breedingProps->props->population[ thisChild].attr.clusterMaxSize = rand() % MAX_CLUSTER_SIZE;
+				breedingProps->props->population[ thisChild].attr.numNeighbours = rand() % MAX_NEIGHBOURS;
 			} else {
 				// neighbours
-				breedingProps->newPopulation[ thisChild].attr.numNeighbours = rand() % MAX_NEIGHBOURS;
+				breedingProps->props->population[ thisChild].attr.numNeighbours = rand() % MAX_NEIGHBOURS;
 			}
 		} else {
 			// max cluster size
-			breedingProps->newPopulation[ thisChild].attr.clusterMaxSize = rand() % MAX_CLUSTER_SIZE;
+			breedingProps->props->population[ thisChild].attr.clusterMaxSize = rand() % MAX_CLUSTER_SIZE;
 		}
 	}
 
@@ -954,23 +968,23 @@ void CrossingKernel( LoopContext loop ) {
 	currCluster = 0;
 	clusterToWrite = 1;
 	membersCount = 0;
-	currMembership = breedingProps->newPopulation[ thisChild].clusterMembership[ 0];
+	currMembership = breedingProps->props->population[ thisChild].clusterMembership[ 0];
 
 	/*
 	 Till membership doesn't change, and size of a cluster is in a norm count a medoid as a member of this cluster.
 	 If membership changes or maximum size of a cluster is meet, make a new cluster+
 	 */
 	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-		if ( breedingProps->newPopulation[ thisChild].clusterMembership[ i] == currMembership && 
-			membersCount < breedingProps->newPopulation[ thisChild].attr.clusterMaxSize ) {
+		if ( breedingProps->props->population[ thisChild].clusterMembership[ i] == currMembership && 
+			breedingProps->props->population[ thisChild].attr.clusterMaxSize ) {
 			membersCount++;
 		} else {
-			breedingProps->newPopulation[ thisChild].clusters[ currCluster++] = membersCount;
+			breedingProps->props->population[ thisChild].clusters[ currCluster++] = membersCount;
 			membersCount = 1;
 			clusterToWrite++;
-			currMembership = breedingProps->newPopulation[ thisChild].clusterMembership[ i];
+			breedingProps->props->population[ thisChild].clusterMembership[ i];
 		}
-		currMembership = breedingProps->newPopulation[ thisChild].clusterMembership[ i] = clusterToWrite;
+		breedingProps->props->population[ thisChild].clusterMembership[ i] = clusterToWrite;
 	}
 
 	// mutation
@@ -997,7 +1011,7 @@ void CrossingKernel( LoopContext loop ) {
 	}
 	// generate new random medoids
 	for ( i = 0; i < howMany; i++ ) {
-		breedingProps->newPopulation[ thisChild].medoids[ rand() % MEDOID_VECTOR_SIZE] =
+		breedingProps->props->population[ thisChild].medoids[ rand() % MEDOID_VECTOR_SIZE] =
 			rand() % breedingProps->props->dataStore->info.numEntries;
 	}
 
@@ -1029,6 +1043,17 @@ ErrorCode Crossing( BreedingTable * breedingProps ) {
 		reportError( err, "Run loop returned with error%s", "" );
 	}
 	return err;
+}
+//----------------------------------------------
+ErrorCode calculateBDI( void ) {
+}
+//----------------------------------------------
+
+ErrorCode calculateDI( void ) {
+}
+//----------------------------------------------
+
+ErrorCode calculateRand( void ) {
 }
 //----------------------------------------------
 //----------------------------------------------
