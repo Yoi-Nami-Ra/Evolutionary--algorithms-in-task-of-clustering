@@ -41,7 +41,7 @@ ErrorCode RunAlgorithms( EvolutionProps * props );
 /**
  * Prepare enviroment to run algorithms.
  */
-ErrorCode ConfigureAlgorithms( EvolutionProps * props );
+ErrorCode ConfigureAlgoritms( EvolutionProps * props );
 
 ErrorCode MembershipAndDensity( EvolutionProps * props );
 
@@ -54,8 +54,6 @@ ErrorCode Correctness( EvolutionProps * props );
 ErrorCode DominanceCount( EvolutionProps * props );
 
 ErrorCode FrontDensity( FrontDensities * frontProps );
-
-ErrorCode Crossing( BreedingTable * breedingProps );
 
 float SolutionResult( Solution * solution, char objective );
 
@@ -90,7 +88,6 @@ ErrorCode RunClustering( EvolutionProps * props ) {
 }
 //----------------------------------------------
 
-void GenerateRandomPopulationKernel( LoopContext loop );
 void GenerateRandomPopulationKernel( LoopContext loop ) {
 	EvolutionProps * props = (EvolutionProps*)loop.params;
 	char proposalOk;
@@ -181,11 +178,9 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 	FrontDensities frontDensitiesProps;
 	char * thisFrontSelection = (char*)malloc( props->popSize * sizeof(char) );
 	unsigned int smallest = 0;
-	BreedingTable breedingData;
-	breedingData.table = NULL;
-	//float * currFrontDensities = NULL;
+	float * currFrontDensities = NULL;
 
-	err = ConfigureAlgorithms( props );
+	err = ConfigureAlgoritms( props );
 	if ( err != errOk ) {
 		return err;
 	}
@@ -344,51 +339,40 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 		// crossing		
 		// breedingTable[ parent1, parent2, child, mutation probability]
 		{
+			BreedDescriptor * breedingTable = (breedDescriptor*)malloc( props->popSize / 2 * sizeof(BreedDescriptor) );
 			unsigned int currParent1 = 0;
 			unsigned int currParent2 = 0;
 			unsigned int currChild = 0;
 
-			if ( breedingData.table == NULL ) {
-				breedingData.table = (BreedDescriptor*)malloc( props->popSize / 2 * sizeof(BreedDescriptor) );
-			}
-
-			srand( (unsigned int)time( 0 ) );
+			srand( time( 0 ) );
 			// generate breeding Table
 			for ( j = 0; j < props->popSize; j++ ) {
 				if ( solutionsSelected[ j] ) {
 					// place for parent
 					if ( currParent1 <= currParent2 ) {
 						// place taken by first parent
-						breedingData.table[ currParent1++].parent1 = j;
-						breedingData.table[ currParent1++].parent2 = j;
+						breedingTable[ currParent1++].parent1 = j;
+						breedingTable[ currParent1++].parent2 = j;
 					} else {
-						breedingData.table[ currParent2++].parent2 = j;
-						breedingData.table[ currParent2++].parent1 = j;
+						breedingTable[ currParent2++].parent2 = j;
+						breedingTable[ currParent2++].parent1 = j;
 					}
 				} else {
 					// place for child
-					breedingData.table[ currChild].child = j;
+					breedingTable[ currChild].child = j;
 					// mutation probability
-					breedingData.table[ currChild++].factor = rand() % 100;
+					breedingTable[ currChild++].factor = rand() % 100; 
 				}
-			} // for j
-
-			
+			}
 		}
 
-		// launch crossing
-		breedingData.props = props;
-		err = Crossing( &breedingData );
-		if ( err != errOk ) {
-			break;
-		}
 	}
 
 	return err;
 }
 //----------------------------------------------
 
-ErrorCode ConfigureAlgorithms( EvolutionProps * props ) {
+ErrorCode ConfigureAlgoritms( EvolutionProps * props ) {
 	unsigned int i;
 	unsigned int j;
 
@@ -401,7 +385,7 @@ ErrorCode ConfigureAlgorithms( EvolutionProps * props ) {
 	for ( i = 0; i < props->popSize; i++ ) {
 		props->solutions[ i].densities = 0;
 		for ( j = 0; j < props->dataStore->info.numEntries; i++ ) {
-			props->solutions[ i].recordMembership[j] = 0;
+			props->solutions[ i].recordMembership[j];
 		}
 	}
 
@@ -420,8 +404,6 @@ ErrorCode ConfigureAlgorithms( EvolutionProps * props ) {
 	return errOk;
 }
 //----------------------------------------------
-
-void MembershipAndDensityKernel( LoopContext loop );
 void MembershipAndDensityKernel( LoopContext loop ) {
 	// for this record in this specific solution (population member)
 	unsigned int solution = loop.blockIdx.y;
@@ -447,7 +429,7 @@ void MembershipAndDensityKernel( LoopContext loop ) {
 		currentDistance = props->dataStore->distances[ DistanceVIdx( record, (*thisMember).medoids[ i] )];
 		 if ( currentDistance < smallestDistance ) {
 			 smallestDistance = currentDistance;
-			 (*thisMember).clusterMembership[ record] = clusterPos;
+			 (*thisSolution).clusterMembership[ record] = clusterPos;
 		 }
 	}
 	
@@ -470,7 +452,7 @@ ErrorCode MembershipAndDensity( EvolutionProps * props ) {
 	densityLoop.blockSize.x = threadsPerBlock;
 	densityLoop.blockSize.y = densityLoop.blockSize.z = 1;
 	densityLoop.kernel = MembershipAndDensityKernel;
-	densityLoop.params = (void*)props;
+	densityLoop.params = (void*)&props;
 
 	err = RunLoop( densityLoop );
 
@@ -481,7 +463,6 @@ ErrorCode MembershipAndDensity( EvolutionProps * props ) {
 }
 //----------------------------------------------
 
-void ConnectivityKernel( LoopContext loop );
 void ConnectivityKernel( LoopContext loop ) {
 	unsigned int solution = loop.blockIdx.y;
 	unsigned int record = loop.blockIdx.x + loop.threadIdx.x;
@@ -514,7 +495,7 @@ ErrorCode Connectivity( EvolutionProps * props ) {
 	connectivityLoop.blockSize.x = threadsPerBlock;
 	connectivityLoop.blockSize.y = connectivityLoop.blockSize.z = 1;
 	connectivityLoop.kernel = ConnectivityKernel;
-	connectivityLoop.params = (void*)props;
+	connectivityLoop.params = (void*)&props;
 
 	err = RunLoop( connectivityLoop );
 
@@ -525,7 +506,6 @@ ErrorCode Connectivity( EvolutionProps * props ) {
 }
 //----------------------------------------------
 
-void DisconnectivityKernel( LoopContext loop );
 void DisconnectivityKernel( LoopContext loop ) {
 	// For each medoid in solution
 	// check distance to medoids from different clusters
@@ -545,7 +525,7 @@ void DisconnectivityKernel( LoopContext loop ) {
 	comparisions= 0;
 	counts = 0;
 	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-		if ( i == medoid || (*thisMember).clusterMembership[ i] == (*thisMember).clusterMembership[ medoid] ) {
+		if ( i == medoid || (*thisSolution).clusterMembership[ i] == (*thisSolution).clusterMembership[ medoid] ) {
 			// if same medoid or same cluster - skip
 			continue;
 		}
@@ -590,7 +570,7 @@ ErrorCode Disconnectivity( EvolutionProps * props ) {
 	disconnectivityLoop.blockSize.y = 1;
 	disconnectivityLoop.blockSize.z = 1;
 	disconnectivityLoop.kernel = DisconnectivityKernel;
-	disconnectivityLoop.params = (void*)props;
+	disconnectivityLoop.params = (void*)&props;
 
 	err = RunLoop( disconnectivityLoop );
 
@@ -601,7 +581,6 @@ ErrorCode Disconnectivity( EvolutionProps * props ) {
 }
 //----------------------------------------------
 
-void CorrectnessKernel( LoopContext loop );
 void CorrectnessKernel( LoopContext loop ) {
 	// For this medoid check all other medoids from this solution.
 	// +1 if there are some that repeat
@@ -626,7 +605,7 @@ void CorrectnessKernel( LoopContext loop ) {
 			(*thisSolution).errors++;
 		}
 
-		if ( (*thisMember).clusterMembership[ i] == (*thisMember).clusterMembership[ medoid] ) {
+		if ( (*thisSolution).clusterMembership[ i] == (*thisSolution).clusterMembership[ medoid] ) {
 			(*thisSolution).errors++;
 		}
 	}
@@ -649,7 +628,7 @@ ErrorCode Correctness( EvolutionProps * props ) {
 	correctnessLoop.blockSize.y = 1;
 	correctnessLoop.blockSize.z = 1;
 	correctnessLoop.kernel = CorrectnessKernel;
-	correctnessLoop.params = (void*)props;
+	correctnessLoop.params = (void*)&props;
 
 	err = RunLoop( correctnessLoop );
 
@@ -659,7 +638,6 @@ ErrorCode Correctness( EvolutionProps * props ) {
 	return err;
 }
 //----------------------------------------------
-void SortingKernel( LoopContext loop );
 void SortingKernel( LoopContext loop ) {
 	// true if this solution (blockIdx.x) dominates the other one (threadIdx.x)
 	char currDominance = 0;
@@ -725,8 +703,6 @@ void SortingKernel( LoopContext loop ) {
 	props->dominanceMatrix[ me * props->popSize + he] = currDominance;
 }
 //----------------------------------------------
-
-ErrorCode Sorting( EvolutionProps * props );
 ErrorCode Sorting( EvolutionProps * props ) {
 	ErrorCode err = errOk;
 	LoopDefinition sortingLoop;
@@ -739,11 +715,11 @@ ErrorCode Sorting( EvolutionProps * props ) {
 	sortingLoop.gridSize.x = props->popSize;
 	sortingLoop.gridSize.y = 1;
 	sortingLoop.gridSize.z = 1;
-	sortingLoop.blockSize.x = props->popSize;
+	sortingLoop.blockSize.x = MEDOID_VECTOR_SIZE;
 	sortingLoop.blockSize.y = 1;
 	sortingLoop.blockSize.z = 1;
 	sortingLoop.kernel = SortingKernel;
-	sortingLoop.params = (void*)props;
+	sortingLoop.params = (void*)&props;
 
 	err = RunLoop( sortingLoop );
 
@@ -786,7 +762,7 @@ ErrorCode DominanceCount( EvolutionProps * props ) {
 	dominanceLoop.blockSize.y = 1;
 	dominanceLoop.blockSize.z = 1;
 	dominanceLoop.kernel = DominanceCountKernel;
-	dominanceLoop.params = (void*)props;
+	dominanceLoop.params = (void*)&props;
 
 	err = RunLoop( dominanceLoop );
 
@@ -801,9 +777,9 @@ void FrontDensityKernel( LoopContext loop ) {
 	FrontDensities * frontProps = (FrontDensities*)loop.params;
 
 	char lesserFound = 0; //false;
-	float lesserResult = 0;
+	float lesserResult;
 	char biggerFound = 0; //false;
-	float biggerResult = 0;
+	float biggerResult;
 
 	float thisResult = SolutionResult( &frontProps->props->solutions[ frontProps->front[ loop.blockIdx.x]], (char)loop.threadIdx.x );
 	float currResult;
@@ -817,7 +793,7 @@ void FrontDensityKernel( LoopContext loop ) {
 			continue;
 		}
 
-		currResult = SolutionResult( &frontProps->props->solutions[ frontProps->front[ i]], (char)loop.threadIdx.x );
+		currResult = SolutionResult( &frontProps->props->solutions[ frontProps->front[ i]], loop.threadIdx.x );
 		// check if lesser
 		if ( thisResult > currResult ) {
 			if ( !lesserFound ) {
@@ -878,7 +854,7 @@ ErrorCode FrontDensity( FrontDensities * frontProps ) {
 	dominanceLoop.blockSize.y = 1;
 	dominanceLoop.blockSize.z = 1;
 	dominanceLoop.kernel = FrontDensityKernel;
-	dominanceLoop.params = (void*)frontProps;
+	dominanceLoop.params = (void*)&frontProps;
 
 	err = RunLoop( dominanceLoop );
 
@@ -907,162 +883,6 @@ float SolutionResult( Solution * solution, char objective ) {
 			return 0.0;
 		}
 	}
-}
-//----------------------------------------------
-
-void CrossingKernel( LoopContext loop ) {
-	BreedingTable * breedingProps = (BreedingTable*)loop.params;
-	unsigned int i = 0, j = 0;
-	unsigned int stepSize = MEDOID_VECTOR_SIZE / CROS_FACTOR;
-	unsigned int thisParent1, thisParent2, thisChild;
-	char mark = 0;
-	unsigned char howMany;
-	unsigned int currCluster;
-	unsigned int clusterToWrite;
-	unsigned int currMembership;
-	unsigned int membersCount;
-
-	thisParent1 = breedingProps->table[ loop.threadIdx.x].parent1;
-	thisParent2 = breedingProps->table[ loop.threadIdx.x].parent2;
-	thisChild = breedingProps->table[ loop.threadIdx.x].child;
-	// generate cross template
-	if ( loop.threadIdx.x == 0 ) {
-		for ( i = 0, j = 0; i < MEDOID_VECTOR_SIZE; i++, j++ ) {
-			if ( j >= stepSize ) {
-				mark = ( mark ? 0 : 1 );
-			}
-			breedingProps->crossTemplate[ i] = mark;
-		}
-	}
-
-	// start crossing
-	/*
-	 Exchange both medoids and their membership
-	 */
-	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-		if ( breedingProps->crossTemplate[ i] ) {
-			//clusterMembership
-			breedingProps->props->population[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent1].medoids[ i];
-			breedingProps->props->population[ thisChild].clusterMembership[ i] =
-				breedingProps->props->population[ thisParent1].clusterMembership[ i];
-		} else {
-			breedingProps->props->population[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent2].medoids[ i];
-			breedingProps->props->population[ thisChild].clusterMembership[ i] =
-				breedingProps->props->population[ thisParent2].clusterMembership[ i];
-		}
-	}
-
-	// copy attributes from the first parent
-	breedingProps->props->population[ thisChild].attr = breedingProps->props->population[ thisParent1].attr;
-
-	// mutation
-	// 1) attributes
-	if ( breedingProps->table[ loop.threadIdx.x].factor > 50 ) {
-		if ( breedingProps->table[ loop.threadIdx.x].factor > 70 ) {
-			if ( breedingProps->table[ loop.threadIdx.x].factor > 90 ) {
-				// both
-				breedingProps->props->population[ thisChild].attr.clusterMaxSize = rand() % MAX_CLUSTER_SIZE;
-				breedingProps->props->population[ thisChild].attr.numNeighbours = rand() % MAX_NEIGHBOURS;
-			} else {
-				// neighbours
-				breedingProps->props->population[ thisChild].attr.numNeighbours = rand() % MAX_NEIGHBOURS;
-			}
-		} else {
-			// max cluster size
-			breedingProps->props->population[ thisChild].attr.clusterMaxSize = rand() % MAX_CLUSTER_SIZE;
-		}
-	}
-
-	// cleanup cluster membership and sizes
-	currCluster = 0;
-	clusterToWrite = 1;
-	membersCount = 0;
-	currMembership = breedingProps->props->population[ thisChild].clusterMembership[ 0];
-
-	/*
-	 Till membership doesn't change, and size of a cluster is in a norm count a medoid as a member of this cluster.
-	 If membership changes or maximum size of a cluster is meet, make a new cluster+
-	 */
-	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-		if ( breedingProps->props->population[ thisChild].clusterMembership[ i] == currMembership && 
-			breedingProps->props->population[ thisChild].attr.clusterMaxSize ) {
-			membersCount++;
-		} else {
-			breedingProps->props->population[ thisChild].clusters[ currCluster++] = membersCount;
-			membersCount = 1;
-			clusterToWrite++;
-			breedingProps->props->population[ thisChild].clusterMembership[ i];
-		}
-		breedingProps->props->population[ thisChild].clusterMembership[ i] = clusterToWrite;
-	}
-
-	// mutation
-	// 2) medoids
-	howMany = 0;
-	if ( breedingProps->table[ loop.threadIdx.x].factor > 20 ) {
-		if ( breedingProps->table[ loop.threadIdx.x].factor > 50 ) {
-			if ( breedingProps->table[ loop.threadIdx.x].factor > 80 ) {
-				if ( breedingProps->table[ loop.threadIdx.x].factor > 95 ) {
-					// 4
-					howMany = 4;
-				} else {
-					// 3
-					howMany = 3;
-				}
-			} else {
-				// 2
-				howMany = 2;
-			}
-		} else {
-			// 1
-			howMany = 1;
-		}
-	}
-	// generate new random medoids
-	for ( i = 0; i < howMany; i++ ) {
-		breedingProps->props->population[ thisChild].medoids[ rand() % MEDOID_VECTOR_SIZE] =
-			rand() % breedingProps->props->dataStore->info.numEntries;
-	}
-
-
-}
-//----------------------------------------------
-
-ErrorCode Crossing( BreedingTable * breedingProps ) {
-	ErrorCode err = errOk;
-	LoopDefinition crossingLoop;
-
-	if ( breedingProps == NULL || breedingProps->props == NULL || breedingProps->table == NULL ) {
-		return SetLastErrorCode( errWrongParameter );
-	}
-
-	// <<< 1, popSize/2 >>>
-	crossingLoop.gridSize.x = 1;
-	crossingLoop.gridSize.y = 1;
-	crossingLoop.gridSize.z = 1;
-	crossingLoop.blockSize.x = breedingProps->props->popSize/2;
-	crossingLoop.blockSize.y = 1;
-	crossingLoop.blockSize.z = 1;
-	crossingLoop.kernel = CrossingKernel;
-	crossingLoop.params = (void*)breedingProps;
-
-	err = RunLoop( crossingLoop );
-
-	if ( err != errOk ) {
-		reportError( err, "Run loop returned with error%s", "" );
-	}
-	return err;
-}
-//----------------------------------------------
-ErrorCode calculateBDI( void ) {
-}
-//----------------------------------------------
-
-ErrorCode calculateDI( void ) {
-}
-//----------------------------------------------
-
-ErrorCode calculateRand( void ) {
 }
 //----------------------------------------------
 //----------------------------------------------
