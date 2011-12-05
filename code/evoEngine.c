@@ -11,6 +11,7 @@
 #include "dataLoader_Iris.h"
 #include "dataLoader_Test.h"
 #include "distanceCalculator.h"
+#include "clustering.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -82,8 +83,10 @@ char ConfirmSelection() {
 void runEvo( void ) {
 	unsigned int selectedLoader;
 	unsigned char loadersCount;
+	int b = 0;
 	ErrorCode err = errOk;
 	DataStore dataStore;
+	EvolutionProps props;
 
 	// -- Setting up all loaders
 	SetupIrisLoader();
@@ -115,7 +118,19 @@ void runEvo( void ) {
 		err = GetCalculatedDistances( selectedLoader - 1, &dataStore );
 
 		// -- Run Algorithms
+		props.blocksPerEntries = 0;
+		props.crosFactor = 0;
+		props.dataStore = &dataStore;
+		props.dominanceCounts = NULL;
+		props.dominanceMatrix = NULL;
+		props.evoSteps = 100; // 100 steps for the alg
+		props.popSize = 256; // for now 256 members
+		props.population = NULL;
+		props.solutions = NULL;
+		err = RunClustering( &props );
 
+
+		b++;
 	}
 
 

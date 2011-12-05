@@ -139,13 +139,16 @@ ErrorCode GenerateRandomPopulation( EvolutionProps * props ) {
 	ErrorCode err = errOk;
 	LoopDefinition popGenLoop;
 
+	logDebug( " GenerateRandomPopulation%s", "" );
+
 	if ( props == NULL ) {
 		reportError( errWrongParameter, "Evolution Propertis served with NULL pointer.%s", "" );
 	}
-
+	/*
 	if ( props->population != NULL ) {
 		free( props->population );
 	}
+	*/
 
 	props->population = (PopMember*)malloc( props->popSize * sizeof(PopMember) );
 	checkAlloc( props->population )
@@ -159,7 +162,7 @@ ErrorCode GenerateRandomPopulation( EvolutionProps * props ) {
 		popGenLoop.gridSize.y = popGenLoop.blockSize.z =
 		popGenLoop.gridSize.z = 1;
 	popGenLoop.kernel = GenerateRandomPopulationKernel;
-	popGenLoop.params = (void*)&props;
+	popGenLoop.params = (void*)props;
 
 	err = RunLoop( popGenLoop );
 
@@ -190,7 +193,9 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 		return err;
 	}
 
+
 	for ( i = 0; i < props->evoSteps; i++ ) {
+		logDebug( " Evolution Step:%u", i );
 		// mambership and density
 		err = MembershipAndDensity( props );
 		if ( err != errOk ) {
@@ -216,7 +221,7 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 		}
 
 		// sorting
-		err = Correctness( props );
+		err = Sorting( props );
 		if ( err != errOk ) {
 			break;
 		}
@@ -246,7 +251,7 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 					solutionsLeft--;
 				}
 			}
-			solutionFronts[ currFront * props->popSize + 0] = currFrontSize;
+			solutionFronts[ currFront * (props->popSize + 1) + 0] = currFrontSize;
 						
 			if ( solutionsLeft > 0 ) {
 				// for each solution dominated by solution from this front - reduce domination count
@@ -372,8 +377,6 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 					breedingData.table[ currChild++].factor = rand() % 100;
 				}
 			} // for j
-
-			
 		}
 
 		// launch crossing
@@ -392,17 +395,25 @@ ErrorCode ConfigureAlgorithms( EvolutionProps * props ) {
 	unsigned int i;
 	unsigned int j;
 
+	logDebug(" Configure Algorithms %s", "" );
+
 	props->solutions = (Solution*)malloc( props->popSize * sizeof(Solution) );
 
 	checkAlloc( props->solutions )
 		return GetLastErrorCode();
 	}
+
 	// clear all densities
 	for ( i = 0; i < props->popSize; i++ ) {
 		props->solutions[ i].densities = 0;
-		for ( j = 0; j < props->dataStore->info.numEntries; i++ ) {
+		props->solutions[ i].recordMembership = (unsigned int*)malloc( props->dataStore->info.numEntries * sizeof(unsigned int) );
+		for ( j = 0; j < props->dataStore->info.numEntries; j++ ) {
 			props->solutions[ i].recordMembership[j] = 0;
 		}
+	}
+
+	for ( i = 0; i < MEDOID_VECTOR_SIZE; i ++ ) {
+		props->solutions[ i].clusterSizes[i] = 0;
 	}
 
 	props->blocksPerEntries = props->dataStore->info.numEntries / threadsPerBlock;
@@ -434,6 +445,7 @@ void MembershipAndDensityKernel( LoopContext loop ) {
 	unsigned int clusterSize = (*thisMember).clusters[ clusterPos];
 	float currentDistance = 0;
 	float smallestDistance = props->dataStore->distances[ DistanceVIdx( record, (*thisMember).medoids[ 0] )];
+	unsigned int smallestDClusterPos = 0;
 	(*thisSolution).recordMembership[ record] = clusterPos;
 	clusterSize--;
 
@@ -444,13 +456,18 @@ void MembershipAndDensityKernel( LoopContext loop ) {
 			clusterSize = (*thisMember).clusters[ clusterPos];
 		}
 
+		(*thisMember).clusterMembership[ i] = clusterPos + 1;
+
 		currentDistance = props->dataStore->distances[ DistanceVIdx( record, (*thisMember).medoids[ i] )];
 		 if ( currentDistance < smallestDistance ) {
+			 smallestDClusterPos = clusterPos;
 			 smallestDistance = currentDistance;
-			 (*thisMember).clusterMembership[ record] = clusterPos;
+			 (*thisSolution).recordMembership[ record] = clusterPos;
+			 (*thisSolution).clusterSizes[clusterPos]++;
 		 }
 	}
 	
+	(*thisSolution).clusterDensities[ smallestDClusterPos] += smallestDistance;
 	(*thisSolution).densities += smallestDistance;
 }
 //----------------------------------------------
@@ -462,6 +479,8 @@ ErrorCode MembershipAndDensity( EvolutionProps * props ) {
 	if ( props == NULL || props->solutions == NULL ) {
 		return SetLastErrorCode( errWrongParameter );
 	}
+
+	logDebug(" == MembershipAndDensity %s", "" );
 
 	//<<( blocksPerEntires, populationSize ), threadsPerBlock>>
 	densityLoop.gridSize.x = props->blocksPerEntries;
@@ -507,6 +526,7 @@ ErrorCode Connectivity( EvolutionProps * props ) {
 		return SetLastErrorCode( errWrongParameter );
 	}
 
+	logDebug(" == Connectivity %s", "" );
 	//<<( blocksPerEntires, populationSize ), threadsPerBlock>>
 	connectivityLoop.gridSize.x = props->blocksPerEntries;
 	connectivityLoop.gridSize.y = props->popSize;
@@ -571,6 +591,9 @@ void DisconnectivityKernel( LoopContext loop ) {
 	}
 
 	(*thisSolution).disconnectivity += ((float)counts) / (float)comparisions;
+
+	// calculate densities for each cluster
+	(*thisSolution).clusterDensities[ medoid] /= (float)(*thisSolution).clusterSizes[ medoid] ;
 }
 //----------------------------------------------
 
@@ -582,6 +605,7 @@ ErrorCode Disconnectivity( EvolutionProps * props ) {
 		return SetLastErrorCode( errWrongParameter );
 	}
 
+	logDebug(" == Disconnectivity %s", "" );
 	// <<< populationSize, medoidsVectorSize >>>
 	disconnectivityLoop.gridSize.x = props->popSize;
 	disconnectivityLoop.gridSize.y = 1;
@@ -641,6 +665,7 @@ ErrorCode Correctness( EvolutionProps * props ) {
 		return SetLastErrorCode( errWrongParameter );
 	}
 
+	logDebug(" == Correctness %s", "" );
 	// <<< populationSize, medoidsVectorSize >>>
 	correctnessLoop.gridSize.x = props->popSize;
 	correctnessLoop.gridSize.y = 1;
@@ -735,6 +760,7 @@ ErrorCode Sorting( EvolutionProps * props ) {
 		return SetLastErrorCode( errWrongParameter );
 	}
 
+	logDebug(" == Sorting %s", "" );
 	// <<< populationSize, populationSize >>>
 	sortingLoop.gridSize.x = props->popSize;
 	sortingLoop.gridSize.y = 1;
@@ -778,6 +804,7 @@ ErrorCode DominanceCount( EvolutionProps * props ) {
 		return SetLastErrorCode( errWrongParameter );
 	}
 
+	logDebug(" == DominanceCount %s", "" );
 	// <<< 1, poulationSize >>>
 	dominanceLoop.gridSize.x = 1;
 	dominanceLoop.gridSize.y = 1;
@@ -870,6 +897,7 @@ ErrorCode FrontDensity( FrontDensities * frontProps ) {
 		return SetLastErrorCode( errWrongParameter );
 	}
 
+	logDebug(" == FrontDensity %s", "" );
 	// <<< numSolutions, kryterions >>>
 	dominanceLoop.gridSize.x = frontProps->props->popSize;
 	dominanceLoop.gridSize.y = 1;
@@ -1036,6 +1064,7 @@ ErrorCode Crossing( BreedingTable * breedingProps ) {
 		return SetLastErrorCode( errWrongParameter );
 	}
 
+	logDebug(" == Crossing %s", "" );
 	// <<< 1, popSize/2 >>>
 	crossingLoop.gridSize.x = 1;
 	crossingLoop.gridSize.y = 1;
@@ -1054,15 +1083,46 @@ ErrorCode Crossing( BreedingTable * breedingProps ) {
 	return err;
 }
 //----------------------------------------------
-ErrorCode calculateBDI( void ) {
+void BDIKernel( LoopContext loop ) {
+
 }
+//----------------------------------------------
+ErrorCode calculateBDI( EvolutionProps * props ) {
+	ErrorCode err = errOk;
+	LoopDefinition crossingLoop;
+
+	if ( breedingProps == NULL || breedingProps->props == NULL || breedingProps->table == NULL ) {
+		return SetLastErrorCode( errWrongParameter );
+	}
+
+	logDebug(" == calculateBDI %s", "" );
+	// <<< 1, populationSize >>>
+	crossingLoop.gridSize.x = 1;
+	crossingLoop.gridSize.y = 1;
+	crossingLoop.gridSize.z = 1;
+	crossingLoop.blockSize.x = props->popSize;
+	crossingLoop.blockSize.y = 1;
+	crossingLoop.blockSize.z = 1;
+	crossingLoop.kernel = BDIKernel;
+	crossingLoop.params = (void*)props;
+
+	err = RunLoop( crossingLoop );
+
+	if ( err != errOk ) {
+		reportError( err, "Run loop returned with error%s", "" );
+	}
+	return err;
+}
+//----------------------------------------------
 //----------------------------------------------
 
 ErrorCode calculateDI( void ) {
 }
 //----------------------------------------------
+//----------------------------------------------
 
 ErrorCode calculateRand( void ) {
 }
+//----------------------------------------------
 //----------------------------------------------
 //----------------------------------------------
