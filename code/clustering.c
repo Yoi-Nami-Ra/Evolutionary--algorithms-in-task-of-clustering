@@ -53,6 +53,8 @@ ErrorCode Correctness( EvolutionProps * props );
 
 ErrorCode DominanceCount( EvolutionProps * props );
 
+ErrorCode Sorting( EvolutionProps * props );
+
 ErrorCode FrontDensity( FrontDensities * frontProps );
 
 ErrorCode Crossing( BreedingTable * breedingProps );
@@ -346,6 +348,11 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 			currFront++;
 		} // while
 
+		// don't bother if it's the last pass
+		if ( props->evoSteps == i+1 ) {
+			break;
+		}
+
 		// crossing		
 		// breedingTable[ parent1, parent2, child, mutation probability]
 		{
@@ -387,6 +394,17 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 		}
 	}
 
+	// gather results
+	calculateBDI( props );
+	logMessage( " == BDI Results == %s", "" );
+	for ( i = 0; i < props->popSize; i++ ) {
+		if ( solutionsSelected[ i] ) {
+			logMessage(" = Solution[ %u]:", i );
+			logMessage("   BDI: %f", props->solutions[ i].resultBDI );
+		}
+	}
+	
+
 	return err;
 }
 //----------------------------------------------
@@ -410,10 +428,6 @@ ErrorCode ConfigureAlgorithms( EvolutionProps * props ) {
 		for ( j = 0; j < props->dataStore->info.numEntries; j++ ) {
 			props->solutions[ i].recordMembership[j] = 0;
 		}
-	}
-
-	for ( i = 0; i < MEDOID_VECTOR_SIZE; i ++ ) {
-		props->solutions[ i].clusterSizes[i] = 0;
 	}
 
 	props->blocksPerEntries = props->dataStore->info.numEntries / threadsPerBlock;
@@ -442,17 +456,24 @@ void MembershipAndDensityKernel( LoopContext loop ) {
 	Solution *thisSolution = props->solutions + solution;
 	PopMember *thisMember = props->population + solution;
 	unsigned int clusterPos = 0;
-	unsigned int clusterSize = (*thisMember).clusters[ clusterPos];
+	unsigned int clusterSize = 0; //(*thisMember).clusters[ clusterPos];
 	float currentDistance = 0;
-	float smallestDistance = props->dataStore->distances[ DistanceVIdx( record, (*thisMember).medoids[ 0] )];
+	float smallestDistance = props->dataStore->distances[ DistanceVIdx( record, (*thisMember).medoids[ 0] )] + 0.1;
 	unsigned int smallestDClusterPos = 0;
 	(*thisSolution).recordMembership[ record] = clusterPos;
-	clusterSize--;
+
+	if ( record == 0 ) {
+		// if the first record
+		// clean cluster densities
+		for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+			(*thisSolution).clusterDensities[ i] = 0;
+		}
+	}
 
 	// find closest medoid to this record
-	for ( i = 1; i < MEDOID_VECTOR_SIZE; i++ ) {
+	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++, clusterSize-- ) {
 		if ( clusterSize <= 0 ) {
-			clusterPos++;
+			( i == 0 ) ? clusterPos = 0 : clusterPos++;
 			clusterSize = (*thisMember).clusters[ clusterPos];
 		}
 
@@ -462,11 +483,11 @@ void MembershipAndDensityKernel( LoopContext loop ) {
 		 if ( currentDistance < smallestDistance ) {
 			 smallestDClusterPos = clusterPos;
 			 smallestDistance = currentDistance;
-			 (*thisSolution).recordMembership[ record] = clusterPos;
-			 (*thisSolution).clusterSizes[clusterPos]++;
+			 (*thisSolution).recordMembership[ record] = clusterPos + 1;
 		 }
 	}
-	
+
+	(*thisSolution).numOfClusters = clusterPos+1;
 	(*thisSolution).clusterDensities[ smallestDClusterPos] += smallestDistance;
 	(*thisSolution).densities += smallestDistance;
 }
@@ -510,7 +531,13 @@ void ConnectivityKernel( LoopContext loop ) {
 	unsigned int i;
 	unsigned int memberOf = (*thisSolution).recordMembership[ record];
 
-	(*thisSolution).connectivity = 0;
+	if ( record == 0 ) {
+		(*thisSolution).connectivity = 0;
+	}
+
+	// for each record - how many of its neighbours belong to the same cluster
+	// 1.0 means all of them
+
 	for ( i = 0; i < (*thisMember).attr.numNeighbours; i++ ) {
 		if ( memberOf == (*thisSolution).recordMembership[ props->dataStore->neighbours[ record * kMaxNeighbours + i]] ) {
 			(*thisSolution).connectivity += (float)1.0 / (float)(*thisMember).attr.numNeighbours;
@@ -562,8 +589,13 @@ void DisconnectivityKernel( LoopContext loop ) {
 	float currDistance;
 	unsigned int i, j;
 
-	comparisions= 0;
-	counts = 0;
+	// for each two medoids not from the same cluster
+	// find how far they are from each other using MND (mutual neighbour distance)
+	// MND( A, B ) = NN(A,B) + NN(B,A)
+	// NN(x,y) - how many objects there are around x in radius of |xy|
+
+	comparisions= 1; // start with 1 as we compare those two medoids
+	counts = 2; // start with 2 for both medoids
 	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
 		if ( i == medoid || (*thisMember).clusterMembership[ i] == (*thisMember).clusterMembership[ medoid] ) {
 			// if same medoid or same cluster - skip
@@ -578,7 +610,12 @@ void DisconnectivityKernel( LoopContext loop ) {
 				continue;
 			}
 			
-			if ( props->dataStore->distances[ DistanceVIdx( (*thisMember).medoids[ medoid], (*thisMember).medoids[ i] )] <
+			if ( props->dataStore->distances[ DistanceVIdx( (*thisMember).medoids[ medoid], (*thisMember).medoids[ j] )] <
+				currDistance ) {
+				counts++;
+			}
+
+			if ( props->dataStore->distances[ DistanceVIdx( (*thisMember).medoids[ i], (*thisMember).medoids[ j] )] <
 				currDistance ) {
 				counts++;
 			}
@@ -593,7 +630,9 @@ void DisconnectivityKernel( LoopContext loop ) {
 	(*thisSolution).disconnectivity += ((float)counts) / (float)comparisions;
 
 	// calculate densities for each cluster
-	(*thisSolution).clusterDensities[ medoid] /= (float)(*thisSolution).clusterSizes[ medoid] ;
+	if ( medoid < (*thisSolution).numOfClusters ) {
+		(*thisSolution).clusterDensities[ medoid] /= (float)(*thisMember).clusters[ medoid];
+	}
 }
 //----------------------------------------------
 
@@ -751,7 +790,6 @@ void SortingKernel( LoopContext loop ) {
 }
 //----------------------------------------------
 
-ErrorCode Sorting( EvolutionProps * props );
 ErrorCode Sorting( EvolutionProps * props ) {
 	ErrorCode err = errOk;
 	LoopDefinition sortingLoop;
@@ -1019,9 +1057,8 @@ void CrossingKernel( LoopContext loop ) {
 			breedingProps->props->population[ thisChild].clusters[ currCluster++] = membersCount;
 			membersCount = 1;
 			clusterToWrite++;
-			breedingProps->props->population[ thisChild].clusterMembership[ i];
+			breedingProps->props->population[ thisChild].clusterMembership[ i] = clusterToWrite;
 		}
-		breedingProps->props->population[ thisChild].clusterMembership[ i] = clusterToWrite;
 	}
 
 	// mutation
@@ -1084,14 +1121,61 @@ ErrorCode Crossing( BreedingTable * breedingProps ) {
 }
 //----------------------------------------------
 void BDIKernel( LoopContext loop ) {
+	unsigned int i;
+	unsigned int j;
+	float prevDistance;
+	float currDistance;
+	float numbers[ MEDOID_VECTOR_SIZE];
+	EvolutionProps * props = (EvolutionProps*)loop.params;
+	Solution *thisSolution = props->solutions + loop.threadIdx.x;
+	PopMember *thisMember = props->population + loop.threadIdx.x;
+	// for each pair of medoids taht doesn't belong to the same cluster
+	// find the lowest result of:
+	// ( densities[ a] + densities[ b] ) / distance( a, b )
 
+	// some cleaning first
+	if ( loop.threadIdx.x == 0 ) {
+		for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+			numbers[ i] = 0;
+		}
+	}
+
+	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		prevDistance = 0; // clean it for new search
+		for ( j = 0; j < MEDOID_VECTOR_SIZE; j++ ) { 
+			// if not the same and from the same cluster
+			if ( j != i && props->population->clusterMembership[ i] != props->population->clusterMembership[ j] ) {
+				currDistance = (( thisSolution->clusterDensities[ i] +
+					thisSolution->clusterDensities[ j] ) /
+					props->dataStore->distances[ 
+						DistanceVIdx( (*thisMember).medoids[ i], (*thisMember).medoids[ j]
+					)] );
+				// find the biggest BDI distance
+				if ( currDistance > prevDistance || prevDistance == 0 ) {
+					prevDistance = currDistance;
+				}
+			}
+		} // for j
+		// save it
+		if ( numbers[ props->population->clusterMembership[ i]-1] < prevDistance ||
+			numbers[ props->population->clusterMembership[ i]-1] == 0 ) {
+			numbers[ props->population->clusterMembership[ i]-1] = prevDistance;
+		}
+	}
+
+	thisSolution->resultBDI = 0;
+	for ( i = 0; i < thisSolution->numOfClusters; i++ ) {
+		thisSolution->resultBDI += numbers[ i];
+	}
+
+	thisSolution->resultBDI /= (float)thisSolution->numOfClusters;
 }
 //----------------------------------------------
 ErrorCode calculateBDI( EvolutionProps * props ) {
 	ErrorCode err = errOk;
 	LoopDefinition crossingLoop;
 
-	if ( breedingProps == NULL || breedingProps->props == NULL || breedingProps->table == NULL ) {
+	if ( props == NULL ) {
 		return SetLastErrorCode( errWrongParameter );
 	}
 

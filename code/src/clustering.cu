@@ -759,40 +759,49 @@ __global__ void kernelDisconnectivity() {
 	__syncthreads();
 
 	float currDistance  = 0;
-	comparisions[ threadIdx.x] = 0;
-	counts[ threadIdx.x] = 0;
+	float disconnectivities[ MEDOID_VECTOR_SIZE];
+	comparisions = 1; // start with 1 as we compare those two medoids
+	counts = 2; // start with 2 for both medoids
 	// For each medoid in the vector
 	for ( unsigned int i=0; i < MEDOID_VECTOR_SIZE; i++ ) {
 		if ( i == threadIdx.x || clusters[ threadIdx.x] == clusters[ i] ) {
 			// if medoid the same or same cluster - skip
 			continue;
 		}
-		comparisions[ threadIdx.x]++;
+		comparisions++;
 		currDistance = distance( dPopulationPool[ blockIdx.x].medoids[ threadIdx.x], dPopulationPool[ blockIdx.x].medoids[ i] );
 		// now find MND for this medoid
 		for ( unsigned int j = 0; j < MEDOID_VECTOR_SIZE; j++ ) {
 			if ( j == i || j == threadIdx.x ) {
 				continue;
 			}
-			// counts if someone else is closer
-			if ( distance( dPopulationPool[ blockIdx.x].medoids[ threadIdx.x], dPopulationPool[ blockIdx.x].medoids[ j] ) < currDistance ) {
-				counts[ threadIdx.x]++;
+			// counts if someone else is closer to our medoid
+			if ( distance( dPopulationPool[ blockIdx.x].medoids[ threadIdx.x],
+				dPopulationPool[ blockIdx.x].medoids[ j] ) < currDistance )  {
+				counts++;
+			}
+			// counts if someone else is closer to the other
+			if ( distance( dPopulationPool[ blockIdx.x].medoids[ i],
+				dPopulationPool[ blockIdx.x].medoids[ j] ) < currDistance ) {
+				counts++;
 			}
 		}
 	}
 
+	diconnectivities[ threadIdx.x] += counts / comparisions;
+
 	__syncthreads();
 
 	if ( threadIdx.x == 0 ) {
-		float compars = 0;
-		float count = 0;
+		float disconnectivity = 0;
 		for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-			// TODO: mayby should it be summed up by compar/count each
-			compars += comparisions[ i];
-			count += counts[ i];
+			// CHANGED 12-12-2011: 
+			//-- compars += comparisions[ i];
+			//-- count += counts[ i];
+			diconnectivity += diconnectivities[ i];
 		}
-		dFitnesResults[ fitnesResultIndex( blockIdx.x, 2, 0)] = count/compars;
-		//dFitnesResults[ blockIdx.x * 4 * dBlocksPerSolution + 2 * dBlocksPerSolution + 0] = count/compars;
+		//-- dFitnesResults[ fitnesResultIndex( blockIdx.x, 2, 0)] = count/compars;
+		dFitnesResults[ fitnesResultIndex( blockIdx.x, 2, 0)] = diconnectivity;
 	}
 }
 //====================================================================
@@ -1150,6 +1159,7 @@ __device__ unsigned int devCalculateClustersAndDensities( unsigned char * cluste
 		densities[ i] /= (float)numbers[ i];
 	}
 
+	// return number of clusters in this solution
 	return j;
 }
 
@@ -1205,7 +1215,7 @@ __global__ void kernelBDI( float * indexes, unsigned char * clustersCount ) {
 	
 	// Now calculate the index
 	currDistance = 0;
-	for ( i = 0; i < k; i++ ) {
+	for( i = 0; i < k; i++ ) {
 		currDistance += numbers[ i];
 	}
 	currDistance /= (float)k;

@@ -48,11 +48,12 @@ typedef struct {
 typedef struct {
 	float densities; ///< sum of all densities
 	unsigned int * recordMembership;
-	unsigned int clusterSizes[ MEDOID_VECTOR_SIZE]; ///< how many data entries belong to this cluster
-	float clusterDensities[ MEDOID_VECTOR_SIZE]; ///< densities for specific clusters
+	unsigned int numOfClusters; ///< How many clusters there are
+	float clusterDensities[ MEDOID_VECTOR_SIZE]; ///< densities for specific medoids
 	float connectivity;
 	float disconnectivity;
 	float errors; ///< how much errors has been found
+	float resultBDI; ///< Here result of BD index to be placed
 } Solution;
 
 /**
