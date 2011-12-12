@@ -123,7 +123,7 @@ void runEvo( void ) {
 		props.dataStore = &dataStore;
 		props.dominanceCounts = NULL;
 		props.dominanceMatrix = NULL;
-		props.evoSteps = 200; // 100 steps for the alg
+		props.evoSteps = 100; // 100 steps for the alg
 		props.popSize = 256; // for now 256 members
 		props.population = NULL;
 		props.solutions = NULL;

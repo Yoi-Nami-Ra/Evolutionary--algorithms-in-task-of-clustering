@@ -76,6 +76,11 @@ ErrorCode LoadData( DataStore * irisStore ) {
 		return errNoMemory;
 	}
 
+	irisStore->classes = (unsigned int*)malloc( kIrisEntries * sizeof(unsigned int) );
+
+	checkAlloc( irisStore->classes )
+		return errNoMemory;
+	}
 	
 	// open file
 	dataFile = fopen( kDataFilePath, "r" );
@@ -93,6 +98,7 @@ ErrorCode LoadData( DataStore * irisStore ) {
 			irisStore->dataVector + index * kIrisDimensions + 2,
 			irisStore->dataVector + index * kIrisDimensions + 3, str );
 		index++;
+		irisStore->classes[ index] = ( index % 50 ) + 1;
 		// check if we read 5 elements, 4 values and the rest
 		if ( read != 5 ) {
 			break;

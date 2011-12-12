@@ -396,12 +396,15 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 
 	// gather results
 	calculateBDI( props );
-	logMessage( " == BDI Results == %s", "" );
+	calculateDI( props );
+	calculateRand( props );
+	logMessage( " == Results == %s", "" );
 	for ( i = 0; i < props->popSize; i++ ) {
 		if ( solutionsSelected[ i] ) {
 			logMessage(" = Solution[ %u]:", i );
 			logMessage("   BDI: %f", props->solutions[ i].resultBDI );
 			logMessage("   DI: %f", props->solutions[ i].resultDI );
+			logMessage("   Rand: %f", props->solutions[ i].resultRand );
 		}
 	}
 	
@@ -1246,7 +1249,7 @@ ErrorCode calculateDI( EvolutionProps * props ) {
 		return SetLastErrorCode( errWrongParameter );
 	}
 
-	logDebug(" == calculateBDI %s", "" );
+	logDebug(" == calculateDI %s", "" );
 	// <<< 1, populationSize >>>
 	diLoop.gridSize.x = 1;
 	diLoop.gridSize.y = 1;
@@ -1265,10 +1268,58 @@ ErrorCode calculateDI( EvolutionProps * props ) {
 	return err;
 }
 //----------------------------------------------
-//----------------------------------------------
 
-ErrorCode calculateRand( void ) {
+ErrorCode RandKernel( LoopContext loop ) {
+	unsigned int i,j;
+	unsigned int t = 0, // true positive and true negative
+		f = 0; // false positive and false negative
+	char we, they;
+	EvolutionProps * props = (EvolutionProps*)loop.params;
+	Solution *thisSolution = props->solutions + loop.threadIdx.x;
+	PopMember *thisMember = props->population + loop.threadIdx.x;
+
+	for ( i = 0; i < props->dataStore->info.numEntries; i++ ) {
+		for ( j = 0; j < props->dataStore->info.numEntries; j++ ) {
+			we = ( thisSolution->recordMembership[ i] == thisSolution->recordMembership[ j] );
+			they = ( props->dataStore->classes[ i] == props->dataStore->classes[ j] );
+
+			if ( we == they ) {
+				t++;
+			} else {
+				f++;
+			}
+		}
+	}
+
+	thisSolution->resultRand = (float)t / ((float)t + (float)f);
 }
 //----------------------------------------------
+
+ErrorCode calculateRand( EvolutionProps * props ) {
+	ErrorCode err = errOk;
+	LoopDefinition randLoop;
+
+	if ( props == NULL ) {
+		return SetLastErrorCode( errWrongParameter );
+	}
+
+	logDebug(" == calculateRand %s", "" );
+	// <<< 1, populationSize >>>
+	randLoop.gridSize.x = 1;
+	randLoop.gridSize.y = 1;
+	randLoop.gridSize.z = 1;
+	randLoop.blockSize.x = props->popSize;
+	randLoop.blockSize.y = 1;
+	randLoop.blockSize.z = 1;
+	randLoop.kernel = RandKernel;
+	randLoop.params = (void*)props;
+
+	err = RunLoop( randLoop );
+
+	if ( err != errOk ) {
+		reportError( err, "Run loop returned with error%s", "" );
+	}
+	return err;
+}
 //----------------------------------------------
 //----------------------------------------------

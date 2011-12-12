@@ -33,6 +33,7 @@ typedef struct {
 	float			*dataVector;	///< data
 	float			*distances;		///< array to hold calculated distances
 	unsigned int	*neighbours;	///< array of closest neighbours
+	unsigned int	*classes;		///< storres assigment to predefined classes for RAND index
 } DataStore;
 
 /**
