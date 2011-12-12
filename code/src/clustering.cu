@@ -1262,6 +1262,10 @@ __global__ void kernelCalculateDI( float * indexes ) {
 	float densities[ MEDOID_VECTOR_SIZE];
 	float lowestDensity = 0;
 
+	// Find smallest distance betwen two medoids from different clusters
+	// Find biggest density
+	// Divide one by another - there you go
+
 	unsigned int k = devCalculateClustersAndDensities( clusters, densities );
 	unsigned int j = 0, i = 0;
 
@@ -1274,7 +1278,7 @@ __global__ void kernelCalculateDI( float * indexes ) {
 				currDistnace = distance( dPopulationPool[ threadIdx.x].medoids[ i],
 					dPopulationPool[ threadIdx.x].medoids[ j] );
 
-				if ( prevDistance < currDistnace || prevDistance == 0 ) {
+				if ( prevDistance > currDistnace || prevDistance == 0 ) {
 					prevDistance = currDistnace;
 				}
 			}

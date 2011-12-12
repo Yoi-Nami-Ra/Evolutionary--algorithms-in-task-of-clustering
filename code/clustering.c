@@ -401,6 +401,7 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 		if ( solutionsSelected[ i] ) {
 			logMessage(" = Solution[ %u]:", i );
 			logMessage("   BDI: %f", props->solutions[ i].resultBDI );
+			logMessage("   DI: %f", props->solutions[ i].resultDI );
 		}
 	}
 	
@@ -990,12 +991,13 @@ void CrossingKernel( LoopContext loop ) {
 
 	thisParent1 = breedingProps->table[ loop.threadIdx.x].parent1;
 	thisParent2 = breedingProps->table[ loop.threadIdx.x].parent2;
-	thisChild = breedingProps->table[ loop.threadIdx.x].child;
+ 	thisChild = breedingProps->table[ loop.threadIdx.x].child;
 	// generate cross template
 	if ( loop.threadIdx.x == 0 ) {
 		for ( i = 0, j = 0; i < MEDOID_VECTOR_SIZE; i++, j++ ) {
 			if ( j >= stepSize ) {
 				mark = ( mark ? 0 : 1 );
+				j = 0;
 			}
 			breedingProps->crossTemplate[ i] = mark;
 		}
@@ -1057,8 +1059,8 @@ void CrossingKernel( LoopContext loop ) {
 			breedingProps->props->population[ thisChild].clusters[ currCluster++] = membersCount;
 			membersCount = 1;
 			clusterToWrite++;
-			breedingProps->props->population[ thisChild].clusterMembership[ i] = clusterToWrite;
 		}
+		breedingProps->props->population[ thisChild].clusterMembership[ i] = clusterToWrite;
 	}
 
 	// mutation
@@ -1129,22 +1131,21 @@ void BDIKernel( LoopContext loop ) {
 	EvolutionProps * props = (EvolutionProps*)loop.params;
 	Solution *thisSolution = props->solutions + loop.threadIdx.x;
 	PopMember *thisMember = props->population + loop.threadIdx.x;
+	unsigned int clusterCountedIn = 0;
 	// for each pair of medoids taht doesn't belong to the same cluster
 	// find the lowest result of:
 	// ( densities[ a] + densities[ b] ) / distance( a, b )
 
 	// some cleaning first
-	if ( loop.threadIdx.x == 0 ) {
-		for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-			numbers[ i] = 0;
-		}
+	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		numbers[ i] = 0;
 	}
 
 	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
 		prevDistance = 0; // clean it for new search
 		for ( j = 0; j < MEDOID_VECTOR_SIZE; j++ ) { 
 			// if not the same and from the same cluster
-			if ( j != i && props->population->clusterMembership[ i] != props->population->clusterMembership[ j] ) {
+			if ( j != i && thisMember->clusterMembership[ i] != thisMember->clusterMembership[ j] ) {
 				currDistance = (( thisSolution->clusterDensities[ i] +
 					thisSolution->clusterDensities[ j] ) /
 					props->dataStore->distances[ 
@@ -1157,9 +1158,10 @@ void BDIKernel( LoopContext loop ) {
 			}
 		} // for j
 		// save it
-		if ( numbers[ props->population->clusterMembership[ i]-1] < prevDistance ||
-			numbers[ props->population->clusterMembership[ i]-1] == 0 ) {
-			numbers[ props->population->clusterMembership[ i]-1] = prevDistance;
+		if ( numbers[ thisMember->clusterMembership[ i]-1] < prevDistance ||
+			numbers[ thisMember->clusterMembership[ i]-1] == 0 ) {
+			numbers[ thisMember->clusterMembership[ i]-1] = prevDistance;
+			clusterCountedIn++;
 		}
 	}
 
@@ -1173,7 +1175,7 @@ void BDIKernel( LoopContext loop ) {
 //----------------------------------------------
 ErrorCode calculateBDI( EvolutionProps * props ) {
 	ErrorCode err = errOk;
-	LoopDefinition crossingLoop;
+	LoopDefinition bdiLoop;
 
 	if ( props == NULL ) {
 		return SetLastErrorCode( errWrongParameter );
@@ -1181,16 +1183,16 @@ ErrorCode calculateBDI( EvolutionProps * props ) {
 
 	logDebug(" == calculateBDI %s", "" );
 	// <<< 1, populationSize >>>
-	crossingLoop.gridSize.x = 1;
-	crossingLoop.gridSize.y = 1;
-	crossingLoop.gridSize.z = 1;
-	crossingLoop.blockSize.x = props->popSize;
-	crossingLoop.blockSize.y = 1;
-	crossingLoop.blockSize.z = 1;
-	crossingLoop.kernel = BDIKernel;
-	crossingLoop.params = (void*)props;
+	bdiLoop.gridSize.x = 1;
+	bdiLoop.gridSize.y = 1;
+	bdiLoop.gridSize.z = 1;
+	bdiLoop.blockSize.x = props->popSize;
+	bdiLoop.blockSize.y = 1;
+	bdiLoop.blockSize.z = 1;
+	bdiLoop.kernel = BDIKernel;
+	bdiLoop.params = (void*)props;
 
-	err = RunLoop( crossingLoop );
+	err = RunLoop( bdiLoop );
 
 	if ( err != errOk ) {
 		reportError( err, "Run loop returned with error%s", "" );
@@ -1198,9 +1200,69 @@ ErrorCode calculateBDI( EvolutionProps * props ) {
 	return err;
 }
 //----------------------------------------------
+
+void DIKernel( LoopContext loop ) {
+	// Find smallest distance betwen two medoids from different clusters
+	// Find biggest density
+	// Divide one by another - there you go
+	EvolutionProps * props = (EvolutionProps*)loop.params;
+	Solution *thisSolution = props->solutions + loop.threadIdx.x;
+	PopMember *thisMember = props->population + loop.threadIdx.x;
+
+	float currVal = 0;
+	float smallestDistance = 0;
+	float biggestDensity = 0;
+	unsigned int i, j;
+
+	for ( i = 0; i < thisSolution->numOfClusters; i++ ) {
+		for ( j = 0; j < thisSolution->numOfClusters; j++ ) {
+			// if not the same and from the same cluster
+			if ( j != i && thisMember->clusterMembership[ i] != thisMember->clusterMembership[ j] ) {
+				currVal = props->dataStore->distances[ 
+						DistanceVIdx( (*thisMember).medoids[ i], (*thisMember).medoids[ j] )
+					];
+				if ( currVal < smallestDistance || smallestDistance == 0 ) {
+					smallestDistance = currVal;
+				}
+			}
+		}
+	}
+
+	for ( i = 0; i < thisSolution->numOfClusters; i++ ) {
+		if ( thisSolution->clusterDensities[ i] > biggestDensity || biggestDensity == 0 ) {
+			biggestDensity = thisSolution->clusterDensities[ i];
+		}
+	}
+
+	thisSolution->resultDI = smallestDistance / biggestDensity;
+}
 //----------------------------------------------
 
-ErrorCode calculateDI( void ) {
+ErrorCode calculateDI( EvolutionProps * props ) {
+	ErrorCode err = errOk;
+	LoopDefinition diLoop;
+
+	if ( props == NULL ) {
+		return SetLastErrorCode( errWrongParameter );
+	}
+
+	logDebug(" == calculateBDI %s", "" );
+	// <<< 1, populationSize >>>
+	diLoop.gridSize.x = 1;
+	diLoop.gridSize.y = 1;
+	diLoop.gridSize.z = 1;
+	diLoop.blockSize.x = props->popSize;
+	diLoop.blockSize.y = 1;
+	diLoop.blockSize.z = 1;
+	diLoop.kernel = DIKernel;
+	diLoop.params = (void*)props;
+
+	err = RunLoop( diLoop );
+
+	if ( err != errOk ) {
+		reportError( err, "Run loop returned with error%s", "" );
+	}
+	return err;
 }
 //----------------------------------------------
 //----------------------------------------------

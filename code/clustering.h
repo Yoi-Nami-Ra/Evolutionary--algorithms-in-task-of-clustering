@@ -54,6 +54,7 @@ typedef struct {
 	float disconnectivity;
 	float errors; ///< how much errors has been found
 	float resultBDI; ///< Here result of BD index to be placed
+	float resultDI; ///< Here result of D index to be placed
 } Solution;
 
 /**
