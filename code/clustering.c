@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#pragma mark - Globals
 //==============================================
 //== Globals
 
@@ -24,6 +25,7 @@
 
 const char threadsPerBlock = 50;
 
+#pragma mark - Function Prototypes
 //==============================================
 //== Functions
 
@@ -61,6 +63,14 @@ ErrorCode Crossing( BreedingTable * breedingProps );
 
 float SolutionResult( Solution * solution, char objective );
 
+ErrorCode calculateBDI( EvolutionProps * props );
+
+ErrorCode calculateDI( EvolutionProps * props );
+
+ErrorCode calculateRand( EvolutionProps * props );
+
+
+#pragma mark - -
 //=============================================
 
 /**
@@ -822,6 +832,7 @@ ErrorCode Sorting( EvolutionProps * props ) {
 }
 //----------------------------------------------
 
+void DominanceCountKernel( LoopContext loop );
 void DominanceCountKernel( LoopContext loop ) {
 	// Counts how many other solutions dominate over this one
 	EvolutionProps * props = (EvolutionProps*)loop.params;
@@ -866,6 +877,7 @@ ErrorCode DominanceCount( EvolutionProps * props ) {
 }
 //----------------------------------------------
 
+void FrontDensityKernel( LoopContext loop );
 void FrontDensityKernel( LoopContext loop ) {
 	FrontDensities * frontProps = (FrontDensities*)loop.params;
 
@@ -980,6 +992,7 @@ float SolutionResult( Solution * solution, char objective ) {
 }
 //----------------------------------------------
 
+void CrossingKernel( LoopContext loop );
 void CrossingKernel( LoopContext loop ) {
 	BreedingTable * breedingProps = (BreedingTable*)loop.params;
 	unsigned int i = 0, j = 0;
@@ -1125,6 +1138,8 @@ ErrorCode Crossing( BreedingTable * breedingProps ) {
 	return err;
 }
 //----------------------------------------------
+
+void BDIKernel( LoopContext loop );
 void BDIKernel( LoopContext loop ) {
 	unsigned int i;
 	unsigned int j;
@@ -1176,6 +1191,7 @@ void BDIKernel( LoopContext loop ) {
 	thisSolution->resultBDI /= (float)thisSolution->numOfClusters;
 }
 //----------------------------------------------
+
 ErrorCode calculateBDI( EvolutionProps * props ) {
 	ErrorCode err = errOk;
 	LoopDefinition bdiLoop;
@@ -1204,6 +1220,7 @@ ErrorCode calculateBDI( EvolutionProps * props ) {
 }
 //----------------------------------------------
 
+void DIKernel( LoopContext loop );
 void DIKernel( LoopContext loop ) {
 	// Find smallest distance betwen two medoids from different clusters
 	// Find biggest density
@@ -1269,14 +1286,14 @@ ErrorCode calculateDI( EvolutionProps * props ) {
 }
 //----------------------------------------------
 
-ErrorCode RandKernel( LoopContext loop ) {
+void RandKernel( LoopContext loop );
+void RandKernel( LoopContext loop ) {
 	unsigned int i,j;
 	unsigned int t = 0, // true positive and true negative
 		f = 0; // false positive and false negative
 	char we, they;
 	EvolutionProps * props = (EvolutionProps*)loop.params;
 	Solution *thisSolution = props->solutions + loop.threadIdx.x;
-	PopMember *thisMember = props->population + loop.threadIdx.x;
 
 	for ( i = 0; i < props->dataStore->info.numEntries; i++ ) {
 		for ( j = 0; j < props->dataStore->info.numEntries; j++ ) {
