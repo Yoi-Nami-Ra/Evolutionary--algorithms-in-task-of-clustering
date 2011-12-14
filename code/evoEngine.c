@@ -7,6 +7,7 @@
  evoEngine.c
  **/
 
+#include "evoEngine.h"
 #include "dataLoader.h"
 #include "dataLoader_Iris.h"
 #include "dataLoader_Test.h"
@@ -19,7 +20,8 @@
  * Displays list of available loaders.
  * @return (unsigned int) number of elements on the list
  */
-unsigned char DisplayLoadersList() {
+unsigned char DisplayLoadersList( void );
+unsigned char DisplayLoadersList( void ) {
 	ErrorCode err = errOk;
 	unsigned char num = 0;
 	char ** list = NULL;
@@ -41,7 +43,8 @@ unsigned char DisplayLoadersList() {
 /**
  * Ask user for selection
  */
-unsigned int PromptForSelection() {
+unsigned int PromptForSelection( void );
+unsigned int PromptForSelection( void ) {
 	unsigned int result;
 
 	printf( "\n >> ");
@@ -53,6 +56,7 @@ unsigned int PromptForSelection() {
 /**
  * Print Details
  */
+void PrintDetails( unsigned int selected );
 void PrintDetails( unsigned int selected ) {
 	DataStore dataStore;
 	const char * loaderName;
@@ -69,7 +73,8 @@ void PrintDetails( unsigned int selected ) {
  * 
  * @return True if the user selected it.
  */
-char ConfirmSelection() {
+char ConfirmSelection( void );
+char ConfirmSelection( void ) {
 	int result;
 
 	printf( "\n [y,n]>> ");
@@ -116,19 +121,23 @@ void runEvo( void ) {
 
 		// -- Load
 		err = GetCalculatedDistances( selectedLoader - 1, &dataStore );
-
-		// -- Run Algorithms
-		props.blocksPerEntries = 0;
-		props.crosFactor = 0;
-		props.dataStore = &dataStore;
-		props.dominanceCounts = NULL;
-		props.dominanceMatrix = NULL;
-		props.evoSteps = 100; // 100 steps for the alg
-		props.popSize = 256; // for now 256 members
-		props.population = NULL;
-		props.solutions = NULL;
-		err = RunClustering( &props );
-
+        
+        if ( err != errOk ) {
+            // error occured can't continue with the algorithms
+            printf( " Error occured while preparing data for algorithms" );
+        } else {
+            // -- Run Algorithms
+            props.blocksPerEntries = 0;
+            props.crosFactor = 0;
+            props.dataStore = &dataStore;
+            props.dominanceCounts = NULL;
+            props.dominanceMatrix = NULL;
+            props.evoSteps = 3; // 100 steps for the alg
+            props.popSize = 4; // for now 256 members
+            props.population = NULL;
+            props.solutions = NULL;
+            err = RunClustering( &props );
+        }
 
 		b++;
 	}

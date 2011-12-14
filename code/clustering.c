@@ -402,20 +402,36 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 		if ( err != errOk ) {
 			break;
 		}
+        
+        
+        // gather results
+        calculateBDI( props );
+        calculateDI( props );
+        calculateRand( props );
+        logMessage( " == Results == (%u)", i );
+        for ( i = 0; i < props->popSize; i++ ) {
+            //if ( solutionsSelected[ i] ) {
+                logMessage(" = Solution[ %u]:", i );
+                logMessage("   BDI: %f", props->solutions[ i].resultBDI );
+                logMessage("   DI: %f", props->solutions[ i].resultDI );
+                logMessage("   Rand: %f", props->solutions[ i].resultRand );
+           // }
+        }
+        
 	}
 
 	// gather results
 	calculateBDI( props );
 	calculateDI( props );
 	calculateRand( props );
-	logMessage( " == Results == %s", "" );
+	logMessage( " == Results == %s", "<>" );
 	for ( i = 0; i < props->popSize; i++ ) {
-		if ( solutionsSelected[ i] ) {
+		//if ( solutionsSelected[ i] ) {
 			logMessage(" = Solution[ %u]:", i );
 			logMessage("   BDI: %f", props->solutions[ i].resultBDI );
 			logMessage("   DI: %f", props->solutions[ i].resultDI );
 			logMessage("   Rand: %f", props->solutions[ i].resultRand );
-		}
+		//}
 	}
 	
 
@@ -998,7 +1014,7 @@ void CrossingKernel( LoopContext loop ) {
 	unsigned int i = 0, j = 0;
 	unsigned int stepSize = MEDOID_VECTOR_SIZE / CROS_FACTOR;
 	unsigned int thisParent1, thisParent2, thisChild;
-	char mark = 0;
+	char mark = 0, prevMark = 0;
 	unsigned char howMany;
 	unsigned int currCluster;
 	unsigned int clusterToWrite;
@@ -1023,7 +1039,9 @@ void CrossingKernel( LoopContext loop ) {
 	/*
 	 Exchange both medoids and their membership
 	 */
+    howMany = 0;
 	for ( i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+        /*
 		if ( breedingProps->crossTemplate[ i] ) {
 			//clusterMembership
 			breedingProps->props->population[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent1].medoids[ i];
@@ -1034,7 +1052,37 @@ void CrossingKernel( LoopContext loop ) {
 			breedingProps->props->population[ thisChild].clusterMembership[ i] =
 				breedingProps->props->population[ thisParent2].clusterMembership[ i];
 		}
+        */
+        breedingProps->props->population[ thisChild].clusterMembership[ i] = 0;
+        if ( breedingProps->props->population[ thisChild].clusterMembership[ i] % 2 ) {
+            breedingProps->props->population[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent1].medoids[ i];
+            breedingProps->props->population[ thisChild].clusterMembership[ i] =
+            breedingProps->props->population[ thisParent1].clusterMembership[ i];
+            howMany++;
+        }
+        
+        if ( !( breedingProps->props->population[ thisChild].clusterMembership[ i] % 2 ) ) {
+            if ( breedingProps->props->population[ thisChild].clusterMembership[ i] == 0 ) {
+                breedingProps->props->population[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent2].medoids[ i];
+                breedingProps->props->population[ thisChild].clusterMembership[ i] =
+                breedingProps->props->population[ thisParent2].clusterMembership[ i];
+                howMany++;
+            } else {
+                if ( breedingProps->props->population[ thisChild].clusterMembership[ i] > 
+                    breedingProps->props->population[ thisParent2].clusterMembership[ i] ) {
+                    breedingProps->props->population[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent2].medoids[ i];
+                    breedingProps->props->population[ thisChild].clusterMembership[ i] =
+                    breedingProps->props->population[ thisParent2].clusterMembership[ i];
+                }
+            }
+        }
+        
+        //if still 0
 	}
+    
+    if ( howMany < MEDOID_VECTOR_SIZE ) {
+        logMessage(" aa %s", "" );
+    }
 
 	// copy attributes from the first parent
 	breedingProps->props->population[ thisChild].attr = breedingProps->props->population[ thisParent1].attr;
