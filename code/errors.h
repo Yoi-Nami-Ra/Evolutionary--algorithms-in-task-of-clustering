@@ -69,7 +69,7 @@ char * ErrorDesc( ErrorCode errorType );
 /*
  * Log given message as a debug entry
  */
-#ifdef _DEBUG
+#ifdef KLOPIK
 #define logDebug(A, ...) logMessage("[D] " A, __VA_ARGS__)
 #else
  #define logDebug(A, ...)

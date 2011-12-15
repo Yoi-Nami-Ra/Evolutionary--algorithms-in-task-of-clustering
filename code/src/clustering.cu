@@ -665,6 +665,7 @@ __global__ void kernelMembershipAndDensity() {
 //====================================================================
 
 __device__ float distance( unsigned int a, unsigned int b ) {
+	if ( a == b ) return 0;
 	return tex1Dfetch( texRefDistances, distanceIdx( a, b ));
 }
 //====================================================================
