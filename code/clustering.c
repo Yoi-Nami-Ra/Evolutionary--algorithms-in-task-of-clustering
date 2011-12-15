@@ -448,12 +448,12 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 	calculateDI( props );
 	calculateRand( props );
 	logMessage( " == Results == %s", "<>" );
-	for ( i = 0; i < props->popSize; i++ ) {
-		if ( solutionsSelected[ i] ) {
+	for ( i = 0; i < solutionFronts[0]; i++ ) {
+		if ( solutionsSelected[ solutionFronts[ i+1]] ) {
 			logMessage(" = Solution[ %u]:", i );
-			logMessage("   BDI: %f", props->solutions[ i].resultBDI );
-			logMessage("   DI: %f", props->solutions[ i].resultDI );
-			logMessage("   Rand: %f", props->solutions[ i].resultRand );
+			logMessage("   BDI: %f", props->solutions[ solutionFronts[ i+1]].resultBDI );
+			logMessage("   DI: %f", props->solutions[ solutionFronts[ i+1]].resultDI );
+			logMessage("   Rand: %f", props->solutions[ solutionFronts[ i+1]].resultRand );
 		}
 	}
 

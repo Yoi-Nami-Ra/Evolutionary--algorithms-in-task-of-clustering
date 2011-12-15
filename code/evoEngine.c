@@ -132,8 +132,8 @@ void runEvo( void ) {
             props.dataStore = &dataStore;
             props.dominanceCounts = NULL;
             props.dominanceMatrix = NULL;
-            props.evoSteps = 1000; // 100 steps for the alg
-            props.popSize = 256; // for now 256 members
+            props.evoSteps = 3000; // 100 steps for the alg
+            props.popSize = 4; // for now 256 members
             props.population = NULL;
             props.solutions = NULL;
             err = RunClustering( &props );
