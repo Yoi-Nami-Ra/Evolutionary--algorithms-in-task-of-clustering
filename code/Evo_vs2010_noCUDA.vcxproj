@@ -46,7 +46,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -99,6 +99,7 @@
     <ClInclude Include="dataLoader.h" />
     <ClInclude Include="dataLoader_Iris.h" />
     <ClInclude Include="dataLoader_Test.h" />
+    <ClInclude Include="dataLoader_Wine.h" />
     <ClInclude Include="distanceCalculator.h" />
     <ClInclude Include="errors.h" />
     <ClInclude Include="evoEngine.h" />
@@ -109,6 +110,7 @@
     <ClCompile Include="dataLoader.c" />
     <ClCompile Include="dataLoader_Iris.c" />
     <ClCompile Include="dataLoader_test.c" />
+    <ClCompile Include="dataLoader_Wine.c" />
     <ClCompile Include="distanceCalculator.c" />
     <ClCompile Include="errors.c" />
     <ClCompile Include="evoEngine.c" />

@@ -502,7 +502,7 @@ void MembershipAndDensityKernel( LoopContext loop );
 void MembershipAndDensityKernel( LoopContext loop ) {
 	// for this record in this specific solution (population member)
 	unsigned int solution = loop.blockIdx.y;
-	unsigned int record = loop.blockIdx.x * threadsPerBlock + loop.threadIdx.x;
+	unsigned int record = loop.blockIdx.x * threadsPerBlock + loop.threadIdx.x;	
 	unsigned int i;
 	EvolutionProps * props = (EvolutionProps*)loop.params;
 	Solution *thisSolution = props->solutions + solution;
@@ -510,8 +510,14 @@ void MembershipAndDensityKernel( LoopContext loop ) {
 	unsigned int clusterPos = 0;
 	unsigned int clusterSize = 0; //(*thisMember).clusters[ clusterPos];
 	float currentDistance = 0;
-	float smallestDistance = Distance( props, record, (*thisMember).medoids[ 0] ) + 0.1;
+	float smallestDistance = 0;
 	unsigned int smallestDClusterPos = 0;
+
+	if ( record >= props->dataStore->info.numEntries ) {
+		return;
+	}
+
+	smallestDistance = Distance( props, record, (*thisMember).medoids[ 0] ) + 0.1;
 	(*thisSolution).recordMembership[ record] = clusterPos;
 
 	if ( record == 0 ) {
@@ -541,9 +547,6 @@ void MembershipAndDensityKernel( LoopContext loop ) {
 
 	(*thisSolution).numOfClusters = clusterPos+1;
 	(*thisSolution).clusterDensities[ smallestDClusterPos] += smallestDistance;
-	if ( smallestDistance > 100.0 || smallestDistance < 0 ) {
-		logMessage( " klopik %s", "" );
-	}
 	(*thisSolution).densities += smallestDistance;
 }
 //----------------------------------------------
@@ -585,7 +588,11 @@ void ConnectivityKernel( LoopContext loop ) {
 	Solution *thisSolution = props->solutions + solution;
 	PopMember *thisMember = props->population + solution;
 	unsigned int i;
-	unsigned int memberOf = (*thisSolution).recordMembership[ record];
+	unsigned int memberOf;
+
+	if ( record >= props->dataStore->info.numEntries ) return;
+
+	memberOf = (*thisSolution).recordMembership[ record];
 
 	if ( record == 0 ) {
 		(*thisSolution).connectivity = 0;

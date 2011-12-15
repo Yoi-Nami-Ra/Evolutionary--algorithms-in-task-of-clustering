@@ -18,7 +18,7 @@
 
 static const char * kDataName = "wine";
 static const char* kDataFilePath = "./data/wine.data";
-static const unsigned char kWineDimensions = 12; // acctualy 13, but first attribute holds class number
+static const unsigned char kWineDimensions = 13;
 static const unsigned int kWineEntries = 178;
 
 //==============================================
@@ -32,9 +32,9 @@ static const unsigned int kWineEntries = 178;
  */
 static ErrorCode LoadData( DataStore * wineStore );
 
-ErrorCode IrisLoaderFunc( DataStore * wineStore, char loadAll );
+ErrorCode WineLoaderFunc( DataStore * wineStore, char loadAll );
 
-ErrorCode IrisLoaderFunc( DataStore * wineStore, char loadAll ) {
+ErrorCode WineLoaderFunc( DataStore * wineStore, char loadAll ) {
 	ErrorCode err = errOk;
 
 	wineStore->info.dimSize = kWineDimensions;
@@ -55,8 +55,8 @@ ErrorCode IrisLoaderFunc( DataStore * wineStore, char loadAll ) {
 }
 //----------------------------------------------
 
-void SetupIrisLoader( void ) {
-	AddFunction( kDataName, IrisLoaderFunc );
+void SetupWineLoader( void ) {
+	AddFunction( kDataName, WineLoaderFunc );
 }
 
 ErrorCode LoadData( DataStore * wineStore ) {
@@ -70,13 +70,13 @@ ErrorCode LoadData( DataStore * wineStore ) {
 		return SetLastErrorCode( errWrongParameter );
 	}
 
-	wineStore->dataVector = (float*)malloc( kIrisEntries * kIrisDimensions * sizeof(float) );
+	wineStore->dataVector = (float*)malloc( kWineEntries * kWineDimensions * sizeof(float) );
 
 	checkAlloc( wineStore->dataVector )
 		return errNoMemory;
 	}
 
-	wineStore->classes = (unsigned int*)malloc( kIrisEntries * sizeof(unsigned int) );
+	wineStore->classes = (unsigned int*)malloc( kWineEntries * sizeof(unsigned int) );
 
 	checkAlloc( wineStore->classes )
 		return errNoMemory;
@@ -91,21 +91,32 @@ ErrorCode LoadData( DataStore * wineStore ) {
 	}
 
 	// load data into memory
-	while( !feof( dataFile ) && ( index < kIrisEntries )) {
-		read = fscanf( dataFile, "%3f,%3f,%3f,%3f,%s",
-			wineStore->dataVector + index * kIrisDimensions,
-			wineStore->dataVector + index * kIrisDimensions + 1,
-			wineStore->dataVector + index * kIrisDimensions + 2,
-			wineStore->dataVector + index * kIrisDimensions + 3, str );
+	while( !feof( dataFile ) && ( index < kWineEntries )) {
+		// 1,14.23,1.71,2.43,15.6,127,2.8,3.06,.28,2.29,5.64,1.04,3.92,1065
+		read = fscanf( dataFile, "%u,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+			wineStore->classes + index,
+			wineStore->dataVector + index * kWineDimensions,
+			wineStore->dataVector + index * kWineDimensions + 1,
+			wineStore->dataVector + index * kWineDimensions + 2,
+			wineStore->dataVector + index * kWineDimensions + 3,
+			wineStore->dataVector + index * kWineDimensions + 4,
+			wineStore->dataVector + index * kWineDimensions + 5,
+			wineStore->dataVector + index * kWineDimensions + 6,
+			wineStore->dataVector + index * kWineDimensions + 7,
+			wineStore->dataVector + index * kWineDimensions + 8,
+			wineStore->dataVector + index * kWineDimensions + 9,
+			wineStore->dataVector + index * kWineDimensions + 10,
+			wineStore->dataVector + index * kWineDimensions + 11,
+			wineStore->dataVector + index * kWineDimensions + 12
+			);
 		index++;
-		wineStore->classes[ index] = ( index % 50 ) + 1;
-		// check if we read 5 elements, 4 values and the rest
-		if ( read != 5 ) {
+		// check if we read 14 elements, 1 class, and 13 dimensions
+		if ( read != 14 ) {
 			break;
 		}
 	}
 
-	if ( read != 5 ) {
+	if ( read != 14 ) {
 		// we failed to read the file
 		reportError( errFileCorupted, "we've failed to read the data at index: %d.", index );
 		free( wineStore->dataVector );

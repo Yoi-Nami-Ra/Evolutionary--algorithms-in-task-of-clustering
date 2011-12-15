@@ -11,6 +11,7 @@
 #include "dataLoader.h"
 #include "dataLoader_Iris.h"
 #include "dataLoader_Test.h"
+#include "dataLoader_Wine.h"
 #include "distanceCalculator.h"
 #include "clustering.h"
 #include <stdlib.h>
@@ -96,6 +97,7 @@ void runEvo( void ) {
 	// -- Setting up all loaders
 	SetupIrisLoader();
 	SetupTestLoader();
+	SetupWineLoader();
 
 	for (;;) {
 
@@ -133,7 +135,7 @@ void runEvo( void ) {
             props.dominanceCounts = NULL;
             props.dominanceMatrix = NULL;
             props.evoSteps = 3000; // 100 steps for the alg
-            props.popSize = 4; // for now 256 members
+            props.popSize = 256; // for now 256 members
             props.population = NULL;
             props.solutions = NULL;
             err = RunClustering( &props );
