@@ -443,13 +443,33 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		cudaMemcpy( hDominanceCounts, dDominanceCounts, populationSize * sizeof( unsigned int ), cudaMemcpyDeviceToHost );
 		cuErr = cudaGetLastError();
 
+		FILE * dumpFile = fopen("dominance_matrix.txt", "w");
+		if ( dumpFile != NULL ) {
+			for ( int i = 0; i < populationSize; i++ ) {
+				for ( int j = 0; j < populationSize; j++ ) {
+					fprintf( dumpFile, "%u,", hDominanceMatrix[ i * populationSize + j]?1:0 );
+				}
+				fprintf( dumpFile, "\n" );
+			}
+			fclose( dumpFile );
+		}
+
+		dumpFile = fopen( "dominance_Counts.txt", "w" );
+		if ( dumpFile != NULL ) {
+			for ( int i = 0; i < populationSize; i++ ) {
+				fprintf( dumpFile, " %u,", hDominanceCounts[ i] );
+			}
+
+			fclose( dumpFile );
+		}
+
 		if ( cuErr != cudaSuccess ) {
 			printf( "[E][cude] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
 			break;
 		}
 
 		// setup fronts
-		solutionsLeft = populationSize / 2; // no need to sort all
+		solutionsLeft = populationSize;
 		currFront = 0;
 
 		int j;
@@ -474,15 +494,23 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 				// for each solution dominated by solution from this front - reduce domination count
 				for ( j = 0; j < currFrontSize; j++ ) {
 					for ( int k = 0; k < populationSize; k++ ) {
-						if ( hDominanceMatrix[ solutionFronts[ currFront * ( populationSize + 1 ) + j + 1] * populationSize + k] ) {
+						if ( hDominanceMatrix[ solutionFronts[ currFront * ( populationSize + 1 ) + j + 1] * populationSize + k] && hDominanceCounts[ k] > 0 ) {
 							hDominanceCounts[ k] -= 1;
 						}
 					}
 				}
 			}
 
-			// now for next front
-			currFront++;
+			if ( currFrontSize == 0 ) {
+				for( int k = 0; k < populationSize; k++ ) {
+					if ( hDominanceCounts[ k] > 0 ) {
+						hDominanceCounts[ k] -= 1;
+					}
+				}
+			} else {
+				// now for next front
+				currFront++;
+			}
 		}
 
 		// selection
@@ -503,10 +531,18 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 				// this front has more than we need
 				currFrontSize = solutionFronts[ currFront * ( populationSize + 1 ) + 0];
 
+				unsigned int * dFront;
+
+				cudaMalloc( &dFront, currFrontSize * sizeof(unsigned int) );
+
+				cudaMemcpy( dFront, &solutionFronts[ currFront * ( populationSize + 1 ) + 1], currFrontSize * sizeof(unsigned int), cudaMemcpyHostToDevice );
+
 				// Calculate densities for solutions in this front
-				kernelFrontDensity<<<currFrontSize, 4>>>( &solutionFronts[ currFront * ( populationSize + 1 ) + 1],
-					currFrontSize, dFrontDensities );
+				kernelFrontDensity<<<currFrontSize, 4>>>( dFront, currFrontSize, dFrontDensities );
+
 				cutilDeviceSynchronize();
+				cudaFree( dFront );
+
 				cuErr = cudaGetLastError();
 				if ( cuErr != cudaSuccess ) {
 					printf( "[E][cude] After kernelFrontDensity - %s\n", cudaGetErrorString( cuErr ));
@@ -867,6 +903,10 @@ __global__ void kernelSorting( bool * dominanceMatrix ) {
 	__syncthreads();
 
 	for ( int i = 0; i < 4 ;i++ ) {
+		if ( hasWorse && hasBetter || threadIdx.x == blockIdx.x ) {
+			// theyre already "equal" stop comparing
+			break;
+		}
 		currResult = dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0)];
 		if ( currResult != thisSolutionFitnesResults[ i] ) {
 			switch ( i ) {
@@ -929,6 +969,8 @@ __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize
 
 	float thisResult = dFitnesResults[ fitnesResultIndex( front[ blockIdx.x], threadIdx.x, 0 )];
 	float currResult;
+
+	
 
 	for ( int i = 0; i < frontSize; i++ ) {
 		if ( blockIdx.x == i ) {

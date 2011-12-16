@@ -257,7 +257,7 @@ ErrorCode RunAlgorithms( EvolutionProps * props ) {
 		}
 
 		// setup fronts
-		solutionsLeft = props->popSize / 2; // no need to sort all
+		solutionsLeft = props->popSize;
 		currFront = 0;
 
 		for ( j = 0; j < props->popSize; j++ ) {
@@ -793,8 +793,9 @@ void SortingKernel( LoopContext loop ) {
 	unsigned int he = loop.threadIdx.x;
 
 	for ( i = 0; i < OBJECTIVES; i++ ) {
-		if ( hasWorse && hasBetter ) {
+		if ( hasWorse && hasBetter || me == he ) {
 			// it's already equal so no need for more tests
+			// and there is no need to compare them self
 			break;
 		}
 		switch ( i ) {
