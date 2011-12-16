@@ -27,6 +27,7 @@ static float* dDistancesVector = 0;
 static float* hDistancesVector = 0;
 static uint* dNeighbours = 0;
 static uint* hNeighbours = 0;
+#define BLOCK_SIZE 50
 
 //==============================================
 //== Declarations

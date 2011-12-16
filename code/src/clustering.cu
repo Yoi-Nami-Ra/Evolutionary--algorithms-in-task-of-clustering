@@ -699,7 +699,6 @@ __global__ void kernelConnectivity() {
 	unit thisSolution = dPopulationPool[ solution];
 	unsigned int memberOf = dMembership[ solution * dNumEntries + record];
 	unsigned int numOfNeighbours = thisSolution.attr.numNeighbours;
-#error commpared should be klasters not single medoids
 
 	__shared__ float blockResults[256];
 	float result = 0;
@@ -744,9 +743,10 @@ __global__ void kernelSumResults() {
 __global__ void kernelDisconnectivity() {
 
 	__shared__ unsigned int clusters[ MEDOID_VECTOR_SIZE];
-	__shared__ unsigned int comparisions[ MEDOID_VECTOR_SIZE];
-	__shared__ unsigned int counts[ MEDOID_VECTOR_SIZE];
+	__shared__ float disconnectivities[ MEDOID_VECTOR_SIZE];
 
+	unsigned int comparisions;
+	unsigned int counts;
 
 	// label medoids to their clusters
 	if ( threadIdx.x == 0 ) {
@@ -760,7 +760,7 @@ __global__ void kernelDisconnectivity() {
 	__syncthreads();
 
 	float currDistance  = 0;
-	float disconnectivities[ MEDOID_VECTOR_SIZE];
+	
 	comparisions = 1; // start with 1 as we compare those two medoids
 	counts = 2; // start with 2 for both medoids
 	// For each medoid in the vector
@@ -789,7 +789,7 @@ __global__ void kernelDisconnectivity() {
 		}
 	}
 
-	diconnectivities[ threadIdx.x] += counts / comparisions;
+	disconnectivities[ threadIdx.x] += counts / comparisions;
 
 	__syncthreads();
 
@@ -799,10 +799,10 @@ __global__ void kernelDisconnectivity() {
 			// CHANGED 12-12-2011: 
 			//-- compars += comparisions[ i];
 			//-- count += counts[ i];
-			diconnectivity += diconnectivities[ i];
+			disconnectivity += disconnectivities[ i];
 		}
 		//-- dFitnesResults[ fitnesResultIndex( blockIdx.x, 2, 0)] = count/compars;
-		dFitnesResults[ fitnesResultIndex( blockIdx.x, 2, 0)] = diconnectivity;
+		dFitnesResults[ fitnesResultIndex( blockIdx.x, 2, 0)] = disconnectivity;
 	}
 }
 //====================================================================
