@@ -1084,7 +1084,7 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 	}
 		
 	char childCluster[ MEDOID_VECTOR_SIZE];
-	/*
+
 	// exchange data and put it into child
 	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
 		if ( crossTemplate[ i] ) {
@@ -1163,7 +1163,6 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 
 	// now save the child into memory
 	dPopulationPool[ descriptor.child] = childUnit;
-	*/
 }
 //====================================================================
 
