@@ -287,10 +287,10 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 				// for each solution dominated by solution from this front - reduce domination count
 				for (j = 0; j < currFrontSize; j++) {
 					for (k = 0; k < props->popSize; k++) {
-						if (props->dominanceMatrix[solutionFronts[currFront
+						if ( props->dominanceMatrix[solutionFronts[currFront
 								* (props->popSize + 1) + j + 1] * props->popSize
-								+ k]) {
-							props->dominanceCounts[k] -= 1;
+								+ k] ( props->dominanceCounts[ k] > 0 ) ) {
+							props->dominanceCounts[ k] -= 1;
 						}
 					}
 				}
@@ -298,7 +298,7 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 
 			// now for next front
 			currFront++;
-		}
+		} // while
 
 		// selection
 		solutionsLeft = props->popSize / 2; // select half size of population
@@ -310,11 +310,11 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 		while (solutionsLeft > 0) {
 			// if we need more than the current front can offer
 			if (solutionsLeft
-					>= solutionFronts[currFront * (props->popSize + 1) + 0]) {
+					>= solutionFronts[ currFront * (props->popSize + 1) + 0]) {
 				for (j = 0;
-						j < solutionFronts[currFront * (props->popSize + 1) + 0];
+						j < solutionFronts[ currFront * (props->popSize + 1) + 0];
 						j++) {
-					solutionsSelected[solutionFronts[currFront
+					solutionsSelected[ solutionFronts[ currFront
 							* (props->popSize + 1) + j + 1]] = 1; //true;
 					solutionsLeft--;
 				}
@@ -411,21 +411,21 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 			srand((unsigned int) time(0));
 			// generate breeding Table
 			for (j = 0; j < props->popSize; j++) {
-				if (solutionsSelected[j]) {
+				if (solutionsSelected[ j]) {
 					// place for parent
 					if (currParent1 <= currParent2) {
 						// place taken by first parent
-						breedingData.table[currParent1++].parent1 = j;
-						breedingData.table[currParent1++].parent2 = j;
+						breedingData.table[ currParent1++].parent1 = j;
+						breedingData.table[ currParent1++].parent2 = j;
 					} else {
-						breedingData.table[currParent2++].parent2 = j;
-						breedingData.table[currParent2++].parent1 = j;
+						breedingData.table[ currParent2++].parent2 = j;
+						breedingData.table[ currParent2++].parent1 = j;
 					}
 				} else {
 					// place for child
-					breedingData.table[currChild].child = j;
+					breedingData.table[ currChild].child = j;
 					// mutation probability
-					breedingData.table[currChild++].factor = rand() % 100;
+					breedingData.table[ currChild++].factor = rand() % 100;
 				}
 			} // for j
 		}
@@ -562,10 +562,10 @@ void MembershipAndDensityKernel(LoopContext loop) {
 	for (i = 0; i < MEDOID_VECTOR_SIZE; i++, clusterSize--) {
 		if (clusterSize <= 0) {
 			(i == 0) ? clusterPos = 0 : clusterPos++;
-			clusterSize = (*thisMember).clusters[clusterPos];
+			clusterSize = (*thisMember).clusters[ clusterPos];
 		}
 
-		(*thisMember).clusterMembership[i] = clusterPos + 1;
+		(*thisMember).clusterMembership[ i] = clusterPos + 1;
 
 		currentDistance = Distance(props, record, (*thisMember).medoids[i]);
 		if (currentDistance < smallestDistance) {

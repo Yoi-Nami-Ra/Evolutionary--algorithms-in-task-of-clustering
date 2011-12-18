@@ -654,11 +654,13 @@ __global__ void kernelMembershipAndDensity() {
 	// Sync up threads
 	__syncthreads();
 
-	float prevDistance = distance( record, thisSolution.medoids[ 0] );
+	density[ threadIdx.x] = 0;
+
+	float prevDistance = distance( record, thisSolution.medoids[ 0] ) + 0.1;
 	float currDistance;
 	unsigned int res = 0;
 
-	for ( int i = 1; i < MEDOID_VECTOR_SIZE; i++ ) {
+	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
 		currDistance = distance ( record, thisSolution.medoids[ i] );
 		if ( currDistance < prevDistance ) {
 			prevDistance = currDistance;
@@ -687,7 +689,7 @@ __global__ void kernelMembershipAndDensity() {
 //====================================================================
 
 __device__ float distance( unsigned int a, unsigned int b ) {
-	if ( a == b ) return 0;
+	if ( a == b ) return 0.0f;
 	return tex1Dfetch( texRefDistances, distanceIdx( a, b ));
 }
 //====================================================================
