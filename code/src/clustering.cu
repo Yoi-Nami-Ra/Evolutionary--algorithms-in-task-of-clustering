@@ -443,26 +443,6 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		cudaMemcpy( hDominanceCounts, dDominanceCounts, populationSize * sizeof( unsigned int ), cudaMemcpyDeviceToHost );
 		cuErr = cudaGetLastError();
 
-		FILE * dumpFile = fopen("dominance_matrix.txt", "w");
-		if ( dumpFile != NULL ) {
-			for ( int i = 0; i < populationSize; i++ ) {
-				for ( int j = 0; j < populationSize; j++ ) {
-					fprintf( dumpFile, "%u,", hDominanceMatrix[ i * populationSize + j]?1:0 );
-				}
-				fprintf( dumpFile, "\n" );
-			}
-			fclose( dumpFile );
-		}
-
-		dumpFile = fopen( "dominance_Counts.txt", "w" );
-		if ( dumpFile != NULL ) {
-			for ( int i = 0; i < populationSize; i++ ) {
-				fprintf( dumpFile, " %u,", hDominanceCounts[ i] );
-			}
-
-			fclose( dumpFile );
-		}
-
 		if ( cuErr != cudaSuccess ) {
 			printf( "[E][cude] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
 			break;
@@ -598,6 +578,12 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 
 			currFront++;
 		} // while
+
+		//printf( " step: %u ==\n", i );
+		calculateBDI( results->bdi, results->k );
+		calculateDI( results->di );
+		calculateRand( results->rand );
+		//printf( " ==========\n" );
 
 		// crossing		
 		// breedingTable[ parent1, parent2, child, mutation probability]
@@ -1030,6 +1016,140 @@ __global__ void kernelFrontDensity( unsigned int * front, unsigned int frontSize
 }
 //====================================================================
 
+__global__ void kernelCrossing( breedDescriptor * breedingTable ) {
+	char parent1Clusters[ MEDOID_VECTOR_SIZE];
+	char parent2Clusters[ MEDOID_VECTOR_SIZE];
+	
+	breedDescriptor descriptor = breedingTable[ threadIdx.x];	
+	
+	curandState randState;
+	curand_init( dPopulationSize, dNumEntries, 0, &randState );	
+
+	// calculate cluster groupings for parent 1
+	unsigned int toSign = 0;
+	unsigned int j = 0;
+	for ( unsigned int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		if ( toSign == 0 ) {
+			toSign = dPopulationPool[ descriptor.parent1].clusters[ j++];			
+		}
+		parent1Clusters[ i] = j - 1;
+		if ( toSign != 0 ) toSign--;
+	}
+
+	toSign = 0;
+	j = 0;
+	for ( unsigned int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		if ( toSign == 0 ) {
+			toSign = dPopulationPool[ descriptor.parent2].clusters[ j++];			
+		}
+		parent2Clusters[ i] = j - 1;
+		if ( toSign != 0 ) toSign--;
+	}
+		
+	char childCluster[ MEDOID_VECTOR_SIZE];
+	unit childUnit;
+	unsigned char howMany = 0;
+	unsigned int currCluster = 0;
+
+	// exchange data and put it into child
+	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		childCluster[ i] = parent1Clusters[ i];
+		childUnit.medoids[ i] = dPopulationPool[ descriptor.parent1].medoids[ i];
+
+		if ( parent1Clusters[ i] % 2 ) {
+			currCluster = childCluster[ i] = parent1Clusters[ i];
+			howMany++;
+		}
+
+		if ( !( parent2Clusters[ i] % 2 ) ) {
+            if ( childCluster[ i] == 0 ) {
+                childUnit.medoids[ i] = dPopulationPool[ descriptor.parent2].medoids[ i];
+                currCluster = childCluster[ i] = parent2Clusters[ i];
+                howMany++;
+            } else {
+                if ( childCluster[ i] > parent2Clusters[ i] ) {
+                    childUnit.medoids[ i] = dPopulationPool[ descriptor.parent2].medoids[ i];
+                    currCluster = childCluster[ i] = parent2Clusters[ i];
+                }
+            }
+        }
+
+		//if still 0
+		if ( childCluster[ i] == 0 ) {
+			childCluster[ i] = currCluster;
+			howMany++;
+		}
+	} // for
+
+	// copy attributes from first parent
+	childUnit.attr.clusterMaxSize = dPopulationPool[ descriptor.parent1].attr.clusterMaxSize;
+	childUnit.attr.numNeighbours = dPopulationPool[ descriptor.parent1].attr.numNeighbours;
+
+	// mutation
+	
+	char mutationProb = descriptor.factor;	
+	// 1) attributes
+	if ( mutationProb > 50 ) {
+		if ( mutationProb > 70 ) {
+			if ( mutationProb > 90 ) {
+				// both
+				childUnit.attr.clusterMaxSize = curand( &randState ) % MAX_CLUSTER_SIZE;
+				childUnit.attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS;
+			} else {
+				// neighbours
+				childUnit.attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS;
+			}
+		} else {
+			// max cluster size
+			childUnit.attr.clusterMaxSize = curand( &randState ) % MAX_CLUSTER_SIZE;
+		}
+	}
+
+	// 2) medoids
+	if ( mutationProb > 20 ) {
+		if ( mutationProb > 50 ) {
+			if ( mutationProb > 80 ) {
+				if ( mutationProb > 95 ) {
+					// 4
+					howMany = 4;
+				} else {
+					// 3
+					howMany = 3;
+				}
+			} else {
+				// 2
+				howMany = 2;
+			}
+		} else {
+			// 1
+			howMany = 1;
+		}
+	}
+	// generate new random medoids
+	for ( char i = 0; i < howMany; i++ ) {
+		childUnit.medoids[ curand( &randState ) % MEDOID_VECTOR_SIZE] = curand( &randState ) % dNumEntries;
+	}
+	
+	// check groups sizes, if needed regroup
+	unsigned int index = 0;
+	char cluster = childCluster[ 0];
+	childUnit.clusters[ 0] = 0;
+	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
+		if ( childCluster[ i] == cluster && childUnit.clusters[ index] < childUnit.attr.clusterMaxSize ) {
+			childUnit.clusters[ index]++;
+		} else {
+			childUnit.clusters[ ++index] = 1;
+			cluster = childCluster[ i];
+		}
+	}
+	for ( int i = index+1; i < MEDOID_VECTOR_SIZE; i++ ) {
+		childUnit.clusters[ i] = 0;
+	}
+
+	// now save the child into memory
+	dPopulationPool[ descriptor.child] = childUnit;
+}
+/*
 // <<< 1, popSize/2 >>>
 __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 	
@@ -1164,6 +1284,7 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 	// now save the child into memory
 	dPopulationPool[ descriptor.child] = childUnit;
 }
+*/
 //====================================================================
 
 __device__ unsigned int devCalculateClustersAndDensities( unsigned char * clusters, float * densities ) {
@@ -1268,7 +1389,6 @@ __global__ void kernelBDI( float * indexes, unsigned char * clustersCount ) {
 }
 //====================================================================
 ErrorCode calculateBDI( float & topBDI, unsigned int & clusters ) {
-
 	float * dResults;
 	unsigned char * dClusters;
 	cudaMalloc( &dResults, populationSize * sizeof(float) );
@@ -1282,7 +1402,7 @@ ErrorCode calculateBDI( float & topBDI, unsigned int & clusters ) {
 	cudaMemcpy( hResults, dResults, populationSize * sizeof(float), cudaMemcpyDeviceToHost );
 	cudaMemcpy( hClusters, dClusters, populationSize * sizeof(unsigned int), cudaMemcpyDeviceToHost );
 
-	printf( " \n BDI index: \n" );
+	//printf( " \n BDI index: \n" );
 	topBDI = hResults[ 0];
 	unsigned int res = 0;
 	for ( int i = 1; i < populationSize; i++ ) {
@@ -1292,7 +1412,7 @@ ErrorCode calculateBDI( float & topBDI, unsigned int & clusters ) {
 			res = i;
 		}
 	}
-	printf( "======\n (%d) %f\n", res, topBDI );
+	//printf( "======\n (%d) %f\n", res, topBDI );
 
 	return errOk;
 }
@@ -1353,7 +1473,7 @@ ErrorCode calculateDI( float & topDi ) {
 	cudaMemcpy( hResults, dResults, populationSize * sizeof(float), cudaMemcpyDeviceToHost );
 	unsigned int res = 0;
 
-	printf( " \n DI index: \n" );
+	//printf( " \n DI index: \n" );
 	topDi = hResults[ 0];
 	for ( int i = 1; i < populationSize; i++ ) {
 		if ( hResults[ i] > topDi ) {
@@ -1361,7 +1481,7 @@ ErrorCode calculateDI( float & topDi ) {
 			res = i;
 		}
 	}
-	printf( "======\n (%d) %f\n", res, topDi );
+	//printf( "======\n (%d) %f\n", res, topDi );
 
 	return errOk;
 }
@@ -1415,6 +1535,7 @@ __global__ void kernelCalculateRand( unsigned char * preclasified, float * rand)
 
 ErrorCode calculateRand( float & topRand ) {
 	// Get Clasified data
+	static float bestRand = 0;
 	unsigned char * preclasifiedEntires = loadPreclasifiedData();
 
 	unsigned char * dPreclasified;
@@ -1439,8 +1560,12 @@ ErrorCode calculateRand( float & topRand ) {
 			res = i;
 		}
 	}
-	printf( "\n Rand Index:\n" );
-	printf( "======\n (%d) %f\n", res, topRand );
+	if ( bestRand == 0 || bestRand < topRand ) {
+		bestRand = topRand;
+		printf( "\n Rand Index: %f\n", bestRand );
+	}
+	
+	//printf( "======\n (%d) %f\n", res, topRand );
 	
 	return errOk;
 }
