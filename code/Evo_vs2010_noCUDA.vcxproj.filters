@@ -84,6 +84,18 @@
     <ClInclude Include="loops.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dataLoader_Test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="evoEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="clustering.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dataLoader_Wine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dataLoader.c">
@@ -102,6 +114,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="loops.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dataLoader_test.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="evoEngine.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="clustering.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dataLoader_Wine.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
