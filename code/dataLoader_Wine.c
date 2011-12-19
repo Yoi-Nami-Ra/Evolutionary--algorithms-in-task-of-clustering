@@ -62,7 +62,6 @@ void SetupWineLoader( void ) {
 ErrorCode LoadData( DataStore * wineStore ) {
 	FILE * dataFile = NULL;
 	int index = 0;
-	char str[20];
 	char read = 0;
 
 	if ( wineStore == NULL ) {

@@ -17,9 +17,9 @@
 //== Globals
 
 
-#define MAX_CLUSTER_SIZE 10
-#define MEDOID_VECTOR_SIZE 20
-#define MAX_NEIGHBOURS 10
+#define MAX_CLUSTER_SIZE 20
+#define MEDOID_VECTOR_SIZE 40
+#define MAX_NEIGHBOURS 20
 
 //==============================================
 //== Types
