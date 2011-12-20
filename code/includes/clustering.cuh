@@ -32,12 +32,19 @@ typedef struct breedDescriptor {
 	unsigned int factor;
 } breedDescriptor;
 
+typedef struct {
+	float min;
+	float max;
+	float mean;
+	float sum;
+} preciseResult;
+
 typedef struct algResults {
-	float rand;
-	float bdi;
-	float di;
-	unsigned int k;
-	double time;
+	preciseResult rand;
+	preciseResult bdi;
+	preciseResult di;
+	preciseResult clusters;
+	preciseResult time;
 } algResults;
 
 // =======================

@@ -3,7 +3,7 @@
 #include <cutil_inline.h>
 #include <shrQATest.h>
 
-#include "dataLoader.cuh"
+#include "dataLoader_Iris.cuh"
 #include "distanceCalculator.cuh"
 #include "clustering.cuh"
 #include "errors.cuh"
@@ -25,10 +25,6 @@ int main(int argc, char** argv)
 	printf("Device %d: \"%s\" with Compute %d.%d capability\n", 
 			devID, props.name, props.major, props.minor);
 
-	FILE * testFile = fopen("klopik.data", "w");
-	fwrite("klopik", 1, 6, testFile);
-	fclose(testFile);
-
 	ErrorCode err = errOk;
 	
 	if ( getDistances() == 0 ) {
@@ -36,11 +32,20 @@ int main(int argc, char** argv)
 	}	
 
 	algResults results;
-	float randMax, randMin, randMean, randSum = 0;
-	float bdiMax, bdiMin, bdiMean, bdiSum = 0;
-	float diMax, diMin, diMean, diSum = 0;
-	float timeMax, timeMin, timeMean, timeSum = 0;
-	float clusterMax, clusterMin, clusterMean, clusterSum = 0;
+	results.bdi.max = results.bdi.min = results.bdi.mean = results.bdi.sum = 0.0;
+	results.clusters.max = results.clusters.min = results.clusters.mean = results.clusters.sum = 0.0;
+	results.di.max = results.di.mean = results.di.min = results.di.sum = 0.0;
+	results.rand.max = results.rand.mean = results.rand.min = results.rand.sum = 0.0;
+	results.time.max = results.time.mean = results.time.min = results.time.sum = 0.0;
+
+	//= Setup loaders
+	//--------------------
+	SetupIrisLoader();
+	
+	//= Load data
+	//--------------------
+	DataStore dataStore;
+	err = GetCalculatedDistances( 1, &dataStore );
 
 	unsigned int popSize = 4;
 	unsigned int evoSteps = 2;
@@ -48,45 +53,17 @@ int main(int argc, char** argv)
 
 	if ( err == errOk ) {
 		for (int i = 0; i < repeats; i++ ) {
-			err = runClustering( popSize, evoSteps, &results );
-			if ( i == 0 ) {
-				randSum += randMax = randMin = results.rand;
-				bdiSum += bdiMax = bdiMin = results.bdi;
-				diSum += diMax = diMin = results.di;
-				timeSum += timeMax = timeMin = results.time;
-				clusterSum += clusterMax = clusterMin = results.k;
-			} else {
-				if ( randMax < results.rand ) randMax = results.rand;
-				if ( randMin > results.rand ) randMin = results.rand;
-				randSum += results.rand;
-				//-
-				if ( bdiMax < results.bdi ) bdiMax = results.bdi;
-				if ( bdiMin > results.bdi ) bdiMin = results.bdi;
-				bdiSum += results.bdi;
-				//-
-				if ( diMax < results.di ) diMax = results.di;
-				if ( diMin > results.di ) diMin = results.di;
-				diSum += results.di;
-				//-
-				if ( timeMax < results.time ) timeMax = results.time;
-				if ( timeMin > results.time ) timeMin = results.time;
-				timeSum += results.time;
-				//-
-				if ( clusterMax < results.k ) clusterMax = results.k;
-				if ( clusterMin > results.k ) clusterMin = results.k;
-				clusterSum += results.k;
-				//-
-			}			
+			err = runClustering( popSize, evoSteps, &results );			
 		} // for
 
-		randMean = randSum / (float)repeats;
-		bdiMean = bdiSum / (float)repeats;
-		diMean = diSum / (float)repeats;
-		timeMean = timeSum / (float)repeats;
-		clusterMean = clusterSum / (float)repeats;
-
+		results.rand.mean = results.rand.sum / (float)repeats;
+		results.bdi.mean = results.bdi.sum / (float)repeats;
+		results.di.mean = results.di.sum / (float)repeats;
+		results.time.mean = results.time.sum / (float)repeats;
+		results.clusters.mean = results.clusters.sum / (float)repeats;
+		
 		printf( " \n\n====\n pop(%d), steps(%d), repeats(%d)\n Rand(%f) BDI(%f) DI(%f) time(%f) clusters(%f)",
-			popSize, evoSteps, repeats, randMean, bdiMean, diMean, timeMean, clusterMean );
+			popSize, evoSteps, repeats, results.rand.mean, results.bdi.mean, results.di.mean, results.time.mean, results.clusters.mean );
 
 	}
 

@@ -183,7 +183,7 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps, algResults * 
 	//   Allocate memory for distances
 	unsigned int offset = 0;
 
-	hNumEntries = numEntries();
+	hNumEntries = 0; // TODO: numEntries();
 	cudaMemcpyToSymbol( dNumEntries, &hNumEntries, sizeof(unsigned int) );
 	
 	unsigned int distancesSize = hNumEntries * ( hNumEntries -1 ) /2 * sizeof(float);
@@ -665,7 +665,8 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		}
 	} // evolution
 
-	results->time = difftime( time( 0 ), startTime );
+	//TODO:
+	//results->time = difftime( time( 0 ), startTime );
 
 	printf( " Finished:\n=====\n  populationSize(%d), steps(%d)\n  timeSpent(%f)\n", populationSize, steps, results->time );
 
@@ -1592,7 +1593,7 @@ __global__ void kernelCalculateRand( unsigned char * preclasified, float * rand)
 ErrorCode calculateRand( float & topRand ) {
 	// Get Clasified data
 	static float bestRand = 0;
-	unsigned char * preclasifiedEntires = loadPreclasifiedData();
+	unsigned char * preclasifiedEntires = NULL; // TODO:loadPreclasifiedData();
 
 	unsigned char * dPreclasified;
 	cudaMalloc( &dPreclasified, hNumEntries * sizeof(unsigned char) );

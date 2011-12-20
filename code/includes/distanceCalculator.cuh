@@ -6,18 +6,36 @@
 
 #include "globals.cuh"
 #include "errors.cuh"
+#include "dataLoader.cuh"
 
-#ifdef DATABASE_IRIS
-#include "distanceCalculator_Iris.cuh"
-#endif // DATABASE_IRIS
+//==============================================
+//== Globals
 
+#define kMaxNeighbours 10
 
-// Functions
+//==============================================
+//== Types
 
-/*
- * Calculates distances betwen records of current database source
+//==============================================
+//== Functions
+
+/**
+ * Calculates distances from a selected Loader.
+ * @param num		- [in] index of selected loader.
+ * @param dataStore	- [out] pointer to where buffer of distances should be stored.
+ *
+ * @return Error code if any
  */
-ErrorCode calculateDistances();
+ErrorCode GetCalculatedDistances( unsigned int num, DataStore * dataStore );
+
+/**
+ * Calculates proper index in the distances vector.
+ * @param a	- [in] column or row
+ * @param b - [in] column or row
+ *
+ * @return calculated index
+ */
+unsigned int DistanceVIdx( unsigned int a, unsigned int b );
 
 
 #endif //DISTANCECALCULATOR_CUH
