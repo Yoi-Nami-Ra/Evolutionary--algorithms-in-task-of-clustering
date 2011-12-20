@@ -42,8 +42,8 @@ int main(int argc, char** argv)
 	float timeMax, timeMin, timeMean, timeSum = 0;
 	float clusterMax, clusterMin, clusterMean, clusterSum = 0;
 
-	unsigned int popSize = 200;
-	unsigned int evoSteps = 2000;
+	unsigned int popSize = 4;
+	unsigned int evoSteps = 2;
 	unsigned int repeats = 5;
 
 	if ( err == errOk ) {

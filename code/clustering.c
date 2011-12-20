@@ -273,10 +273,10 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 			currFrontSize = 0;
 			// select solutions for current front - where domination count is 0
 			for (j = 0; j < props->popSize && solutionsLeft > 0; j++) {
-				if (!solutionsSelected[j] && props->dominanceCounts[j] == 0) {
-					solutionFronts[currFront * (props->popSize + 1)
-							+ (++currFrontSize)] = j;
-					solutionsSelected[j] = 1; // true
+				if (!solutionsSelected[ j] && props->dominanceCounts[ j] == 0) {
+					solutionFronts[ currFront * ( props->popSize + 1 )
+							+ ( ++currFrontSize )] = j;
+					solutionsSelected[ j] = 1; // true
 					solutionsLeft--;
 				}
 			}
@@ -837,57 +837,53 @@ void SortingKernel(LoopContext loop) {
 			break;
 		}
 		switch (i) {
-		case 0: { // Density
-			// smaller better
-			if (props->solutions[me].densities
-					== props->solutions[he].densities) {
-				continue;
-			} else if (props->solutions[me].densities
-					< props->solutions[he].densities) {
-				hasBetter = 1;
-			} else {
-				hasWorse = 1;
-			}
-		}
-			break;
-		case 3: { // Correctnes
-			// smaller better
-			if (props->solutions[me].errors == props->solutions[he].errors) {
-				continue;
-			} else if (props->solutions[me].errors
-					< props->solutions[he].errors) {
-				hasBetter = 1;
-			} else {
-				hasWorse = 1;
-			}
-		}
-			break;
-		case 1: { // Connectivity
-			// bigger better
-			if (props->solutions[me].connectivity
-					== props->solutions[he].connectivity) {
-				continue;
-			} else if (props->solutions[me].connectivity
-					> props->solutions[he].connectivity) {
-				hasBetter = 1;
-			} else {
-				hasWorse = 1;
-			}
-		}
-			break;
-		case 2: { // Disconnectivity
-			// bigger better
-			if (props->solutions[me].disconnectivity
-					== props->solutions[he].disconnectivity) {
-				continue;
-			} else if (props->solutions[me].disconnectivity
-					> props->solutions[he].disconnectivity) {
-				hasBetter = 1;
-			} else {
-				hasWorse = 1;
-			}
-		}
-			break;
+			case 0: { // Density
+					// smaller better
+					if (props->solutions[me].densities
+							== props->solutions[he].densities) {
+						continue;
+					} else if (props->solutions[me].densities
+							< props->solutions[he].densities) {
+						hasBetter = 1;
+					} else {
+						hasWorse = 1;
+					}
+				} break;
+			case 3: { // Correctnes
+				// smaller better
+				if (props->solutions[me].errors == props->solutions[he].errors) {
+					continue;
+				} else if (props->solutions[me].errors
+						< props->solutions[he].errors) {
+					hasBetter = 1;
+				} else {
+					hasWorse = 1;
+				}
+			} break;
+			case 1: { // Connectivity
+				// bigger better
+				if (props->solutions[me].connectivity
+						== props->solutions[he].connectivity) {
+					continue;
+				} else if (props->solutions[me].connectivity
+						> props->solutions[he].connectivity) {
+					hasBetter = 1;
+				} else {
+					hasWorse = 1;
+				}
+			} break;
+			case 2: { // Disconnectivity
+				// bigger better
+				if (props->solutions[me].disconnectivity
+						== props->solutions[he].disconnectivity) {
+					continue;
+				} else if (props->solutions[me].disconnectivity
+						> props->solutions[he].disconnectivity) {
+					hasBetter = 1;
+				} else {
+					hasWorse = 1;
+				}
+			} break;
 		}
 	}
 

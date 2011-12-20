@@ -77,6 +77,7 @@ __constant__ unsigned int dPopulationSize; //< size of population for EA.
  * [ populationSize x numObjectives x blocksPerSolution]
  */
 __constant__ float * dFitnesResults;
+float * fitnesResults;
 
 /*
  * array to hold current population.
@@ -214,7 +215,7 @@ void hostRandomPopulation( unsigned int popSize, unit * dPopulationPool ) {
 
 	unit * populationPool = (unit*)malloc( popSize * sizeof(unit) );
 
-	bool proposalOk = false;
+//	bool proposalOk = false;
 
 	for ( threadIdx.x = 0;  threadIdx.x < populationSize; threadIdx.x++ ) {
 		// attributes
@@ -298,9 +299,9 @@ __global__ void kernelRandomPopulation() {
 
 ErrorCode configureAlgoritms() {
 	// Set things up
-	float * fitnesResults = 0;
+	//float * fitnesResults = 0;
 	char * membership = 0;
-	cudaError err = cudaSuccess;
+//	cudaError err = cudaSuccess;
 
 	blocksPerEntires = hNumEntries / threadsPerBlock;
 	while ( blocksPerEntires * threadsPerBlock <  hNumEntries ) {
@@ -419,6 +420,25 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 			break;
 		}
 
+		float * hResults = (float*)malloc( populationSize * OBJECTIVES * blocksPerEntires * sizeof(float) );
+		cudaMemcpy( hResults, fitnesResults, populationSize * OBJECTIVES * blocksPerEntires * sizeof(float), cudaMemcpyDeviceToHost );
+
+		FILE * dump;
+
+		// solution * OBJECTIVES * dBlocksPerSolution + objective * dBlocksPerSolution + block
+
+		dump = fopen( "results.txt", "w" );
+		if ( dump ) {
+			for ( int sol = 0; sol < populationSize; sol++ ) {
+				fprintf( dump, " %u <> ", sol );
+				for ( int obj = 0; obj < 4; obj++ ) {
+					fprintf( dump, " %f,", hResults[ sol * 4 * blocksPerEntires + obj * blocksPerEntires + 0] );
+				}
+				fprintf( dump, "\n");
+			}
+			fclose( dump );
+		}
+		
 		// sorting
 		kernelSorting<<<populationSize, populationSize>>>( dDominanceMatrix );
 		cutilDeviceSynchronize();
@@ -443,6 +463,23 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		cudaMemcpy( hDominanceCounts, dDominanceCounts, populationSize * sizeof( unsigned int ), cudaMemcpyDeviceToHost );
 		cuErr = cudaGetLastError();
 
+		// me dominates he
+		for ( int he = 0; he < populationSize; he++ ) {
+			int currCount = 0;			
+			for ( int me = 0; me < populationSize; me++ ) {
+				if ( hDominanceMatrix[ me * populationSize + he] ) {
+					currCount++;
+				}
+				if ( hDominanceMatrix[ me * populationSize + he] ==
+					hDominanceMatrix[ he * populationSize + me] && hDominanceMatrix[ he * populationSize + me] == true ) {
+						printf( "[E][cude] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
+				}
+			}
+			if ( currCount != hDominanceCounts[ he] ) {
+				printf( "[E][cude] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
+			}
+		}
+
 		if ( cuErr != cudaSuccess ) {
 			printf( "[E][cude] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
 			break;
@@ -458,8 +495,10 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		}
 
 		// front grouping phase
+		int testCount = 0;
 		while ( solutionsLeft > 0 ) {
 			currFrontSize = 0;
+			testCount = 0;
 			// select solutions for current front - where domination count is 0
 			for ( j = 0; j < populationSize && solutionsLeft > 0; j++ ) {				
 				if ( !solutionsSelected[ j] && hDominanceCounts[ j] == 0 ) {
@@ -476,6 +515,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 					for ( int k = 0; k < populationSize; k++ ) {
 						if ( hDominanceMatrix[ solutionFronts[ currFront * ( populationSize + 1 ) + j + 1] * populationSize + k] && hDominanceCounts[ k] > 0 ) {
 							hDominanceCounts[ k] -= 1;
+							testCount++;
 						}
 					}
 				}
@@ -668,7 +708,7 @@ __global__ void kernelMembershipAndDensity() {
 		}
 	}
 
-	density[ threadIdx.x] = prevDistance;
+	density[ threadIdx.x] = prevDistance / (float)dNumEntries;
 
 	dMembership[ solution * dNumEntries + record] = res;
 
@@ -678,9 +718,9 @@ __global__ void kernelMembershipAndDensity() {
 	if ( threadIdx.x == 0 ) {
 		// sum solutions from all threads in this block
 		currDistance = 0;
-		for ( int i = 0; i < dThreadsPerBlock; i++ ) {
-			currDistance += density[ i];
-		}
+		//for ( int i = 0; i < dThreadsPerBlock; i++ ) {
+			currDistance += density[ 0];
+		//}
 
 		// sum all solutions for this block
 		dFitnesResults[ fitnesResultIndex( solution, 0, blockIdx.x )] = currDistance;		
@@ -759,7 +799,7 @@ __global__ void kernelSumResults() {
 		result += dFitnesResults[ fitnesResultIndex( blockIdx.x, threadIdx.x, i )];
 	}
 
-	dFitnesResults[ fitnesResultIndex( blockIdx.x, threadIdx.x, 0 )] = result;
+	//dFitnesResults[ fitnesResultIndex( blockIdx.x, threadIdx.x, 0 )] = result;
 }
 //====================================================================
 
@@ -877,7 +917,8 @@ __global__ void kernelSorting( bool * dominanceMatrix ) {
 
 	// true if this solution (blockIdx.x) dominates the other one (threadIdx.x)
 	bool currDominance = false;
-	float currResult;
+	float heCurrResult;
+	float meCurrResult;
 	bool hasBetter = false;
 	bool hasWorse = false;
 
@@ -890,27 +931,40 @@ __global__ void kernelSorting( bool * dominanceMatrix ) {
 
 	__syncthreads();
 
-	for ( int i = 0; i < 4 ;i++ ) {
+	for ( int i = 0; i < 1; i++ ) {
 		if ( hasWorse && hasBetter || threadIdx.x == blockIdx.x ) {
 			// theyre already "equal" stop comparing
 			break;
 		}
-		currResult = dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0)];
-		if ( currResult != thisSolutionFitnesResults[ i] ) {
+		heCurrResult = dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0 )];
+		meCurrResult = dFitnesResults[ fitnesResultIndex( blockIdx.x, i, 0 )];
+		if ( heCurrResult != meCurrResult) {
 			switch ( i ) {
-				case 0: // Density
-				case 3: {// Correctnes
-					// smaller better
-					if ( currResult < thisSolutionFitnesResults[ i] ) {
+				case 0: {// Density
+					if ( heCurrResult < meCurrResult ) {
 						hasWorse = true;						
 					} else {
 						hasBetter = true;
 					}
 				} break;
-				case 1: // Connectivity
+				case 3: {// Correctnes
+					// smaller better
+					if ( heCurrResult < meCurrResult ) {
+						hasWorse = true;						
+					} else {
+						hasBetter = true;
+					}
+				} break;
+				case 1: {// Connectivity
+					if ( heCurrResult > meCurrResult ) {
+						hasWorse = true;						
+					} else {
+						hasBetter = true;
+					}
+				} break;
 				case 2: { // Disconnectivity
 					// bigger better
-					if ( currResult > thisSolutionFitnesResults[ i] ) {
+					if ( heCurrResult > meCurrResult ) {
 						hasWorse = true;						
 					} else {
 						hasBetter = true;
@@ -1338,7 +1392,7 @@ __global__ void kernelBDI( float * indexes, unsigned char * clustersCount ) {
 
 
 	// calculate cluster groupings for p
-	unsigned int toSign = 0;
+	//unsigned int toSign = 0;
 	unsigned int j = 0;
 	unsigned int i = 0;
 	
