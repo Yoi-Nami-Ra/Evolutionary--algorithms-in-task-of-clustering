@@ -227,6 +227,21 @@ const float* getDistances() {
 	if ( hDistancesVector == 0 ) {
 		loadDistanceData();
 	}
+	FILE * dump;
+	dump = fopen( "distances.txt", "w" );
+	if ( dump ) {
+		for ( int i = 0; i < numEntries(); i++ ) {
+			for ( int j = 0; j <= i; j++ ) {
+				if ( j == i ) {
+					fprintf( dump, "\n");
+				} else {
+					fprintf( dump, " %f,", hDistancesVector[ i * (i - 1) / 2 + j] );
+				}
+			}
+			
+		}
+		fclose( dump );
+	}
 	return hDistancesVector;
 }
 //==============================================
