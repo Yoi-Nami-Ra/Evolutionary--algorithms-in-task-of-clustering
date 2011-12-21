@@ -32,12 +32,19 @@ typedef struct breedDescriptor {
 	unsigned int factor;
 } breedDescriptor;
 
+typedef struct {
+	float min;
+	float max;
+	float mean;
+	float sum;
+} preciseResult;
+
 typedef struct algResults {
-	float rand;
-	float bdi;
-	float di;
-	unsigned int k;
-	double time;
+	preciseResult rand;
+	preciseResult bdi;
+	preciseResult di;
+	preciseResult clusters;
+	preciseResult time;
 } algResults;
 
 // =======================
@@ -51,7 +58,7 @@ ErrorCode generateRandomPopulation( unsigned int popSize );
 /*
  * start and run clustering algorithm
  */
-ErrorCode runClustering( unsigned int popSize, unsigned int steps, algResults * results );
+ErrorCode runClustering( unsigned int popSize, unsigned int steps, DataStore * dataStore, algResults * results );
 
 /*
  * Calculated Davies-Bouldin index for all solutions left in Cuda memory.

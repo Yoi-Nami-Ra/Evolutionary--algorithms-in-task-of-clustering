@@ -166,7 +166,7 @@ ErrorCode generateRandomPopulation( unsigned int popSize ) {
 }
 //====================================================================
 
-ErrorCode runClustering( unsigned int popSize, unsigned int steps, algResults * results ) {
+ErrorCode runClustering( unsigned int popSize, unsigned int steps, DataStore * dataStore, algResults * results ) {
 	// Bind textures
 	//   Chanel descriptor
 	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc( 32, 0, 0, 0, cudaChannelFormatKindFloat );
@@ -183,19 +183,19 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps, algResults * 
 	//   Allocate memory for distances
 	unsigned int offset = 0;
 
-	hNumEntries = numEntries();
+	hNumEntries = dataStore->info.numEntries;
 	cudaMemcpyToSymbol( dNumEntries, &hNumEntries, sizeof(unsigned int) );
 	
 	unsigned int distancesSize = hNumEntries * ( hNumEntries -1 ) /2 * sizeof(float);
 	cudaMalloc( &dDistances, distancesSize );
-	cudaMemcpy( dDistances, getDistances(), distancesSize, cudaMemcpyHostToDevice );
+	cudaMemcpy( dDistances, dataStore->distances, dataStore->info.distancesSize, cudaMemcpyHostToDevice );
 	//   bind distances to texture
-	cudaBindTexture( &offset, &texRefDistances, dDistances, &channelDesc, distancesSize );
+	cudaBindTexture( &offset, &texRefDistances, dDistances, &channelDesc, dataStore->info.distancesSize );
 
 	//   Allocate memory for neighbours	
-	unsigned int neighbourSize = hNumEntries * MAX_NEIGHBOURS * sizeof(unsigned int);
+	unsigned int neighbourSize = hNumEntries * kMaxNeighbours * sizeof(unsigned int);
 	cudaMalloc( &dNeighbours, neighbourSize );
-	cudaMemcpy( dNeighbours, getNeighbours(), neighbourSize, cudaMemcpyHostToDevice );
+	cudaMemcpy( dNeighbours, dataStore->neighbours, neighbourSize, cudaMemcpyHostToDevice );
 	//   bind neighbours to texture
 	cudaBindTexture( &offset, &texRefNeighbour, dNeighbours, &channelDesc, neighbourSize );
 
@@ -220,7 +220,7 @@ void hostRandomPopulation( unsigned int popSize, unit * dPopulationPool ) {
 	for ( threadIdx.x = 0;  threadIdx.x < populationSize; threadIdx.x++ ) {
 		// attributes
 		populationPool[ threadIdx.x].attr.clusterMaxSize = rand() % MAX_CLUSTER_SIZE + 1;
-		populationPool[ threadIdx.x].attr.numNeighbours = rand() % MAX_NEIGHBOURS + 1;
+		populationPool[ threadIdx.x].attr.numNeighbours = rand() % kMaxNeighbours + 1;
 
 		// medoids and clusters
 		unsigned int clustersSum = MEDOID_VECTOR_SIZE;
@@ -264,7 +264,7 @@ __global__ void kernelRandomPopulation() {
 
 	// attributes
 	dPopulationPool[ threadIdx.x].attr.clusterMaxSize = curand( &randState ) % MAX_CLUSTER_SIZE + 1;
-	dPopulationPool[ threadIdx.x].attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS + 1;
+	dPopulationPool[ threadIdx.x].attr.numNeighbours = curand( &randState ) % kMaxNeighbours + 1;
 
 	// medoids and clusters
 	unsigned int clustersSum = MEDOID_VECTOR_SIZE;
@@ -620,9 +620,10 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		} // while
 
 		//printf( " step: %u ==\n", i );
-		calculateBDI( results->bdi, results->k );
-		calculateDI( results->di );
-		calculateRand( results->rand );
+		//TODO:
+		//calculateBDI( results->bdi, results->k );
+		//calculateDI( results->di );
+		//calculateRand( results->rand );
 		//printf( " ==========\n" );
 
 		// crossing		
@@ -665,15 +666,16 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		}
 	} // evolution
 
-	results->time = difftime( time( 0 ), startTime );
+	//TODO:
+	//results->time = difftime( time( 0 ), startTime );
 
 	printf( " Finished:\n=====\n  populationSize(%d), steps(%d)\n  timeSpent(%f)\n", populationSize, steps, results->time );
 
-	calculateBDI( results->bdi, results->k );
+//	calculateBDI( results->bdi, results->k );
 
-	calculateDI( results->di );
+//	calculateDI( results->di );
 
-	calculateRand( results->rand );
+//	calculateRand( results->rand );
 
 	return errOk;
 }
@@ -752,7 +754,7 @@ __device__ uint distanceIdx(uint x, uint y) {
 //====================================================================
 
 __device__ unsigned int neighbour( unsigned int record, unsigned int num ) {
-	return tex1Dfetch( texRefNeighbour, record * MAX_NEIGHBOURS + num );
+	return tex1Dfetch( texRefNeighbour, record * kMaxNeighbours + num );
 }
 //====================================================================
 
@@ -1150,10 +1152,10 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 			if ( mutationProb > 90 ) {
 				// both
 				childUnit.attr.clusterMaxSize = curand( &randState ) % MAX_CLUSTER_SIZE;
-				childUnit.attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS;
+				childUnit.attr.numNeighbours = curand( &randState ) % kMaxNeighbours;
 			} else {
 				// neighbours
-				childUnit.attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS;
+				childUnit.attr.numNeighbours = curand( &randState ) % kMaxNeighbours;
 			}
 		} else {
 			// max cluster size
@@ -1284,10 +1286,10 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 			if ( mutationProb > 90 ) {
 				// both
 				childUnit.attr.clusterMaxSize = curand( &randState ) % MAX_CLUSTER_SIZE;
-				childUnit.attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS;
+				childUnit.attr.numNeighbours = curand( &randState ) % kMaxNeighbours;
 			} else {
 				// neighbours
-				childUnit.attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS;
+				childUnit.attr.numNeighbours = curand( &randState ) % kMaxNeighbours;
 			}
 		} else {
 			// max cluster size
@@ -1592,7 +1594,7 @@ __global__ void kernelCalculateRand( unsigned char * preclasified, float * rand)
 ErrorCode calculateRand( float & topRand ) {
 	// Get Clasified data
 	static float bestRand = 0;
-	unsigned char * preclasifiedEntires = loadPreclasifiedData();
+	unsigned char * preclasifiedEntires = NULL; // TODO:loadPreclasifiedData();
 
 	unsigned char * dPreclasified;
 	cudaMalloc( &dPreclasified, hNumEntries * sizeof(unsigned char) );

@@ -1,37 +1,72 @@
+/**
+ 03/10/2011
+ Jaroslaw Wojtasik
 
+ noCuda
 
-// Includes
+ errors.c
+ **/
 
 #include "errors.cuh"
+#include <stdio.h>
 
-// Constants
+//==============================================
+//== Globals
 
-static ErrorCode gLastErrorCode; //< Not a constant but global static
+static ErrorCode gCurrError;
 
-// Functions
+//==============================================
+//== Functions
 
-ErrorCode SetError( ErrorCode error ) {
-	return gLastErrorCode = error;
+/*
+ * Sets Error code to be retrived as the last one.
+ */
+ErrorCode SetLastErrorCode( ErrorCode error ) {
+	gCurrError = error;
+	return gCurrError;
 }
-//==================================================================
 
-ErrorCode GetLastErrorCode() {
-	return gLastErrorCode;
+/*
+ * Returns the last set error code.
+ */
+ErrorCode GetLastErrorCode( void ) {
+	return gCurrError;
 }
-//==================================================================
-//== Log Functions
 
-void logError(char* msg) {
-	// TODO:
-}
-//==================================================================
+char * ErrorDesc( ErrorCode errorType ) {
+	char * res = NULL;
+	switch ( errorType ) {
+		case errOk: {
+			res = "No Error";
+		} break;
+		case errGeneral: {
+			res = "General Error";
+		} break;
+		case errFileNotFound: {
+			res = "File Not Found";
+		} break;
+		case errFileCorupted: {
+			res = "File Corupted";
+		} break;
+		case errFileWrite: {
+			res = "File Write Error"; 
+		} break;
+		case errFileRead: {
+			res = "File Read Error";
+		} break;
+		case errNoMemory: {
+			res = "Out Of Memory";
+		} break;
+		case errDataNotReady: {
+			res = "Data Not Ready";
+		} break;
+		case errNoData: {
+			res = "No Data";
+		} break;
+		default: {
+			res = "Unknown Error";
+		}
+	} // switch
 
-void LogWarning(char* msg) {
-	// TODO:
+	return res;
 }
-//==================================================================
-
-void logDebug(char* msg) {
-	//TODO:
-}
-//==================================================================
