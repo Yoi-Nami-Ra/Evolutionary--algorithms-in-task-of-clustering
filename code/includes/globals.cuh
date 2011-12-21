@@ -5,7 +5,6 @@
 
 #define DATABASE_IRIS
 
-#define MAX_NEIGHBOURS 10
 #define MAX_POPULATION_SIZE 256
 
 #endif // GLOBALS_H

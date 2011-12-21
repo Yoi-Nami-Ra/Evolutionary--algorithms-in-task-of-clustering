@@ -25,11 +25,7 @@ int main(int argc, char** argv)
 	printf("Device %d: \"%s\" with Compute %d.%d capability\n", 
 			devID, props.name, props.major, props.minor);
 
-	ErrorCode err = errOk;
-	
-	if ( getDistances() == 0 ) {
-		err = calculateDistances();
-	}	
+	ErrorCode err = errOk;	
 
 	algResults results;
 	results.bdi.max = results.bdi.min = results.bdi.mean = results.bdi.sum = 0.0;
@@ -53,7 +49,7 @@ int main(int argc, char** argv)
 
 	if ( err == errOk ) {
 		for (int i = 0; i < repeats; i++ ) {
-			err = runClustering( popSize, evoSteps, &results );			
+			err = runClustering( popSize, evoSteps, &dataStore, &results );			
 		} // for
 
 		results.rand.mean = results.rand.sum / (float)repeats;
@@ -67,7 +63,8 @@ int main(int argc, char** argv)
 
 	}
 
-	releaseDistances();
+	// TODO:
+	//releaseDistances();
 
 	shrQAFinishExit(argc, (const char **)argv, QA_PASSED);
 	return 0;

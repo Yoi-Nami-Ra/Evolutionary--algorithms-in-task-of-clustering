@@ -40,6 +40,8 @@ __device__ float CalculateEntries( float * x, float * y, uint dimSize );
 
 __device__ unsigned int DistanceVIdx( unsigned int a, unsigned int b );
 
+__device__ float sqr(float a);
+
 //==============================================
 //== Functions
 
@@ -255,6 +257,11 @@ __device__ float CalculateEntries( float * x, float * y, uint dimSize ) {
 	}
 	result = sqrt( result );
 	return result;
+}
+//----------------------------------------------
+
+__device__ float sqr(float a) {
+	return a * a;
 }
 //----------------------------------------------
 

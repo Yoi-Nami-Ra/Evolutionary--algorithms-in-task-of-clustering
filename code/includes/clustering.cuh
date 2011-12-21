@@ -58,7 +58,7 @@ ErrorCode generateRandomPopulation( unsigned int popSize );
 /*
  * start and run clustering algorithm
  */
-ErrorCode runClustering( unsigned int popSize, unsigned int steps, algResults * results );
+ErrorCode runClustering( unsigned int popSize, unsigned int steps, DataStore * dataStore, algResults * results );
 
 /*
  * Calculated Davies-Bouldin index for all solutions left in Cuda memory.
