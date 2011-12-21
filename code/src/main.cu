@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 	//= Load data
 	//--------------------
 	DataStore dataStore;
-	err = GetCalculatedDistances( 1, &dataStore );
+	err = GetCalculatedDistances( 0, &dataStore );
 
 	unsigned int popSize = 4;
 	unsigned int evoSteps = 2;
