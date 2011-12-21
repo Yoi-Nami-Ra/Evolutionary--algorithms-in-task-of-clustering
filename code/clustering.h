@@ -17,10 +17,6 @@
 //== Globals
 
 
-#define MAX_CLUSTER_SIZE 2
-#define MEDOID_VECTOR_SIZE 6
-#define MAX_NEIGHBOURS 10
-
 //==============================================
 //== Types
 
@@ -37,9 +33,9 @@ typedef struct {
  */
 typedef struct {
 	PopMemberAttributes attr;
-	unsigned int medoids[ MEDOID_VECTOR_SIZE];
-	unsigned int clusters[ MEDOID_VECTOR_SIZE];
-	unsigned int clusterMembership[ MEDOID_VECTOR_SIZE]; ///< cluster this medoid belongs to
+	unsigned int * medoids; ///< list of medoids describing clusters [ medoid size]
+	unsigned int * clusters; ///< list of cluster sizes [medoid size]
+	unsigned int * clusterMembership; ///< cluster this medoid belongs to
 } PopMember;
 
 /**
@@ -49,7 +45,7 @@ typedef struct {
 	float densities; ///< sum of all densities
 	unsigned int * recordMembership;
 	unsigned int numOfClusters; ///< How many clusters there are
-	float clusterDensities[ MEDOID_VECTOR_SIZE]; ///< densities for specific medoids
+	float * clusterDensities; ///< densities for specific medoids
 	float connectivity;
 	float disconnectivity;
 	float errors; ///< how much errors has been found
@@ -65,8 +61,9 @@ typedef struct {
 	unsigned int popSize;
 	unsigned int evoSteps;
 	DataStore *dataStore;
-	//unsigned int maxClusterSize;
-	//unsigned int medoidsVectorSize;
+	unsigned int maxClusterSize;
+	unsigned int medoidsVectorSize;
+    unsigned int maxNeighbours;
 	unsigned int crosFactor;
 	PopMember * population;
 	Solution * solutions;
@@ -101,7 +98,6 @@ typedef struct {
 typedef struct {
 	BreedDescriptor * table;
 	EvolutionProps * props;
-	char crossTemplate[MEDOID_VECTOR_SIZE];
 } BreedingTable;
 //==============================================
 //== Functions

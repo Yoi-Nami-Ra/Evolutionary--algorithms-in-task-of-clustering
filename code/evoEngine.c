@@ -93,56 +93,58 @@ void runEvo( void ) {
 	ErrorCode err = errOk;
 	DataStore dataStore;
 	EvolutionProps props;
+    unsigned int cNeighbours = 0;
+    unsigned int cClusters = 0;
+    unsigned int cMedoids = 0;
+    unsigned int cPopSize = 0;
+    unsigned int cSteps = 0;
+    unsigned int cRepeat = 0;
 
 	// -- Setting up all loaders
 	SetupIrisLoader();
 	SetupTestLoader();
 	SetupWineLoader();
-
-	for (;;) {
-
-		// -- Print list of available loaders
-		loadersCount = DisplayLoadersList();
-
-		// -- Ask the user for the list number
-		selectedLoader = PromptForSelection();
-
-		if ( selectedLoader > loadersCount || selectedLoader <= 0 ) {
-			// -- Wrong loader selected
-			printf(" Wrong loader selected \n Choose [1 - %i]\n\n", loadersCount);
-			continue;
-		}
-
-		// -- Show selected loader details
-		PrintDetails( selectedLoader );
-
-		// -- Confirm
-		if ( !ConfirmSelection() ) {
-			continue;
-		}
-
-		// -- Load
-		err = GetCalculatedDistances( selectedLoader - 1, &dataStore );
-        
-        if ( err != errOk ) {
-            // error occured can't continue with the algorithms
-            printf( " Error occured while preparing data for algorithms" );
-        } else {
-            // -- Run Algorithms
-            props.blocksPerEntries = 0;
-            props.crosFactor = 0;
-            props.dataStore = &dataStore;
-            props.dominanceCounts = NULL;
-            props.dominanceMatrix = NULL;
-            props.evoSteps = 200; // 100 steps for the alg
-            props.popSize = 256; // x * 4
-            props.population = NULL;
-            props.solutions = NULL;
-            err = RunClustering( &props );
+    
+    // hardcoded selection: 0 - Iris
+    err = GetCalculatedDistances( 0, &dataStore );
+    
+    if ( err != errOk ) {
+        // error occured can't continue with the algorithms
+        printf( " Error occured while preparing data for algorithms" );
+    } else {
+        // medoids <1; numEntries/2>
+        for ( cMedoids = 1; cMedoids <= dataStore.info.numEntries / 2; cMedoids++ ) {
+            // cluster max size <1; medoidvectorsize>
+            for ( cClusters = 1; cClusters <= cMedoids; cClusters++ ) {
+                // max neighbours <1; hardMax>
+                for ( cNeighbours = 1; cNeighbours <= kMaxNeighbours; cNeighbours++ ) {
+                    // now the evolution params
+                    for ( cPopSize = 4; cPopSize <= 256; cPopSize += 4 ) {
+                        for ( cSteps = 1; cSteps <= 2000; cSteps += 100 ) {
+                            for ( cRepeat = 0; cRepeat < 5; cRepeat++ ) {
+                                props.blocksPerEntries = 0;
+                                props.crosFactor = 0;
+                                props.dataStore = &dataStore;
+                                props.dominanceCounts = NULL;
+                                props.dominanceMatrix = NULL;
+                                props.evoSteps = cSteps;
+                                props.popSize = cPopSize;
+                                props.medoidsVectorSize = cMedoids;
+                                props.maxNeighbours = cNeighbours;
+                                props.maxClusterSize = cClusters;
+                                props.population = NULL;
+                                props.solutions = NULL;
+                                err = RunClustering( &props );
+                                
+                                // TODO: count results from repeats here
+                            }
+                            // TODO: Display/print results
+                        }
+                    }
+                }
+            }
         }
-
-		b++;
-	}
+    }
 
 
 	// -- 
