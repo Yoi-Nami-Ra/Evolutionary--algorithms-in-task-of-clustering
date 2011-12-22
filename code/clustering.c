@@ -75,10 +75,21 @@ float Distance(EvolutionProps * props, unsigned int a, unsigned int b);
 /**
  * Just some defaults.
  */
-ErrorCode GenerateDefaultProps(EvolutionProps * props) {
-//TODO: implement
-	props;
-	return errOk;
+ErrorCode DefaultProps(EvolutionProps * props, DataStore * dataStore) {
+    props->blocksPerEntries = 0;
+    props->crosFactor = 0;
+    props->dataStore = dataStore;
+    props->dominanceCounts = NULL;
+    props->dominanceMatrix = NULL;
+    props->evoSteps = 0;
+    props->popSize = 0;
+    props->medoidsVectorSize = 0;
+    props->maxNeighbours = 0;
+    props->maxClusterSize = 0;
+    props->population = NULL;
+    props->solutions = NULL;
+    
+    return ConfigureAlgorithms( props );
 }
 //----------------------------------------------
 
@@ -118,10 +129,10 @@ void GenerateRandomPopulationKernel(LoopContext loop) {
 
 	// local max size of a cluster
 	props->population[loop.threadIdx.x].attr.clusterMaxSize = rand()
-			% props->medoidsVectorSize + 1;
+			% props->maxClusterSize + 1;
 	// local max list of neighbours
 	props->population[loop.threadIdx.x].attr.numNeighbours = rand()
-			% props->medoidsVectorSize + 1;
+			% props->maxNeighbours + 1;
 
 	// for each medoid in vector
 	for (i = 0; i < props->medoidsVectorSize; i++) {
@@ -161,23 +172,19 @@ void GenerateRandomPopulationKernel(LoopContext loop) {
 ErrorCode GenerateRandomPopulation(EvolutionProps * props) {
 	ErrorCode err = errOk;
 	LoopDefinition popGenLoop;
+    unsigned int i;
 
 	logDebug( " GenerateRandomPopulation%s", "" );
 
 	if (props == NULL) {
 		reportError( errWrongParameter,
-				"Evolution Propertis served with NULL pointer.%s", "");
+				"Evolution Propertis served with NULL pointer.%s", "" );
 	}
-	/*
-	 if ( props->population != NULL ) {
-	 free( props->population );
-	 }
-	 */
 
-	props->population = (PopMember*) malloc(props->popSize * sizeof(PopMember));
-	checkAlloc( props->population )
-		return GetLastErrorCode();
-	}
+    for ( i = 0; i < props->popSize; i++ ) {
+        props->population[ i].medoids =
+            props->population[ i].clusters = NULL;
+    }
 
 	srand((unsigned int) time(NULL));
 
@@ -529,6 +536,33 @@ ErrorCode ConfigureAlgorithms(EvolutionProps * props) {
 	unsigned int j;
 
 	logDebug(" Configure Algorithms %s", "" );
+    
+    if ( props->population == NULL ) {
+        props->population = (PopMember*)malloc( props->popSize * sizeof(PopMember) );
+    } else {
+        props->population = (PopMember*)realloc( props->population, props->popSize * sizeof(PopMember) );
+    }
+    
+    if ( props->population[loop.threadIdx.x].medoids == NULL ) {
+        props->population[loop.threadIdx.x].medoids = (unsigned int*)malloc( props->medoidsVectorSize * sizeof(unsigned int) );
+        props->population[loop.threadIdx.x].clusters = (unsigned int*)malloc( props->medoidsVectorSize * sizeof(unsigned int) );
+    } else {
+        props->population[loop.threadIdx.x].medoids = (unsigned int*)realloc( props->population[loop.threadIdx.x].medoids, 
+                                                                             props->medoidsVectorSize * sizeof(unsigned int) );
+        props->population[loop.threadIdx.x].clusters = (unsigned int*)realloc( props->population[loop.threadIdx.x].medoids, 
+                                                                              props->medoidsVectorSize * sizeof(unsigned int) );
+    }
+    
+    
+    
+    if (frontProps->densities == NULL) {
+        frontProps->densities = (float*)malloc(frontProps->frontSize * sizeof(float));
+    } else {
+        frontProps->densities = (float*)realloc(frontProps->densities, frontProps->frontSize * sizeof(float));
+    }
+    
+    props->solutions[i].recordMembership = (unsigned int*) malloc(
+                                                                  props->dataStore->info.numEntries * sizeof(unsigned int));
 
 	props->solutions = (Solution*) malloc(props->popSize * sizeof(Solution));
 
@@ -539,8 +573,7 @@ ErrorCode ConfigureAlgorithms(EvolutionProps * props) {
 	// clear all densities
 	for (i = 0; i < props->popSize; i++) {
 		props->solutions[i].densities = 0;
-		props->solutions[i].recordMembership = (unsigned int*) malloc(
-				props->dataStore->info.numEntries * sizeof(unsigned int));
+		
 		for (j = 0; j < props->dataStore->info.numEntries; j++) {
 			props->solutions[i].recordMembership[j] = 0;
 		}
@@ -1083,12 +1116,6 @@ ErrorCode FrontDensity(FrontDensities * frontProps) {
 			|| frontProps->props->solutions == NULL) {
 		return SetLastErrorCode(errWrongParameter);
 	}
-    
-    if (frontProps->densities == NULL) {
-        frontProps->densities = (float*)malloc(frontProps->frontSize * sizeof(float));
-    } else {
-        frontProps->densities = (float*)realloc(frontProps->densities, frontProps->frontSize * sizeof(float));
-    }
 
 	logDebug(" == FrontDensity %s", "" );
 	// <<< numSolutions, kryterions >>>

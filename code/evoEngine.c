@@ -87,9 +87,6 @@ char ConfirmSelection( void ) {
 }
 
 void runEvo( void ) {
-	unsigned int selectedLoader;
-	unsigned char loadersCount;
-	int b = 0;
 	ErrorCode err = errOk;
 	DataStore dataStore;
 	EvolutionProps props;
@@ -99,6 +96,14 @@ void runEvo( void ) {
     unsigned int cPopSize = 0;
     unsigned int cSteps = 0;
     unsigned int cRepeat = 0;
+    
+    char stateSaved = 0;
+    unsigned int sNeighbours = 0;
+    unsigned int sClusters = 0;
+    unsigned int sMedoids = 0;
+    unsigned int sPopSize = 0;
+    unsigned int sSteps = 0;
+    unsigned int sRepeat = 0;
 
 	// -- Setting up all loaders
 	SetupIrisLoader();
@@ -121,6 +126,15 @@ void runEvo( void ) {
                     // now the evolution params
                     for ( cPopSize = 4; cPopSize <= 256; cPopSize += 4 ) {
                         for ( cSteps = 1; cSteps <= 2000; cSteps += 100 ) {
+                            if ( stateSaved ) {
+                                cNeighbours = sNeighbours;
+                                cClusters = sClusters;
+                                cMedoids = sMedoids;
+                                cPopSize = sPopSize;
+                                cSteps = sSteps;
+                                cRepeat = sRepeat;
+                                stateSaved = 0;
+                            }
                             for ( cRepeat = 0; cRepeat < 5; cRepeat++ ) {
                                 props.blocksPerEntries = 0;
                                 props.crosFactor = 0;

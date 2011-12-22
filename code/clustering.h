@@ -105,7 +105,7 @@ typedef struct {
 /**
  * Just some defaults.
  */
-ErrorCode GenerateDefaultProps( EvolutionProps * props );
+ErrorCode DefaultProps(EvolutionProps * props, DataStore * dataStore);
 
 /**
  * Starts the main process of eunning evolutional algorithms.
