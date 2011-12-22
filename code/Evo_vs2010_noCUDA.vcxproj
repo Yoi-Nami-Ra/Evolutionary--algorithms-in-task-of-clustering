@@ -75,24 +75,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="includes\clustering.cuh" />
-    <None Include="includes\dataLoader.cuh" />
-    <None Include="includes\dataLoader_Iris.cuh" />
-    <None Include="includes\defs.cuh" />
-    <None Include="includes\distanceCalculator.cuh" />
-    <None Include="includes\distanceCalculator_Iris.cuh" />
-    <None Include="includes\errors.cu" />
-    <None Include="includes\errors.cuh" />
-    <None Include="includes\evoEngine.cuh" />
-    <None Include="includes\globals.cuh" />
     <None Include="ReadMe.txt" />
-    <None Include="src\clustering.cu" />
-    <None Include="src\dataLoader.cu" />
-    <None Include="src\dataLoader_Iris.cu" />
-    <None Include="src\distanceCalculator.cu" />
-    <None Include="src\evoEngine.cu" />
-    <None Include="src\main.cu" />
-    <None Include="src\vectorAdd.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clustering.h" />

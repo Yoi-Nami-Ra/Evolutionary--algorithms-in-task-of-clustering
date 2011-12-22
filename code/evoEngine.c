@@ -135,19 +135,16 @@ void runEvo( void ) {
                                 cRepeat = sRepeat;
                                 stateSaved = 0;
                             }
+							DefaultProps( &props, &dataStore );
+							props.evoSteps = cSteps;
+                            props.popSize = cPopSize;
+                            props.medoidsVectorSize = cMedoids;
+                            props.maxNeighbours = cNeighbours;
+                            props.maxClusterSize = cClusters;
+							ConfigureAlgorithms( &props );
+
                             for ( cRepeat = 0; cRepeat < 5; cRepeat++ ) {
-                                props.blocksPerEntries = 0;
-                                props.crosFactor = 0;
-                                props.dataStore = &dataStore;
-                                props.dominanceCounts = NULL;
-                                props.dominanceMatrix = NULL;
-                                props.evoSteps = cSteps;
-                                props.popSize = cPopSize;
-                                props.medoidsVectorSize = cMedoids;
-                                props.maxNeighbours = cNeighbours;
-                                props.maxClusterSize = cClusters;
-                                props.population = NULL;
-                                props.solutions = NULL;
+                                                                
                                 err = RunClustering( &props );
                                 
                                 // TODO: count results from repeats here

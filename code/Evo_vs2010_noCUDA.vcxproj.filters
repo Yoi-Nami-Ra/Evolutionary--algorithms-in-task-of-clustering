@@ -16,57 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
-    <None Include="includes\globals.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\evoEngine.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\errors.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\errors.cu">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\distanceCalculator_Iris.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\distanceCalculator.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\defs.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\dataLoader_Iris.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\dataLoader.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="src\vectorAdd.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="src\main.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="src\evoEngine.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="src\distanceCalculator.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="src\dataLoader_Iris.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="src\dataLoader.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="includes\clustering.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="src\clustering.cu">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dataLoader.h">
