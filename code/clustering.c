@@ -13,6 +13,7 @@
 #include "distanceCalculator.h"
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #pragma mark - Globals
 //==============================================
@@ -26,6 +27,10 @@ const char threadsPerBlock = 50;
 #pragma mark - Function Prototypes
 //==============================================
 //== Functions
+
+void ClearResults( Results * res );
+void UpdateMinMaxResults( Results * res, float value );
+void UpdateSummedResults( Results * res, float value );
 
 /**
  * Generates random population to start with.
@@ -41,8 +46,6 @@ ErrorCode RunAlgorithms(EvolutionProps * props);
 /**
  * Prepare enviroment to run algorithms.
  */
-ErrorCode ConfigureAlgorithms(EvolutionProps * props);
-
 ErrorCode MembershipAndDensity(EvolutionProps * props);
 
 ErrorCode Connectivity(EvolutionProps * props);
@@ -90,6 +93,32 @@ ErrorCode DefaultProps(EvolutionProps * props, DataStore * dataStore) {
     props->solutions = NULL;
     
     return errOk;
+}
+//----------------------------------------------
+
+void ClearResults( Results * res ) {
+    res->min = res->max = res->mean = res->sum = 0.0;
+    res->count = 0;
+}
+//----------------------------------------------
+
+void UpdateMinMaxResults( Results * res, float value ) {
+    if ( res->min == 0 || res->min > value ) {
+        res->min = value;
+    }
+    
+    if ( res->max == 0 || res->max < value ) {
+        res->max = value;
+    }
+}
+//----------------------------------------------
+
+void UpdateSummedResults( Results * res, float value ) {
+    UpdateMinMaxResults( res, value );
+    
+    res->sum += value;
+    res->count++;
+    res->mean = res->sum / (float)res->count;
 }
 //----------------------------------------------
 
@@ -172,13 +201,13 @@ void GenerateRandomPopulationKernel(LoopContext loop) {
 ErrorCode GenerateRandomPopulation(EvolutionProps * props) {
 	ErrorCode err = errOk;
 	LoopDefinition popGenLoop;
-    unsigned int i;
 
 	logDebug( " GenerateRandomPopulation%s", "" );
 
 	if (props == NULL) {
 		reportError( errWrongParameter,
 				"Evolution Propertis served with NULL pointer.%s", "" );
+        return GetLastErrorCode();
 	}
 
 	srand((unsigned int) time(NULL));
@@ -481,6 +510,10 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
                 }
             }
         }
+        
+        UpdateMinMaxResults( &props->resultBDI, props->solutions[j].resultBDI );
+        UpdateMinMaxResults( &props->resultDI, props->solutions[j].resultDI );
+        UpdateMinMaxResults( &props->resultRand, props->solutions[j].resultRand );
 		
         
         if (!(i % 100)) {
@@ -504,17 +537,22 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 			logMessage(" = Solution[ %u]:", solutionFronts[ i+1]);
 			logMessage("   BDI: %f",
 					props->solutions[ solutionFronts[ i+1]].resultBDI);
+            UpdateSummedResults( &props->resultBDI, props->solutions[ solutionFronts[ i+1]].resultBDI );
 			logMessage("   DI: %f",
 					props->solutions[ solutionFronts[ i+1]].resultDI);
+            UpdateSummedResults( &props->resultBDI, props->solutions[ solutionFronts[ i+1]].resultDI );
 			logMessage("   Rand: %f",
 					props->solutions[ solutionFronts[ i+1]].resultRand);
+            UpdateSummedResults( &props->resultBDI, props->solutions[ solutionFronts[ i+1]].resultRand );
 		}
 	}
     
     resDump = fopen("rands.txt", "w");
     if ( resDump ) {
         for ( i = 0; i < props->popSize; i++ ) {
-            fprintf(resDump, " %f %s %s\n", props->solutions[ i].resultRand, solutionsSelected[ i]?"<-":"", (props->solutions[ i].resultRand>80)?"=====":"" );
+            fprintf(resDump, " %f %s %s\n", props->solutions[ i].resultRand,
+                    solutionsSelected[ i]?"<-":"",
+                    (props->solutions[ i].resultRand>80)?"=====":"" );
             fprintf(resDump, "  // density:        %f\n", props->solutions[ i].densities );
             fprintf(resDump, "  // connectivity:   %f\n", props->solutions[ i].connectivity );
             fprintf(resDump, "  // disconnectivity:%f\n", props->solutions[ i].disconnectivity );
@@ -551,12 +589,16 @@ ErrorCode ConfigureAlgorithms(EvolutionProps * props) {
 
 		props->solutions[ i].recordMembership = 
 			(unsigned int*)malloc( props->dataStore->info.numEntries * sizeof(unsigned int) );
-		memset( props->solutions[ i].recordMembership, 0, props->dataStore->info.numEntries * sizeof(unsigned int) );
+		memset( (void*)props->solutions[ i].recordMembership, 0, props->dataStore->info.numEntries * sizeof(unsigned int) );
 
 		props->solutions[ i].clusterDensities = (float*)malloc( props->medoidsVectorSize * sizeof(float) );
 		for ( j = 0; j < props->medoidsVectorSize; j++ ) {
 			props->solutions[ i].clusterDensities[ j] = 0.0f;
 		}
+        
+        props->population[ i].clusterMembership = (unsigned int*)malloc( props->medoidsVectorSize * sizeof(unsigned int) );
+		memset( props->population[ i].clusterMembership, 0, props->medoidsVectorSize * sizeof(unsigned int) );
+        
 		props->solutions[i].densities = 0;
 	}
 
@@ -1413,12 +1455,12 @@ void BDIKernel(LoopContext loop) {
 		}
 	}
 
-	thisSolution->resultBDI = 0;
+	currDistance = 0.0;
 	for (i = 0; i < thisSolution->numOfClusters; i++) {
-		thisSolution->resultBDI += numbers[i];
+		currDistance += numbers[i];
 	}
 
-	thisSolution->resultBDI /= (float) thisSolution->numOfClusters;
+	thisSolution->resultBDI = currDistance / (float)thisSolution->numOfClusters;
     
     free( numbers );
 }

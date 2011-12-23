@@ -215,7 +215,7 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 		dataStore->info.name == NULL ||
 		dataStore->distances == NULL ||
 		dataStore->neighbours == NULL ) {
-			reportError( errWrongParameter, "Got wrong parameters dataStore:%x, name:%x", (unsigned int)dataStore, (unsigned int)dataStore->info.name );
+			reportError( errWrongParameter, "Got wrong parameters dataStore %s", "" );
 			return errWrongParameter;
 	}
 
@@ -274,7 +274,7 @@ ErrorCode SaveCalculatedDistances( DataStore * dataStore ) {
 		dataStore->info.name == NULL ||
 		dataStore->distances == NULL ||
 		dataStore->neighbours == NULL ) {
-			reportError( errWrongParameter, "Got wrong parameters dataStore:%x, name:%x", (unsigned int)dataStore, (unsigned int)dataStore->info.name );
+			reportError( errWrongParameter, "Got wrong parameters dataStore %s", "" );
 			return errWrongParameter;
 	}
 

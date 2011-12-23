@@ -103,7 +103,6 @@ void runEvo( void ) {
     unsigned int sMedoids = 0;
     unsigned int sPopSize = 0;
     unsigned int sSteps = 0;
-    unsigned int sRepeat = 0;
 
 	// -- Setting up all loaders
 	SetupIrisLoader();
@@ -118,7 +117,7 @@ void runEvo( void ) {
         printf( " Error occured while preparing data for algorithms" );
     } else {
         // medoids <1; numEntries/2>
-        for ( cMedoids = 1; cMedoids <= dataStore.info.numEntries / 2; cMedoids++ ) {
+        for ( cMedoids = 3; cMedoids <= dataStore.info.numEntries / 2; cMedoids++ ) {
             // cluster max size <1; medoidvectorsize>
             for ( cClusters = 1; cClusters <= cMedoids; cClusters++ ) {
                 // max neighbours <1; hardMax>
@@ -132,7 +131,6 @@ void runEvo( void ) {
                                 cMedoids = sMedoids;
                                 cPopSize = sPopSize;
                                 cSteps = sSteps;
-                                cRepeat = sRepeat;
                                 stateSaved = 0;
                             }
 							DefaultProps( &props, &dataStore );
@@ -147,12 +145,34 @@ void runEvo( void ) {
                                                                 
                                 err = RunClustering( &props );
                                 
+                                if ( err != errOk ) {
+                                    break;
+                                }
+                                
                                 // TODO: count results from repeats here
+                            }
+                            if ( err != errOk ) {
+                                break;
                             }
                             // TODO: Display/print results
                         }
+                        if ( err != errOk ) {
+                            break;
+                        }
+                        if ( err != errOk ) {
+                            break;
+                        }
+                    }
+                    if ( err != errOk ) {
+                        break;
                     }
                 }
+                if ( err != errOk ) {
+                    break;
+                }
+            }
+            if ( err != errOk ) {
+                break;
             }
         }
     }

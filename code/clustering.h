@@ -38,6 +38,14 @@ typedef struct {
 	unsigned int * clusterMembership; ///< cluster this medoid belongs to
 } PopMember;
 
+typedef struct {
+    float min;
+    float max;
+    float mean;
+    float sum;
+    unsigned int count;
+} Results;
+
 /**
  * To hold solution results for each poppulation member.
  */
@@ -70,6 +78,9 @@ typedef struct {
 	char * dominanceMatrix; ///< Describes which solution dominates which
 	unsigned int * dominanceCounts; ///< 
 	unsigned int blocksPerEntries;
+    Results resultBDI; ///< Here result of BD index to be placed
+	Results resultDI; ///< Here result of D index to be placed
+	Results resultRand; ///< Here result of Rand index to be placed
 } EvolutionProps;
 
 /**
@@ -101,6 +112,8 @@ typedef struct {
 } BreedingTable;
 //==============================================
 //== Functions
+
+ErrorCode ConfigureAlgorithms(EvolutionProps * props);
 
 /**
  * Just some defaults.
