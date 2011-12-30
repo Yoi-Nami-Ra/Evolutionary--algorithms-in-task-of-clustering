@@ -114,6 +114,7 @@ void UpdateMinMaxResults( Results * res, float value ) {
 //----------------------------------------------
 
 void UpdateSummedResults( Results * res, float value ) {
+	if ( value == 0 ) return;
     UpdateMinMaxResults( res, value );
     
     res->sum += value;
@@ -162,6 +163,9 @@ void GenerateRandomPopulationKernel(LoopContext loop) {
 	// local max list of neighbours
 	props->population[loop.threadIdx.x].attr.numNeighbours = rand()
 			% props->maxNeighbours + 1;
+	if ( props->population[loop.threadIdx.x].attr.numNeighbours > kMaxNeighbours ) {
+		props->population[loop.threadIdx.x].attr.numNeighbours = kMaxNeighbours;
+	}
 
 	// for each medoid in vector
 	for (i = 0; i < props->medoidsVectorSize; i++) {
@@ -247,12 +251,7 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 
 	breedingData.table = NULL;
 
-	err = ConfigureAlgorithms(props);
-	if (err != errOk) {
-		return err;
-	}
-
-    printf(" >>Evolution<<\n population:%u, steps:%u\n medoids:%u, maxClusterSize:%u, maxNeighbour:%u\n", props->popSize, props->evoSteps, props->medoidsVectorSize, props->maxClusterSize, props->maxNeighbours );
+    //printf(" >>Evolution<<\n population:%u, steps:%u\n medoids:%u, maxClusterSize:%u, maxNeighbour:%u\n", props->popSize, props->evoSteps, props->medoidsVectorSize, props->maxClusterSize, props->maxNeighbours );
     // Starting evolution loop
 	for (i = 0; i < props->evoSteps; i++) {
 		logDebug( " Evolution Step:%u", i );
@@ -422,13 +421,13 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 		} // while
 
 		// don't bother if it's the last pass
-		if (props->evoSteps == i + 1) {
-			break;
-		}
+		//if (props->evoSteps == i + 1) {
+		//	break;
+		//}
 
 		// crossing		
 		// breedingTable[ parent1, parent2, child, mutation probability]
-		{
+		if ( props->evoSteps != i + 1 ) {
 			unsigned int currParent1 = 0;
 			unsigned int currParent2 = 0;
 			unsigned int currChild = 0;
@@ -458,36 +457,39 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 					breedingData.table[ currChild++].factor = rand() % 100;
 				}
 			} // for j
-		}
+		
 
-		// launch crossing
-		breedingData.props = props;
-		err = Crossing(&breedingData);
-		if (err != errOk) {
-			break;
-		}
-
-		// gather results
-		calculateBDI(props);
-		calculateDI(props);
-		calculateRand(props);
-		if (i == 0) {
-			bestBDI = props->solutions[j].resultBDI;
-			bestDI = props->solutions[j].resultDI;
-			bestRAND = props->solutions[j].resultRand;
-		}
+			// launch crossing
+			breedingData.props = props;
+			err = Crossing(&breedingData);
+			if (err != errOk) {
+				break;
+			}			
+		} // crossing
         
-        {
-            char thisSolution = 0;
+		// additional measurments
+        if ( 0 ) {
+			char thisSolution = 0;
+
+			// gather results
+			calculateBDI(props);
+			calculateDI(props);
+			calculateRand(props);
+			if (i == 0) {
+				bestBDI = props->solutions[0].resultBDI;
+				bestDI = props->solutions[0].resultDI;
+				bestRAND = props->solutions[0].resultRand;
+			}
+            
             for (j = 0; j < props->popSize; j++) {
-                if (bestBDI > props->solutions[j].resultBDI) {
+                if (bestBDI > props->solutions[j].resultBDI && props->solutions[j].resultBDI != 0) {
                     bestBDI = props->solutions[j].resultBDI;
                     printf("\n");
                     logMessage( " BDI: %f", bestBDI);
                     thisSolution = 1;
                 }
                 
-                if (bestDI > props->solutions[j].resultDI) {
+                if (bestDI > props->solutions[j].resultDI && props->solutions[j].resultDI != 0 ) {
                     bestDI = props->solutions[j].resultDI;
                     printf("\n");
                     logMessage( " DI: %f", bestDI);
@@ -508,21 +510,11 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
                     logMessage("  // errors:         %f", props->solutions[j].errors );
                     thisSolution = 0;
                 }
-            }
-        }
-        
-        UpdateMinMaxResults( &props->resultBDI, props->solutions[j].resultBDI );
-        UpdateMinMaxResults( &props->resultDI, props->solutions[j].resultDI );
-        UpdateMinMaxResults( &props->resultRand, props->solutions[j].resultRand );
-		
-        
-        if (!(i % 100)) {
-            printf("0\n");
-        }
-        if (i % 10) {
-            printf(".");
-        } else {
-            printf("/");
+
+				UpdateMinMaxResults( &props->resultBDI, props->solutions[j].resultBDI );
+				UpdateMinMaxResults( &props->resultDI, props->solutions[j].resultDI );
+				UpdateMinMaxResults( &props->resultRand, props->solutions[j].resultRand );
+            } // for j
         }
         
 	} // evolution for
@@ -531,35 +523,21 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 	calculateBDI(props);
 	calculateDI(props);
 	calculateRand(props);
-	logMessage( "\n == Results == <%u>", solutionFronts[0]);
-	for (i = 0; i < solutionFronts[0]; i++) {
-		if (solutionsSelected[solutionFronts[i + 1]]) {
-			logMessage(" = Solution[ %u]:", solutionFronts[ i+1]);
+	//logMessage( "\n == Results == <%u>", solutionFronts[0]);
+	for (i = 0; i < props->popSize; i++) {
+		if ( solutionsSelected[ i] && 0 ) {
+			logMessage( " = Solution[ %u]:", i );
 			logMessage("   BDI: %f",
-					props->solutions[ solutionFronts[ i+1]].resultBDI);
-            UpdateSummedResults( &props->resultBDI, props->solutions[ solutionFronts[ i+1]].resultBDI );
+					props->solutions[ i].resultBDI);
 			logMessage("   DI: %f",
-					props->solutions[ solutionFronts[ i+1]].resultDI);
-            UpdateSummedResults( &props->resultBDI, props->solutions[ solutionFronts[ i+1]].resultDI );
+					props->solutions[ i].resultDI);
 			logMessage("   Rand: %f",
-					props->solutions[ solutionFronts[ i+1]].resultRand);
-            UpdateSummedResults( &props->resultBDI, props->solutions[ solutionFronts[ i+1]].resultRand );
+					props->solutions[ i].resultRand);
 		}
+		UpdateSummedResults( &props->resultBDI, props->solutions[ i].resultBDI );
+		UpdateSummedResults( &props->resultDI, props->solutions[ i].resultDI );
+		UpdateSummedResults( &props->resultRand, props->solutions[ i].resultRand );
 	}
-    
-    resDump = fopen("rands.txt", "w");
-    if ( resDump ) {
-        for ( i = 0; i < props->popSize; i++ ) {
-            fprintf(resDump, " %f %s %s\n", props->solutions[ i].resultRand,
-                    solutionsSelected[ i]?"<-":"",
-                    (props->solutions[ i].resultRand>80)?"=====":"" );
-            fprintf(resDump, "  // density:        %f\n", props->solutions[ i].densities );
-            fprintf(resDump, "  // connectivity:   %f\n", props->solutions[ i].connectivity );
-            fprintf(resDump, "  // disconnectivity:%f\n", props->solutions[ i].disconnectivity );
-            fprintf(resDump, "  // errors:         %f\n", props->solutions[ i].errors );
-        }
-        fclose( resDump );
-    }
 
 	return err;
 }
@@ -600,6 +578,9 @@ ErrorCode ConfigureAlgorithms(EvolutionProps * props) {
 		memset( props->population[ i].clusterMembership, 0, props->medoidsVectorSize * sizeof(unsigned int) );
         
 		props->solutions[i].densities = 0;
+		props->solutions[i].resultBDI = 0.0;
+		props->solutions[i].resultDI = 0.0;
+		props->solutions[i].resultRand = 0.0;
 	}
 
 	checkAlloc( props->solutions )
@@ -629,6 +610,10 @@ ErrorCode ConfigureAlgorithms(EvolutionProps * props) {
 	checkAlloc( props->dominanceMatrix )
 		return GetLastErrorCode();
 	}
+
+	ClearResults( &props->resultBDI );
+	ClearResults( &props->resultDI );
+	ClearResults( &props->resultRand );
 
 	return errOk;
 }
@@ -737,7 +722,7 @@ void ConnectivityKernel(LoopContext loop) {
 	// for each record - how many of its neighbours belong to the same cluster
 	// 1.0 means all of them
 
-	for (i = 0; i < (*thisMember).attr.numNeighbours; i++) {
+	for (i = 0; i < (*thisMember).attr.numNeighbours && i < kMaxNeighbours; i++) {
 		if (memberOf
 				== (*thisSolution).recordMembership[props->dataStore->neighbours[record
 						* kMaxNeighbours + i]]) {
@@ -815,13 +800,13 @@ void DisconnectivityKernel(LoopContext loop) {
 				continue;
 			}
 
-			if (Distance(props, (*thisMember).medoids[medoid],
-					(*thisMember).medoids[j]) < currDistance) {
+			if ( Distance( props, (*thisMember).medoids[ medoid],
+					(*thisMember).medoids[ j] ) < currDistance ) {
 				counts++;
 			}
 
-			if (Distance(props, (*thisMember).medoids[i],
-					(*thisMember).medoids[j]) < currDistance) {
+			if ( Distance( props, (*thisMember).medoids[ i],
+					(*thisMember).medoids[ j]) < currDistance ) {
 				counts++;
 			}
 		}
@@ -891,8 +876,14 @@ void CorrectnessKernel(LoopContext loop) {
 			continue;
 		}
 
-		if ((*thisMember).medoids[i] == (*thisMember).medoids[medoid]) {
-			(*thisSolution).errors++;
+		if ( (*thisMember).medoids[ i] == (*thisMember).medoids[ medoid] ) {
+			(*thisSolution).errors += 2;
+		}
+
+		if ( i < thisSolution->numOfClusters ) {
+			if ( thisSolution->clusterDensities[ i] == 0 ) {
+				(*thisSolution).errors += 1;
+			}
 		}
 	}
 }
@@ -1161,8 +1152,8 @@ ErrorCode FrontDensity(FrontDensities * frontProps) {
 	}
 
 	logDebug(" == FrontDensity %s", "" );
-	// <<< numSolutions, kryterions >>>
-	dominanceLoop.gridSize.x = frontProps->props->popSize;
+	// <<< frontSize, kryterions >>>
+	dominanceLoop.gridSize.x = frontProps->frontSize;
 	dominanceLoop.gridSize.y = 1;
 	dominanceLoop.gridSize.z = 1;
 	dominanceLoop.blockSize.x = OBJECTIVES;
@@ -1227,18 +1218,6 @@ void CrossingKernel(LoopContext loop) {
 	howMany = 0;
 	currCluster = 0;
 	for (i = 0; i < breedingProps->props->medoidsVectorSize; i++) {
-		/*
-		 if ( breedingProps->crossTemplate[ i] ) {
-		 //clusterMembership
-		 breedingProps->props->population[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent1].medoids[ i];
-		 breedingProps->props->population[ thisChild].clusterMembership[ i] =
-		 breedingProps->props->population[ thisParent1].clusterMembership[ i];
-		 } else {
-		 breedingProps->props->population[ thisChild].medoids[ i] = breedingProps->props->population[ thisParent2].medoids[ i];
-		 breedingProps->props->population[ thisChild].clusterMembership[ i] =
-		 breedingProps->props->population[ thisParent2].clusterMembership[ i];
-		 }
-		 */
 		breedingProps->props->population[thisChild].clusterMembership[i] = 0;
 		breedingProps->props->population[thisChild].clusters[i] = 0;
 		breedingProps->props->population[thisChild].medoids[i] =
@@ -1434,9 +1413,11 @@ void BDIKernel(LoopContext loop) {
                 continue;
             }
 			// if not the same and from the same cluster
-			if (j != i
-					&& thisMember->clusterMembership[i]
-							!= thisMember->clusterMembership[j]) {
+			if ( j != i &&
+				thisMember->clusterMembership[i] 
+					!= thisMember->clusterMembership[j] &&
+				thisSolution->clusterDensities[i] != 0 &&
+				thisSolution->clusterDensities[j] != 0 ) {
 				currDistance = ((thisSolution->clusterDensities[i]
 						+ thisSolution->clusterDensities[j])
 						/ Distance(props, (*thisMember).medoids[i],

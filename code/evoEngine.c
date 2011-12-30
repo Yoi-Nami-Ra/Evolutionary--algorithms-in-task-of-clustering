@@ -16,6 +16,10 @@
 #include "clustering.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
+
+#define kReportsFileName "reportsFile.txt"
+#define kReportsFileNameXls "reportsFileXls.txt"
 
 /**
  * Displays list of available loaders.
@@ -62,7 +66,7 @@ void PrintDetails( unsigned int selected ) {
 	DataStore dataStore;
 	const char * loaderName;
 
-	LoaderDetails( selected-1, &dataStore );
+	LoaderDetails( selected - 1, &dataStore );
 	loaderName = LoaderName( selected-1, NULL );
 
 	printf( "Loader %i\n Name: %s\n Num Entries: %i\n Dimensions: %i\n",
@@ -96,6 +100,10 @@ void runEvo( void ) {
     unsigned int cPopSize = 0;
     unsigned int cSteps = 0;
     unsigned int cRepeat = 0;
+
+	unsigned int stepsMedoids;
+	unsigned int stepsClusters;
+	unsigned int stepsNeighbours;
     
     char stateSaved = 0;
     unsigned int sNeighbours = 0;
@@ -104,6 +112,15 @@ void runEvo( void ) {
     unsigned int sPopSize = 0;
     unsigned int sSteps = 0;
 
+	double diffTime = 0.0;
+	time_t currTime = 0.0;
+	double minTime = 0.0;
+	double maxTime = 0.0;
+	double meanTime = 0.0;
+	double sumTime = 0.0;
+
+	FILE * reportsFile = NULL;
+
 	// -- Setting up all loaders
 	SetupIrisLoader();
 	SetupTestLoader();
@@ -111,21 +128,48 @@ void runEvo( void ) {
     
     // hardcoded selection: 0 - Iris
     err = GetCalculatedDistances( 0, &dataStore );
+
+	if ( reportsFile == NULL && stateSaved ) {
+		reportsFile = fopen( kReportsFileName, "w" );
+	}
+
+	if (reportsFile != NULL ) {
+		fclose( reportsFile );
+		reportsFile = NULL;
+	}
+
+	{
+		FILE * xlsReportFile = fopen( kReportsFileNameXls, "w" );
+		if ( xlsReportFile != NULL ) {
+			fclose( xlsReportFile );
+			xlsReportFile = NULL;
+		}
+	}
+
+
+	// calculate how big changes per step
+	stepsMedoids = ( ( dataStore.info.numEntries / 2 - 3 ) / 5 );
+	if ( stepsMedoids == 0 ) stepsMedoids = 1;
+	
+	stepsNeighbours = ( kMaxNeighbours - 1 ) / 3;
+	if ( stepsNeighbours == 0 ) stepsNeighbours = 1;
     
     if ( err != errOk ) {
         // error occured can't continue with the algorithms
         printf( " Error occured while preparing data for algorithms" );
     } else {
-        // medoids <1; numEntries/2>
-        for ( cMedoids = 3; cMedoids <= dataStore.info.numEntries / 2; cMedoids++ ) {
-            // cluster max size <1; medoidvectorsize>
-            for ( cClusters = 1; cClusters <= cMedoids; cClusters++ ) {
-                // max neighbours <1; hardMax>
-                for ( cNeighbours = 1; cNeighbours <= kMaxNeighbours; cNeighbours++ ) {
-                    // now the evolution params
-                    for ( cPopSize = 4; cPopSize <= 256; cPopSize += 4 ) {
-                        for ( cSteps = 1; cSteps <= 2000; cSteps += 100 ) {
-                            if ( stateSaved ) {
+		for ( cPopSize = 4; cPopSize <= 256; cPopSize *= 4 ) {
+			// now the evolution params                    
+            for ( cSteps = 2; cSteps <= 20002; cSteps += 10000 ) {
+				// medoids <1; numEntries/2>
+				for ( cMedoids = 3; cMedoids <= dataStore.info.numEntries / 2; cMedoids += stepsMedoids ) {
+					// cluster max size <1; medoidvectorsize>
+					stepsClusters = ( cMedoids - 1) / 5;
+					if ( stepsClusters == 0 ) stepsClusters = 1;
+					for ( cClusters = 1; cClusters <= cMedoids; cClusters += stepsClusters ) {
+						// max neighbours <1; hardMax>
+						for ( cNeighbours = 1; cNeighbours <= kMaxNeighbours; cNeighbours += stepsNeighbours ) {
+							if ( stateSaved ) {
                                 cNeighbours = sNeighbours;
                                 cClusters = sClusters;
                                 cMedoids = sMedoids;
@@ -141,20 +185,89 @@ void runEvo( void ) {
                             props.maxClusterSize = cClusters;
 							ConfigureAlgorithms( &props );
 
+							diffTime = 0.0;
+							minTime = 0.0;
+							maxTime = 0.0;
+							meanTime = 0.0;
+							sumTime = 0.0;
+
+							if ( reportsFile == NULL ) {
+								reportsFile = fopen( kReportsFileName, "a" );
+							}
+
+							if (reportsFile != NULL ) {
+								fprintf( reportsFile, "---------------------------------\n" );
+								printf( "---------------------------------\n" );
+								fprintf( reportsFile, " medoids: %d clusters: %d neighbours: %d\n", cMedoids, cClusters, cNeighbours );
+								printf( " medoids: %d clusters: %d neighbours: %d\n", cMedoids, cClusters, cNeighbours );
+								fprintf( reportsFile, " popSize: %d steps: %d\n", cPopSize, cSteps );
+								printf( " popSize: %d steps: %d\n", cPopSize, cSteps );
+								fprintf( reportsFile, " Results:\n" );
+								printf( " Results:\n" );
+								fclose( reportsFile );
+								reportsFile = NULL;
+							}
+
                             for ( cRepeat = 0; cRepeat < 5; cRepeat++ ) {
-                                                                
+                                time( &currTime );                               
                                 err = RunClustering( &props );
+								diffTime = difftime( time( NULL ), currTime );
+								sumTime += diffTime;
+								if ( minTime == 0.0 || minTime > diffTime ) {
+									minTime = diffTime;
+								}
+								if ( maxTime == 0.0 || maxTime < diffTime ) {
+									maxTime = diffTime;
+								}
                                 
                                 if ( err != errOk ) {
                                     break;
                                 }
-                                
-                                // TODO: count results from repeats here
                             }
+							meanTime = sumTime / 5.0;
+							printf( "=============================================\n" );
                             if ( err != errOk ) {
                                 break;
                             }
-                            // TODO: Display/print results
+                            
+							if ( reportsFile == NULL ) {
+								reportsFile = fopen( kReportsFileName, "a" );
+							}
+
+							if (reportsFile != NULL ) {
+								fprintf( reportsFile, " BDI:  %f / %f / %f\n", props.resultBDI.min, props.resultBDI.mean, props.resultBDI.max );
+								printf( " BDI:  %f / %f / %f\n", props.resultBDI.min, props.resultBDI.mean, props.resultBDI.max );
+								fprintf( reportsFile, " DI:  %f / %f / %f\n", props.resultDI.min, props.resultDI.mean, props.resultDI.max );
+								printf( " DI:  %f / %f / %f\n", props.resultDI.min, props.resultDI.mean, props.resultDI.max );
+								fprintf( reportsFile, " Rand:  %f / %f / %f\n", props.resultRand.min, props.resultRand.mean, props.resultRand.max );
+								printf( " Rand:  %f / %f / %f\n", props.resultRand.min, props.resultRand.mean, props.resultRand.max );
+								fprintf( reportsFile, " Time:  %f / %f / %f\n\n", minTime, meanTime, maxTime );
+								printf( " Time:  %f / %f / %f\n\n", minTime, meanTime, maxTime );
+								fclose( reportsFile );
+								reportsFile = NULL;
+
+							} else {
+								// Filed to write report
+							}
+
+							// xls readable file
+							{
+								// medoids, clusters, neighbours, popSize, Steps, BDI_min, BDI_mean, BDI_max, DI_min, DI_mean, DI_max, Rand_min, Rand_mean, Rand_max, Time_min, Time_mean, Time_max
+								FILE * xlsReportFile = fopen( kReportsFileNameXls, "a" );
+								if ( xlsReportFile != NULL ) {
+									fprintf( xlsReportFile, "%u, %u, %u, %u, %u, ",
+										cMedoids, cClusters, cNeighbours, cPopSize, cSteps );
+									fprintf( xlsReportFile, "%f, %f, %f, ",
+										props.resultBDI.min, props.resultBDI.mean, props.resultBDI.max );
+									fprintf( xlsReportFile, "%f, %f, %f, ",
+										props.resultDI.min, props.resultDI.mean, props.resultDI.max );
+									fprintf( xlsReportFile, "%f, %f, %f, ",
+										props.resultRand.min, props.resultRand.mean, props.resultRand.max );
+									fprintf( xlsReportFile, "%f, %f, %f\n", minTime, meanTime, maxTime );
+									fclose( xlsReportFile );
+									xlsReportFile = NULL;
+								}
+							}
                         }
                         if ( err != errOk ) {
                             break;
