@@ -7,6 +7,7 @@
 #include "distanceCalculator.cuh"
 #include "clustering.cuh"
 #include "errors.cuh"
+#include <time.h>
 
 // Host code
 int main(int argc, char** argv)
@@ -28,11 +29,6 @@ int main(int argc, char** argv)
 	ErrorCode err = errOk;	
 
 	algResults results;
-	results.bdi.max = results.bdi.min = results.bdi.mean = results.bdi.sum = 0.0;
-	results.clusters.max = results.clusters.min = results.clusters.mean = results.clusters.sum = 0.0;
-	results.di.max = results.di.mean = results.di.min = results.di.sum = 0.0;
-	results.rand.max = results.rand.mean = results.rand.min = results.rand.sum = 0.0;
-	results.time.max = results.time.mean = results.time.min = results.time.sum = 0.0;
 
 	//= Setup loaders
 	//--------------------
@@ -43,20 +39,35 @@ int main(int argc, char** argv)
 	DataStore dataStore;
 	err = GetCalculatedDistances( 0, &dataStore );
 
-	unsigned int popSize = 4;
-	unsigned int evoSteps = 2;
+	unsigned int popSize = 256;
+	unsigned int evoSteps = 1002;
 	unsigned int repeats = 5;
+
+	CleanAlgResults( results );
+
+	time_t currTime = 0;
+	float timeDiff = 0.0;
 
 	if ( err == errOk ) {
 		for (int i = 0; i < repeats; i++ ) {
-			err = runClustering( popSize, evoSteps, &dataStore, &results );			
+			time( &currTime );
+			err = runClustering( popSize, evoSteps, &dataStore, &results );
+			timeDiff = difftime( time( NULL ), currTime );
+
+			if ( results.time.min == 0 || results.time.min > timeDiff ) {
+				results.time.min = timeDiff;
+			}
+			if ( results.time.max == 0 || results.time.max < timeDiff ) {
+				results.time.max = timeDiff;
+			}
+			results.time.sum += timeDiff;
 		} // for
 
-		results.rand.mean = results.rand.sum / (float)repeats;
-		results.bdi.mean = results.bdi.sum / (float)repeats;
-		results.di.mean = results.di.sum / (float)repeats;
-		results.time.mean = results.time.sum / (float)repeats;
-		results.clusters.mean = results.clusters.sum / (float)repeats;
+		results.rand.mean = results.rand.sum / (float)( repeats * popSize );
+		results.bdi.mean = results.bdi.sum / (float)( repeats * popSize );
+		results.di.mean = results.di.sum / (float)( repeats * popSize );
+		results.time.mean = results.time.sum / (float)( repeats );
+		results.clusters.mean = results.clusters.sum / (float)( repeats * popSize );
 		
 		printf( " \n\n====\n pop(%d), steps(%d), repeats(%d)\n Rand(%f) BDI(%f) DI(%f) time(%f) clusters(%f)",
 			popSize, evoSteps, repeats, results.rand.mean, results.bdi.mean, results.di.mean, results.time.mean, results.clusters.mean );

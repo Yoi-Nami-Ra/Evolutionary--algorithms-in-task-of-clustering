@@ -1,11 +1,14 @@
 #include "globals.cuh"
 #include "errors.cuh"
+#include "dataLoader.cuh"
 
 // =======================
 // Types
 
-#define MAX_CLUSTER_SIZE 10
-#define MEDOID_VECTOR_SIZE 20
+#define MAX_CLUSTER_SIZE 13
+#define MEDOID_VECTOR_SIZE 14
+#define kMaxNeighboursToUSe 29
+
 #define CROS_FACTOR 3
 #define OBJECTIVES 4
 
@@ -39,7 +42,7 @@ typedef struct {
 	float sum;
 } preciseResult;
 
-typedef struct algResults {
+typedef struct {
 	preciseResult rand;
 	preciseResult bdi;
 	preciseResult di;
@@ -63,8 +66,12 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps, DataStore * d
 /*
  * Calculated Davies-Bouldin index for all solutions left in Cuda memory.
  */
-ErrorCode calculateBDI( float & topBDI, unsigned int & clusters );
+ErrorCode calculateBDI( preciseResult & topBDI, preciseResult & clusters );
 
-ErrorCode calculateDI( float & topDi );
+ErrorCode calculateDI( preciseResult & topDi );
 
-ErrorCode calculateRand( float & topRand );
+ErrorCode calculateRand( preciseResult & topRand );
+
+void CleanResults( preciseResult & results );
+
+void CleanAlgResults( algResults & results );

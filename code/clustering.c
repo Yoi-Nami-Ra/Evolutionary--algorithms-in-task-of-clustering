@@ -94,6 +94,26 @@ ErrorCode DefaultProps(EvolutionProps * props, DataStore * dataStore) {
     
     return errOk;
 }
+
+ErrorCode ClearProps( EvolutionProps * props ) {
+	unsigned int i;
+
+	free( props->dominanceMatrix );
+	free( props->dominanceCounts );
+
+	for ( i = 0; i < props->popSize; i++ ) {
+		free( props->population[ i].medoids );
+		free( props->population[ i].clusters );
+		free( props->solutions[ i].recordMembership );
+		free( props->solutions[ i].clusterDensities );
+		free( props->population[ i].clusterMembership );
+	}
+
+	free( props->population );
+	free( props->solutions );	
+
+	return errOk;
+}
 //----------------------------------------------
 
 void ClearResults( Results * res ) {
@@ -250,6 +270,7 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 	FILE * resDump = NULL;
 
 	breedingData.table = NULL;
+	frontDensitiesProps.densities = NULL;
 
     //printf(" >>Evolution<<\n population:%u, steps:%u\n medoids:%u, maxClusterSize:%u, maxNeighbour:%u\n", props->popSize, props->evoSteps, props->medoidsVectorSize, props->maxClusterSize, props->maxNeighbours );
     // Starting evolution loop
@@ -420,11 +441,6 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 			currFront++;
 		} // while
 
-		// don't bother if it's the last pass
-		//if (props->evoSteps == i + 1) {
-		//	break;
-		//}
-
 		// crossing		
 		// breedingTable[ parent1, parent2, child, mutation probability]
 		if ( props->evoSteps != i + 1 ) {
@@ -539,6 +555,12 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 		UpdateSummedResults( &props->resultRand, props->solutions[ i].resultRand );
 	}
 
+	free( solutionsSelected );
+	free( solutionFronts );
+	free( thisFrontSelection );
+	free( breedingData.table );
+	free( frontDensitiesProps.densities );
+
 	return err;
 }
 //----------------------------------------------
@@ -553,10 +575,7 @@ ErrorCode ConfigureAlgorithms(EvolutionProps * props) {
     if ( props->population == NULL ) {
         props->population = (PopMember*)malloc( props->popSize * sizeof(PopMember) );
 		props->solutions = (Solution*)malloc( props->popSize * sizeof(Solution) );
-    } else {
-        props->population = (PopMember*)realloc( props->population, props->popSize * sizeof(PopMember) );
-		props->solutions = (Solution*)realloc( props->solutions, props->popSize * sizeof(Solution) );
-    }
+    } 
 
 	for ( i = 0; i < props->popSize; i++ ) {
 		props->population[ i].medoids = (unsigned int*)malloc( props->medoidsVectorSize * sizeof(unsigned int) );
@@ -599,11 +618,6 @@ ErrorCode ConfigureAlgorithms(EvolutionProps * props) {
 		props->dominanceMatrix = (char*)malloc(
 			props->popSize * props->popSize * sizeof(char) );
 		props->dominanceCounts = (unsigned int*)malloc(
-			props->popSize * sizeof(unsigned int) );
-	} else {
-		props->dominanceMatrix = (char*)realloc( props->dominanceMatrix,
-			props->popSize * props->popSize * sizeof(char) );
-		props->dominanceCounts = (unsigned int*)realloc( props->dominanceCounts,
 			props->popSize * sizeof(unsigned int) );
 	}
 

@@ -220,7 +220,7 @@ void hostRandomPopulation( unsigned int popSize, unit * dPopulationPool ) {
 	for ( threadIdx.x = 0;  threadIdx.x < populationSize; threadIdx.x++ ) {
 		// attributes
 		populationPool[ threadIdx.x].attr.clusterMaxSize = rand() % MAX_CLUSTER_SIZE + 1;
-		populationPool[ threadIdx.x].attr.numNeighbours = rand() % kMaxNeighbours + 1;
+		populationPool[ threadIdx.x].attr.numNeighbours = rand() % kMaxNeighboursToUSe + 1;
 
 		// medoids and clusters
 		unsigned int clustersSum = MEDOID_VECTOR_SIZE;
@@ -264,7 +264,7 @@ __global__ void kernelRandomPopulation() {
 
 	// attributes
 	dPopulationPool[ threadIdx.x].attr.clusterMaxSize = curand( &randState ) % MAX_CLUSTER_SIZE + 1;
-	dPopulationPool[ threadIdx.x].attr.numNeighbours = curand( &randState ) % kMaxNeighbours + 1;
+	dPopulationPool[ threadIdx.x].attr.numNeighbours = curand( &randState ) % kMaxNeighboursToUSe + 1;
 
 	// medoids and clusters
 	unsigned int clustersSum = MEDOID_VECTOR_SIZE;
@@ -472,11 +472,11 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 				}
 				if ( hDominanceMatrix[ me * populationSize + he] ==
 					hDominanceMatrix[ he * populationSize + me] && hDominanceMatrix[ he * populationSize + me] == true ) {
-						printf( "[E][cude] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
+						printf( "[E][cude] Bad results in dominance matrix ( self domination ) - %s\n", "" );
 				}
 			}
 			if ( currCount != hDominanceCounts[ he] ) {
-				printf( "[E][cude] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
+				printf( "[E][cude] Bad results in dominance counts ( differs from matrix ) - %s\n", "" );
 			}
 		}
 
@@ -667,15 +667,11 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 	} // evolution
 
 	//TODO:
-	//results->time = difftime( time( 0 ), startTime );
-
 	printf( " Finished:\n=====\n  populationSize(%d), steps(%d)\n  timeSpent(%f)\n", populationSize, steps, results->time );
 
-//	calculateBDI( results->bdi, results->k );
-
-//	calculateDI( results->di );
-
-//	calculateRand( results->rand );
+	calculateBDI( results->bdi, results->clusters );
+	calculateDI( results->di );
+	calculateRand( results->rand );
 
 	return errOk;
 }
@@ -684,6 +680,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 __global__ void kernelMembershipAndDensity() {
 	unsigned int solution = blockIdx.y;
 	unsigned int record = blockIdx.x * threadsPerBlock + threadIdx.x;
+	unsigned int zeros = 0;
 
 	__shared__ unit thisSolution;
 	__shared__ float density[ 256]; // shared table to hold density results for futher calculation
@@ -701,16 +698,19 @@ __global__ void kernelMembershipAndDensity() {
 	float prevDistance = distance( record, thisSolution.medoids[ 0] ) + 0.1;
 	float currDistance;
 	unsigned int res = 0;
-
+	
 	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
 		currDistance = distance ( record, thisSolution.medoids[ i] );
-		if ( currDistance < prevDistance ) {
+		if ( ( currDistance < prevDistance ) && ( currDistance != 0.0 ) ) {
 			prevDistance = currDistance;
 			res = i;
 		}
+		if ( currDistance == 0.0 ) {
+			zeros++;
+		}
 	}
 
-	density[ threadIdx.x] = prevDistance / (float)dNumEntries;
+	density[ threadIdx.x] = prevDistance / (float)(dNumEntries - zeros);
 
 	dMembership[ solution * dNumEntries + record] = res;
 
@@ -720,9 +720,9 @@ __global__ void kernelMembershipAndDensity() {
 	if ( threadIdx.x == 0 ) {
 		// sum solutions from all threads in this block
 		currDistance = 0;
-		//for ( int i = 0; i < dThreadsPerBlock; i++ ) {
+		for ( int i = 0; i < dThreadsPerBlock; i++ ) {
 			currDistance += density[ 0];
-		//}
+		}
 
 		// sum all solutions for this block
 		dFitnesResults[ fitnesResultIndex( solution, 0, blockIdx.x )] = currDistance;		
@@ -894,7 +894,7 @@ __global__ void kernelCorectness() {
 		}
 
 		if ( thisMedoid == medoids[ i] ) {
-			count++;
+			count += 2;
 		}
 	}
 
@@ -1416,7 +1416,7 @@ __global__ void kernelBDI( float * indexes, unsigned char * clustersCount ) {
 		prevDistance = 0;
 		for ( j = 0 ; j < MEDOID_VECTOR_SIZE; j++ ) {
 			// if not the same and from the same cluster
-			if ( j != i && clusters[ i] != clusters[ j] ) {
+			if ( j != i && clusters[ i] != clusters[ j] &&  densities[ i] != 0 &&  densities[ j] != 0) {
 				currDistance = (( densities[ i] + densities[ j] ) /
 					distance( dPopulationPool[ threadIdx.x].medoids[ i],
 					dPopulationPool[ threadIdx.x].medoids[ j] ));
@@ -1446,7 +1446,7 @@ __global__ void kernelBDI( float * indexes, unsigned char * clustersCount ) {
 	clustersCount[ threadIdx.x] = k;
 }
 //====================================================================
-ErrorCode calculateBDI( float & topBDI, unsigned int & clusters ) {
+ErrorCode calculateBDI( preciseResult & topBDI, preciseResult & clusters ) {
 	float * dResults;
 	unsigned char * dClusters;
 	cudaMalloc( &dResults, populationSize * sizeof(float) );
@@ -1461,16 +1461,27 @@ ErrorCode calculateBDI( float & topBDI, unsigned int & clusters ) {
 	cudaMemcpy( hClusters, dClusters, populationSize * sizeof(unsigned int), cudaMemcpyDeviceToHost );
 
 	//printf( " \n BDI index: \n" );
-	topBDI = hResults[ 0];
-	unsigned int res = 0;
+	topBDI.min = topBDI.max = hResults[ 0];
+	topBDI.sum = 0.0;
+	clusters.min = clusters.max = hClusters[ 0];
+	clusters.sum = 0.0;
 	for ( int i = 1; i < populationSize; i++ ) {
-		if ( hResults[ i] < topBDI ) {
-			topBDI = hResults[ i];
-			clusters = hClusters[ i];
-			res = i;
+		if ( topBDI.min == 0 || hResults[ i] < topBDI.min ) {
+			topBDI.min = hResults[ i];
 		}
+		if ( topBDI.max == 0 || hResults[ i] > topBDI.max ) {
+			topBDI.max = hResults[ i];
+		}
+		topBDI.sum += hResults[ i];
+
+		if ( clusters.min == 0 || hClusters[ i] < clusters.min ) {
+			clusters.min = hClusters[ i];
+		}
+		if ( clusters.max == 0 || hClusters[ i] > clusters.max ) {
+			clusters.max = hClusters[ i];
+		}
+		clusters.sum += hClusters[ i];
 	}
-	//printf( "======\n (%d) %f\n", res, topBDI );
 
 	return errOk;
 }
@@ -1519,7 +1530,7 @@ __global__ void kernelCalculateDI( float * indexes ) {
 }
 
 //====================================================================
-ErrorCode calculateDI( float & topDi ) {
+ErrorCode calculateDI( preciseResult & topDi ) {
 
 	float * dResults;
 	cudaMalloc( &dResults, populationSize * sizeof(float) );
@@ -1532,14 +1543,17 @@ ErrorCode calculateDI( float & topDi ) {
 	unsigned int res = 0;
 
 	//printf( " \n DI index: \n" );
-	topDi = hResults[ 0];
+	topDi.min = topDi.max = hResults[ 0];
+	topDi.sum = 0.0;
 	for ( int i = 1; i < populationSize; i++ ) {
-		if ( hResults[ i] > topDi ) {
-			topDi = hResults[ i];
-			res = i;
+		if ( topDi.min == 0 || hResults[ i] < topDi.min ) {
+			topDi.min = hResults[ i];
 		}
+		if ( topDi.max == 0 || hResults[ i] > topDi.max ) {
+			topDi.max = hResults[ i];
+		}
+		topDi.sum += hResults[ i];
 	}
-	//printf( "======\n (%d) %f\n", res, topDi );
 
 	return errOk;
 }
@@ -1591,7 +1605,7 @@ __global__ void kernelCalculateRand( unsigned char * preclasified, float * rand)
 }
 //====================================================================
 
-ErrorCode calculateRand( float & topRand ) {
+ErrorCode calculateRand( preciseResult & topRand ) {
 	// Get Clasified data
 	static float bestRand = 0;
 	unsigned char * preclasifiedEntires = NULL; // TODO:loadPreclasifiedData();
@@ -1610,21 +1624,33 @@ ErrorCode calculateRand( float & topRand ) {
 	float * hRandIndex = (float*)malloc( populationSize * sizeof(float) );
 	cudaMemcpy( hRandIndex, dRandIndex, populationSize * sizeof(float), cudaMemcpyDeviceToHost );
 
-	topRand = hRandIndex[ 0];
-	unsigned int res = 0;	
 	for ( int i = 1; i < populationSize; i++ ) {
-		if ( hRandIndex[ i] > topRand ) {
-			topRand = hRandIndex[ i];
-			res = i;
+		if ( topRand.min == 0 || hRandIndex[ i] < topRand.min ) {
+			topRand.min = hRandIndex[ i];
 		}
+		if ( topRand.max == 0 || hRandIndex[ i] > topRand.max ) {
+			topRand.max = hRandIndex[ i];
+		}
+		topRand.sum += hRandIndex[ i];
 	}
-	if ( bestRand == 0 || bestRand < topRand ) {
-		bestRand = topRand;
-		printf( "\n Rand Index: %f\n", bestRand );
-	}
-	
-	//printf( "======\n (%d) %f\n", res, topRand );
-	
+
 	return errOk;
+}
+//====================================================================
+
+void CleanResults( preciseResult & results ) {
+	results.max = 0.0;
+	results.mean = 0.0;
+	results.min = 0.0;
+	results.sum = 0.0;
+}
+//====================================================================
+
+void CleanAlgResults( algResults & results ) {
+	CleanResults( results.bdi );
+	CleanResults( results.clusters );
+	CleanResults( results.di );
+	CleanResults( results.rand );
+	CleanResults( results.time );
 }
 //====================================================================

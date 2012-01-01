@@ -104,8 +104,17 @@ void runEvo( void ) {
 	unsigned int stepsMedoids;
 	unsigned int stepsClusters;
 	unsigned int stepsNeighbours;
-    
-    char stateSaved = 0;
+   
+	/*
+		
+    char stateSaved = 1;
+    unsigned int sNeighbours = 10;
+    unsigned int sClusters = 1;
+    unsigned int sMedoids = 3;
+    unsigned int sPopSize = 64;
+    unsigned int sSteps = 1002;
+	*/
+	char stateSaved = 0;
     unsigned int sNeighbours = 0;
     unsigned int sClusters = 0;
     unsigned int sMedoids = 0;
@@ -127,9 +136,9 @@ void runEvo( void ) {
 	SetupWineLoader();
     
     // hardcoded selection: 0 - Iris
-    err = GetCalculatedDistances( 0, &dataStore );
+    err = GetCalculatedDistances( 2, &dataStore );
 
-	if ( reportsFile == NULL && stateSaved ) {
+	if ( reportsFile == NULL && !stateSaved ) {
 		reportsFile = fopen( kReportsFileName, "w" );
 	}
 
@@ -138,7 +147,7 @@ void runEvo( void ) {
 		reportsFile = NULL;
 	}
 
-	{
+	if ( !stateSaved ) {
 		FILE * xlsReportFile = fopen( kReportsFileNameXls, "w" );
 		if ( xlsReportFile != NULL ) {
 			fclose( xlsReportFile );
@@ -148,23 +157,23 @@ void runEvo( void ) {
 
 
 	// calculate how big changes per step
-	stepsMedoids = ( ( dataStore.info.numEntries / 2 - 3 ) / 5 );
+	stepsMedoids = ( ( dataStore.info.numEntries / 4 - 3 ) / 3 );
 	if ( stepsMedoids == 0 ) stepsMedoids = 1;
 	
-	stepsNeighbours = ( kMaxNeighbours - 1 ) / 3;
+	stepsNeighbours = ( kMaxNeighbours - 1 ) / 2;
 	if ( stepsNeighbours == 0 ) stepsNeighbours = 1;
     
     if ( err != errOk ) {
         // error occured can't continue with the algorithms
         printf( " Error occured while preparing data for algorithms" );
     } else {
-		for ( cPopSize = 4; cPopSize <= 256; cPopSize *= 4 ) {
+		for ( cPopSize = 4; cPopSize <= 256; cPopSize *= 4 ) { // 4 - 16 - 64 - 256
 			// now the evolution params                    
-            for ( cSteps = 2; cSteps <= 20002; cSteps += 10000 ) {
+            for ( cSteps = 2; cSteps <= 1002; cSteps += 500 ) { // 2 - 502 - 1002
 				// medoids <1; numEntries/2>
-				for ( cMedoids = 3; cMedoids <= dataStore.info.numEntries / 2; cMedoids += stepsMedoids ) {
+				for ( cMedoids = 3; cMedoids <= dataStore.info.numEntries / 4; cMedoids += stepsMedoids ) {
 					// cluster max size <1; medoidvectorsize>
-					stepsClusters = ( cMedoids - 1) / 5;
+					stepsClusters = ( cMedoids - 1) / 4;
 					if ( stepsClusters == 0 ) stepsClusters = 1;
 					for ( cClusters = 1; cClusters <= cMedoids; cClusters += stepsClusters ) {
 						// max neighbours <1; hardMax>
@@ -225,6 +234,7 @@ void runEvo( void ) {
                                 }
                             }
 							meanTime = sumTime / 5.0;
+							ClearProps( &props );
 							printf( "=============================================\n" );
                             if ( err != errOk ) {
                                 break;

@@ -120,6 +120,8 @@ ErrorCode ConfigureAlgorithms(EvolutionProps * props);
  */
 ErrorCode DefaultProps(EvolutionProps * props, DataStore * dataStore);
 
+ErrorCode ClearProps( EvolutionProps * props );
+
 /**
  * Starts the main process of eunning evolutional algorithms.
  * @param props	- [in, out] structure to hold required data and to return results.
