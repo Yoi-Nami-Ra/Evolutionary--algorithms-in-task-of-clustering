@@ -97,8 +97,8 @@ ErrorCode LoadData( DataStore * irisStore ) {
 			irisStore->dataVector + index * kIrisDimensions + 1,
 			irisStore->dataVector + index * kIrisDimensions + 2,
 			irisStore->dataVector + index * kIrisDimensions + 3, str );
-		index++;
-		irisStore->classes[ index] = ( index % 50 ) + 1;
+		irisStore->classes[ index] = ( index - ( index % 50 ) ) / 50 + 1;
+        index++;
 		// check if we read 5 elements, 4 values and the rest
 		if ( read != 5 ) {
 			break;

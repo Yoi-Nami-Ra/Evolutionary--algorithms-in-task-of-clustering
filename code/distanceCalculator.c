@@ -40,7 +40,7 @@ ErrorCode CalculateDistances( DataStore * dataStore );
  *
  * @return	- true if file with saved distances for that loader exists.
  */
-char CheckHaveSavedDistances( unsigned int loaderIndex );
+char CheckHaveSavedDistances( DataStore * dataStore );
 
 /**
  * Calculates distance betwen two data entries.
@@ -86,6 +86,7 @@ void CalculateNeighboursKernel( LoopContext loop );
 
 ErrorCode GetCalculatedDistances( unsigned int num, DataStore * dataStore ) {
 	ErrorCode err;
+	char preCalculated = 0;
 
 	err = GetDataFromLoader( num, dataStore );
 
@@ -93,9 +94,12 @@ ErrorCode GetCalculatedDistances( unsigned int num, DataStore * dataStore ) {
 		return err;
 	}
 
-	if ( CheckHaveSavedDistances( num ) ) {
-		// TODO: load distances from the file
-	} else {
+	preCalculated = CheckHaveSavedDistances( dataStore );
+	if ( preCalculated ) {
+		err = LoadCalculatedDistances( dataStore );
+	}
+
+	if ( !preCalculated || err != errOk )  {
 		// We need to calculate them
 		err = CalculateDistances( dataStore );
 
@@ -130,8 +134,29 @@ void CalculateDistancesKernel( LoopContext loop ) {
 }
 //----------------------------------------------
 
-char CheckHaveSavedDistances( unsigned int loaderIndex ) {
-	return 0;
+char CheckHaveSavedDistances( DataStore * dataStore ) {
+	unsigned int nameLen = 0;
+	char * fileName = NULL;
+	FILE * file = NULL;
+
+	nameLen = (unsigned int)strlen( dataStore->info.name );
+	nameLen += (unsigned int)strlen( "_distances.data" );
+	nameLen += 1; // for null
+	fileName = (char*)malloc( nameLen * sizeof(char) );
+	sprintf( fileName, "%s_distances.data", dataStore->info.name );
+
+	if ( fileName == NULL ) {
+		reportError( errFailProcessData, "Failed to generate fileName. Got NULL%s", "" );
+		return errFailProcessData;
+	}
+
+	file = fopen( fileName, "rb" );
+	if ( file == NULL ) {
+		return 0;
+	}
+
+	fclose( file );
+	return 1;
 }
 //----------------------------------------------
 
@@ -206,21 +231,20 @@ float CalculateEntries( unsigned int x, unsigned int y, DataStore * dataStore) {
 
 ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 	// NAME_distances.data
-	unsigned long nameLen = 0;
+	unsigned int nameLen = 0;
 	char * fileName = NULL;
 	FILE * file = NULL;
-	unsigned long read = 0;
+	unsigned int read = 0;
+	unsigned int i = 0;
 
 	if ( dataStore == NULL ||
-		dataStore->info.name == NULL ||
-		dataStore->distances == NULL ||
-		dataStore->neighbours == NULL ) {
-			reportError( errWrongParameter, "Got wrong parameters dataStore:%x, name:%x", (unsigned int)dataStore, (unsigned int)dataStore->info.name );
+		dataStore->info.name == NULL ) {
+			reportError( errWrongParameter, "Got wrong parameters dataStore or name are NULLs %s", "" );
 			return errWrongParameter;
 	}
 
-	nameLen = strlen( dataStore->info.name );
-	nameLen += strlen( "_distances.data" );
+	nameLen = (unsigned int)strlen( dataStore->info.name );
+	nameLen += (unsigned int)strlen( "_distances.data" );
 	nameLen += 1; // for null
 	fileName = (char*)malloc( nameLen * sizeof(char) );
 	sprintf( fileName, "%s_distances.data", dataStore->info.name );
@@ -230,9 +254,9 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 		return errFailProcessData;
 	}
 
-	file = fopen( fileName, "r" );
+	file = fopen( fileName, "rb" );
 	if ( file == NULL ) {
-		reportError( errFileWrite, "Failed to open file(%s) for reading.", fileName );
+		reportError( errFileRead, "Failed to open file(%s) for reading.", fileName );
 		return errFileRead;
 	}
 
@@ -241,22 +265,28 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 	checkAlloc( dataStore->distances )
 		return GetLastErrorCode();
 	}
-	read = fread( dataStore->distances, sizeof(float), dataStore->info.distancesSize, file );
+	read = (unsigned int)fread( dataStore->distances, sizeof(float), dataStore->info.distancesSize, file );
 	if ( read != dataStore->info.distancesSize ) {
 		reportError( errFileRead, "Failed to read distances data properly.%s", "" );
 		return errFileRead;
 	}
 
-	dataStore->neighbours = (unsigned int*)malloc( dataStore->info.numEntries * kMaxNeighbours * sizeof( unsigned int ) );
+	dataStore->neighbours = (unsigned int*)malloc( dataStore->info.numEntries * kMaxNeighbours * sizeof(unsigned int) );
 	checkAlloc( dataStore->neighbours )
 		return GetLastErrorCode();
 	}
-	read = fread( dataStore->neighbours, kMaxNeighbours * sizeof(unsigned int), dataStore->info.numEntries, file );
+	read = (unsigned int)fread( dataStore->neighbours, kMaxNeighbours * sizeof(unsigned int), dataStore->info.numEntries, file );
 	if ( read != dataStore->info.numEntries ) {
 		reportError( errFileRead, "Failed to read neighbours data properly.%s", "" );
 		return errFileRead;
 	}
 
+	fclose( file );
+
+	file = fopen( "distances", "w" );
+	for ( i = 0; i < dataStore->info.distancesSize; i++ ) {
+		fprintf( file, " %f\n", dataStore->distances[ i] );
+	}
 	fclose( file );
 
 	return errOk;
@@ -274,7 +304,7 @@ ErrorCode SaveCalculatedDistances( DataStore * dataStore ) {
 		dataStore->info.name == NULL ||
 		dataStore->distances == NULL ||
 		dataStore->neighbours == NULL ) {
-			reportError( errWrongParameter, "Got wrong parameters dataStore:%x, name:%x", (unsigned int)dataStore, (unsigned int)dataStore->info.name );
+			reportError( errWrongParameter, "Got wrong parameters dataStore %s", "" );
 			return errWrongParameter;
 	}
 
@@ -289,7 +319,7 @@ ErrorCode SaveCalculatedDistances( DataStore * dataStore ) {
 		return errFailProcessData;
 	}
 
-	file = fopen( fileName, "w" );
+	file = fopen( fileName, "wb" );
 	if ( file == NULL ) {
 		reportError( errFileWrite, "Failed to open file(%s) for writting.", fileName );
 		return errFileWrite;

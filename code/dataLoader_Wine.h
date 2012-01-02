@@ -16,7 +16,7 @@
 //== Functions
 
 /**
- * Setups Iris Loader and ads it to the list.
+ * Setups Wine Loader and ads it to the list.
  */
 void SetupWineLoader( void );
 

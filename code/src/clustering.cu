@@ -7,7 +7,6 @@
 #include <stdio.h>
 //#include <string.h>
 //#include <math.h>
-#include "globals.cuh"
 #include "errors.cuh"
 #include "clustering.cuh"
 #include "distanceCalculator.cuh"
@@ -77,6 +76,7 @@ __constant__ unsigned int dPopulationSize; //< size of population for EA.
  * [ populationSize x numObjectives x blocksPerSolution]
  */
 __constant__ float * dFitnesResults;
+float * fitnesResults;
 
 /*
  * array to hold current population.
@@ -125,7 +125,7 @@ texture<float, cudaTextureType1D, cudaReadModeElementType> texRefDistances;
 texture<float, cudaTextureType1D, cudaReadModeElementType> texRefNeighbour;
 
 // host
-ErrorCode runAlgorithms( unsigned int steps, algResults * results );
+ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults * results );
 void hostRandomPopulation( unsigned int popSize, unit * dPopulationPool );
 // device
 __global__ void randomPopulation();
@@ -165,7 +165,7 @@ ErrorCode generateRandomPopulation( unsigned int popSize ) {
 }
 //====================================================================
 
-ErrorCode runClustering( unsigned int popSize, unsigned int steps, algResults * results ) {
+ErrorCode runClustering( unsigned int popSize, unsigned int steps, DataStore * dataStore, algResults * results ) {
 	// Bind textures
 	//   Chanel descriptor
 	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc( 32, 0, 0, 0, cudaChannelFormatKindFloat );
@@ -182,26 +182,31 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps, algResults * 
 	//   Allocate memory for distances
 	unsigned int offset = 0;
 
-	hNumEntries = numEntries();
+	hNumEntries = dataStore->info.numEntries;
 	cudaMemcpyToSymbol( dNumEntries, &hNumEntries, sizeof(unsigned int) );
 	
 	unsigned int distancesSize = hNumEntries * ( hNumEntries -1 ) /2 * sizeof(float);
 	cudaMalloc( &dDistances, distancesSize );
-	cudaMemcpy( dDistances, getDistances(), distancesSize, cudaMemcpyHostToDevice );
+	cudaMemcpy( dDistances, dataStore->distances, dataStore->info.distancesSize, cudaMemcpyHostToDevice );
 	//   bind distances to texture
-	cudaBindTexture( &offset, &texRefDistances, dDistances, &channelDesc, distancesSize );
+	cudaBindTexture( &offset, &texRefDistances, dDistances, &channelDesc, dataStore->info.distancesSize );
 
 	//   Allocate memory for neighbours	
-	unsigned int neighbourSize = hNumEntries * MAX_NEIGHBOURS * sizeof(unsigned int);
+	unsigned int neighbourSize = hNumEntries * kMaxNeighbours * sizeof(unsigned int);
 	cudaMalloc( &dNeighbours, neighbourSize );
-	cudaMemcpy( dNeighbours, getNeighbours(), neighbourSize, cudaMemcpyHostToDevice );
+	cudaMemcpy( dNeighbours, dataStore->neighbours, neighbourSize, cudaMemcpyHostToDevice );
 	//   bind neighbours to texture
 	cudaBindTexture( &offset, &texRefNeighbour, dNeighbours, &channelDesc, neighbourSize );
+
+	cudaError_t cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf("[E][cuda:%u] Cuda Error\n" );
+	}
 
 	// generate startup population
 	generateRandomPopulation( popSize );
 
-	runAlgorithms( steps, results );
+	runAlgorithms( dataStore, steps, results );
 
 	return errOk;
 }
@@ -214,12 +219,12 @@ void hostRandomPopulation( unsigned int popSize, unit * dPopulationPool ) {
 
 	unit * populationPool = (unit*)malloc( popSize * sizeof(unit) );
 
-	bool proposalOk = false;
+//	bool proposalOk = false;
 
 	for ( threadIdx.x = 0;  threadIdx.x < populationSize; threadIdx.x++ ) {
 		// attributes
 		populationPool[ threadIdx.x].attr.clusterMaxSize = rand() % MAX_CLUSTER_SIZE + 1;
-		populationPool[ threadIdx.x].attr.numNeighbours = rand() % MAX_NEIGHBOURS + 1;
+		populationPool[ threadIdx.x].attr.numNeighbours = rand() % kMaxNeighboursToUSe + 1;
 
 		// medoids and clusters
 		unsigned int clustersSum = MEDOID_VECTOR_SIZE;
@@ -263,7 +268,7 @@ __global__ void kernelRandomPopulation() {
 
 	// attributes
 	dPopulationPool[ threadIdx.x].attr.clusterMaxSize = curand( &randState ) % MAX_CLUSTER_SIZE + 1;
-	dPopulationPool[ threadIdx.x].attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS + 1;
+	dPopulationPool[ threadIdx.x].attr.numNeighbours = curand( &randState ) % kMaxNeighboursToUSe + 1;
 
 	// medoids and clusters
 	unsigned int clustersSum = MEDOID_VECTOR_SIZE;
@@ -298,9 +303,9 @@ __global__ void kernelRandomPopulation() {
 
 ErrorCode configureAlgoritms() {
 	// Set things up
-	float * fitnesResults = 0;
+	//float * fitnesResults = 0;
 	char * membership = 0;
-	cudaError err = cudaSuccess;
+//	cudaError err = cudaSuccess;
 
 	blocksPerEntires = hNumEntries / threadsPerBlock;
 	while ( blocksPerEntires * threadsPerBlock <  hNumEntries ) {
@@ -334,7 +339,7 @@ ErrorCode configureAlgoritms() {
 	catchCudaError;
 }
 
-ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
+ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults * results ) {
 
 	enableErrorControl;
 
@@ -419,6 +424,9 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 			break;
 		}
 
+		float * hResults = (float*)malloc( populationSize * OBJECTIVES * blocksPerEntires * sizeof(float) );
+		cudaMemcpy( hResults, fitnesResults, populationSize * OBJECTIVES * blocksPerEntires * sizeof(float), cudaMemcpyDeviceToHost );
+		
 		// sorting
 		kernelSorting<<<populationSize, populationSize>>>( dDominanceMatrix );
 		cutilDeviceSynchronize();
@@ -441,10 +449,30 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 
 		cudaMemcpy( hDominanceMatrix, dDominanceMatrix, populationSize * populationSize * sizeof(bool), cudaMemcpyDeviceToHost );
 		cudaMemcpy( hDominanceCounts, dDominanceCounts, populationSize * sizeof( unsigned int ), cudaMemcpyDeviceToHost );
-		cuErr = cudaGetLastError();
-
 		if ( cuErr != cudaSuccess ) {
-			printf( "[E][cude] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
+			printf("[E][cuda] After copying dominance matrix and counts to host\n" );
+		}
+
+		// me dominates he
+		for ( int he = 0; he < populationSize; he++ ) {
+			int currCount = 0;			
+			for ( int me = 0; me < populationSize; me++ ) {
+				if ( hDominanceMatrix[ me * populationSize + he] ) {
+					currCount++;
+				}
+				if ( hDominanceMatrix[ me * populationSize + he] ==
+					hDominanceMatrix[ he * populationSize + me] && hDominanceMatrix[ he * populationSize + me] == true ) {
+						printf( "[E] Bad results in dominance matrix ( self domination ) - %s\n", "" );
+				}
+			}
+			if ( currCount != hDominanceCounts[ he] ) {
+				printf( "[E] Bad results in dominance counts ( differs from matrix ) - %s\n", "" );
+			}
+		}
+
+		cuErr = cudaGetLastError();
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
 			break;
 		}
 
@@ -458,8 +486,10 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		}
 
 		// front grouping phase
+		int testCount = 0;
 		while ( solutionsLeft > 0 ) {
 			currFrontSize = 0;
+			testCount = 0;
 			// select solutions for current front - where domination count is 0
 			for ( j = 0; j < populationSize && solutionsLeft > 0; j++ ) {				
 				if ( !solutionsSelected[ j] && hDominanceCounts[ j] == 0 ) {
@@ -476,6 +506,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 					for ( int k = 0; k < populationSize; k++ ) {
 						if ( hDominanceMatrix[ solutionFronts[ currFront * ( populationSize + 1 ) + j + 1] * populationSize + k] && hDominanceCounts[ k] > 0 ) {
 							hDominanceCounts[ k] -= 1;
+							testCount++;
 						}
 					}
 				}
@@ -531,6 +562,11 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 
 				// Export results to Host
 				cudaMemcpy( hFrontDensities, dFrontDensities, currFrontSize * sizeof(float), cudaMemcpyDeviceToHost );
+				cuErr = cudaGetLastError();
+				if ( cuErr != cudaSuccess ) {
+					printf( "[E] After copying front densities to host - %s\n", cudaGetErrorString( cuErr ));
+					break;
+				}
 				
 				bool * thisFrontSelection = (bool*)malloc( populationSize * sizeof(bool));
 				unsigned int smallest = 0;
@@ -579,12 +615,6 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 			currFront++;
 		} // while
 
-		//printf( " step: %u ==\n", i );
-		calculateBDI( results->bdi, results->k );
-		calculateDI( results->di );
-		calculateRand( results->rand );
-		//printf( " ==========\n" );
-
 		// crossing		
 		// breedingTable[ parent1, parent2, child, mutation probability]
 		breedDescriptor * hBreedingTable = (breedDescriptor*)malloc( halfPopulation * sizeof(breedDescriptor) );
@@ -615,6 +645,10 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 
 		cudaMemcpy( breedingTable, hBreedingTable, halfPopulation * sizeof(breedDescriptor), cudaMemcpyHostToDevice );
 		cuErr = cudaGetLastError();
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E] After copying breeding table to device - %s\n", cudaGetErrorString( cuErr ));
+			break;
+		}
 		// launch crossing
 		kernelCrossing<<< 1, halfPopulation >>>( breedingTable );
 		cutilDeviceSynchronize();
@@ -625,15 +659,19 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		}
 	} // evolution
 
-	results->time = difftime( time( 0 ), startTime );
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] After evolution - %s\n", cudaGetErrorString( cuErr ));
+	}
 
-	printf( " Finished:\n=====\n  populationSize(%d), steps(%d)\n  timeSpent(%f)\n", populationSize, steps, results->time );
-
-	calculateBDI( results->bdi, results->k );
-
+	calculateBDI( results->bdi, results->clusters );
 	calculateDI( results->di );
+	calculateRand( dataStore, results->rand );
 
-	calculateRand( results->rand );
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] After evolution calculation - %s\n", cudaGetErrorString( cuErr ));
+	}
 
 	return errOk;
 }
@@ -642,6 +680,7 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 __global__ void kernelMembershipAndDensity() {
 	unsigned int solution = blockIdx.y;
 	unsigned int record = blockIdx.x * threadsPerBlock + threadIdx.x;
+	unsigned int zeros = 0;
 
 	__shared__ unit thisSolution;
 	__shared__ float density[ 256]; // shared table to hold density results for futher calculation
@@ -654,19 +693,24 @@ __global__ void kernelMembershipAndDensity() {
 	// Sync up threads
 	__syncthreads();
 
-	float prevDistance = distance( record, thisSolution.medoids[ 0] );
+	density[ threadIdx.x] = 0;
+
+	float prevDistance = distance( record, thisSolution.medoids[ 0] ) + 0.1;
 	float currDistance;
 	unsigned int res = 0;
-
-	for ( int i = 1; i < MEDOID_VECTOR_SIZE; i++ ) {
+	
+	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
 		currDistance = distance ( record, thisSolution.medoids[ i] );
-		if ( currDistance < prevDistance ) {
+		if ( ( currDistance < prevDistance ) && ( currDistance != 0.0 ) ) {
 			prevDistance = currDistance;
 			res = i;
 		}
+		if ( currDistance == 0.0 ) {
+			zeros++;
+		}
 	}
 
-	density[ threadIdx.x] = prevDistance;
+	density[ threadIdx.x] = prevDistance / (float)(dNumEntries - zeros);
 
 	dMembership[ solution * dNumEntries + record] = res;
 
@@ -677,7 +721,7 @@ __global__ void kernelMembershipAndDensity() {
 		// sum solutions from all threads in this block
 		currDistance = 0;
 		for ( int i = 0; i < dThreadsPerBlock; i++ ) {
-			currDistance += density[ i];
+			currDistance += density[ 0];
 		}
 
 		// sum all solutions for this block
@@ -687,7 +731,7 @@ __global__ void kernelMembershipAndDensity() {
 //====================================================================
 
 __device__ float distance( unsigned int a, unsigned int b ) {
-	if ( a == b ) return 0;
+	if ( a == b ) return 0.0f;
 	return tex1Dfetch( texRefDistances, distanceIdx( a, b ));
 }
 //====================================================================
@@ -710,7 +754,7 @@ __device__ uint distanceIdx(uint x, uint y) {
 //====================================================================
 
 __device__ unsigned int neighbour( unsigned int record, unsigned int num ) {
-	return tex1Dfetch( texRefNeighbour, record * MAX_NEIGHBOURS + num );
+	return tex1Dfetch( texRefNeighbour, record * kMaxNeighbours + num );
 }
 //====================================================================
 
@@ -757,7 +801,7 @@ __global__ void kernelSumResults() {
 		result += dFitnesResults[ fitnesResultIndex( blockIdx.x, threadIdx.x, i )];
 	}
 
-	dFitnesResults[ fitnesResultIndex( blockIdx.x, threadIdx.x, 0 )] = result;
+	//dFitnesResults[ fitnesResultIndex( blockIdx.x, threadIdx.x, 0 )] = result;
 }
 //====================================================================
 
@@ -850,7 +894,7 @@ __global__ void kernelCorectness() {
 		}
 
 		if ( thisMedoid == medoids[ i] ) {
-			count++;
+			count += 2;
 		}
 	}
 
@@ -875,7 +919,8 @@ __global__ void kernelSorting( bool * dominanceMatrix ) {
 
 	// true if this solution (blockIdx.x) dominates the other one (threadIdx.x)
 	bool currDominance = false;
-	float currResult;
+	float heCurrResult;
+	float meCurrResult;
 	bool hasBetter = false;
 	bool hasWorse = false;
 
@@ -888,27 +933,40 @@ __global__ void kernelSorting( bool * dominanceMatrix ) {
 
 	__syncthreads();
 
-	for ( int i = 0; i < 4 ;i++ ) {
+	for ( int i = 0; i < 1; i++ ) {
 		if ( hasWorse && hasBetter || threadIdx.x == blockIdx.x ) {
 			// theyre already "equal" stop comparing
 			break;
 		}
-		currResult = dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0)];
-		if ( currResult != thisSolutionFitnesResults[ i] ) {
+		heCurrResult = dFitnesResults[ fitnesResultIndex( threadIdx.x, i, 0 )];
+		meCurrResult = dFitnesResults[ fitnesResultIndex( blockIdx.x, i, 0 )];
+		if ( heCurrResult != meCurrResult) {
 			switch ( i ) {
-				case 0: // Density
-				case 3: {// Correctnes
-					// smaller better
-					if ( currResult < thisSolutionFitnesResults[ i] ) {
+				case 0: {// Density
+					if ( heCurrResult < meCurrResult ) {
 						hasWorse = true;						
 					} else {
 						hasBetter = true;
 					}
 				} break;
-				case 1: // Connectivity
+				case 3: {// Correctnes
+					// smaller better
+					if ( heCurrResult < meCurrResult ) {
+						hasWorse = true;						
+					} else {
+						hasBetter = true;
+					}
+				} break;
+				case 1: {// Connectivity
+					if ( heCurrResult > meCurrResult ) {
+						hasWorse = true;						
+					} else {
+						hasBetter = true;
+					}
+				} break;
 				case 2: { // Disconnectivity
 					// bigger better
-					if ( currResult > thisSolutionFitnesResults[ i] ) {
+					if ( heCurrResult > meCurrResult ) {
 						hasWorse = true;						
 					} else {
 						hasBetter = true;
@@ -1094,10 +1152,10 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 			if ( mutationProb > 90 ) {
 				// both
 				childUnit.attr.clusterMaxSize = curand( &randState ) % MAX_CLUSTER_SIZE;
-				childUnit.attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS;
+				childUnit.attr.numNeighbours = curand( &randState ) % kMaxNeighbours;
 			} else {
 				// neighbours
-				childUnit.attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS;
+				childUnit.attr.numNeighbours = curand( &randState ) % kMaxNeighbours;
 			}
 		} else {
 			// max cluster size
@@ -1228,10 +1286,10 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 			if ( mutationProb > 90 ) {
 				// both
 				childUnit.attr.clusterMaxSize = curand( &randState ) % MAX_CLUSTER_SIZE;
-				childUnit.attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS;
+				childUnit.attr.numNeighbours = curand( &randState ) % kMaxNeighbours;
 			} else {
 				// neighbours
-				childUnit.attr.numNeighbours = curand( &randState ) % MAX_NEIGHBOURS;
+				childUnit.attr.numNeighbours = curand( &randState ) % kMaxNeighbours;
 			}
 		} else {
 			// max cluster size
@@ -1336,7 +1394,7 @@ __global__ void kernelBDI( float * indexes, unsigned char * clustersCount ) {
 
 
 	// calculate cluster groupings for p
-	unsigned int toSign = 0;
+	//unsigned int toSign = 0;
 	unsigned int j = 0;
 	unsigned int i = 0;
 	
@@ -1358,7 +1416,7 @@ __global__ void kernelBDI( float * indexes, unsigned char * clustersCount ) {
 		prevDistance = 0;
 		for ( j = 0 ; j < MEDOID_VECTOR_SIZE; j++ ) {
 			// if not the same and from the same cluster
-			if ( j != i && clusters[ i] != clusters[ j] ) {
+			if ( j != i && clusters[ i] != clusters[ j] &&  densities[ i] != 0 &&  densities[ j] != 0) {
 				currDistance = (( densities[ i] + densities[ j] ) /
 					distance( dPopulationPool[ threadIdx.x].medoids[ i],
 					dPopulationPool[ threadIdx.x].medoids[ j] ));
@@ -1388,14 +1446,20 @@ __global__ void kernelBDI( float * indexes, unsigned char * clustersCount ) {
 	clustersCount[ threadIdx.x] = k;
 }
 //====================================================================
-ErrorCode calculateBDI( float & topBDI, unsigned int & clusters ) {
+ErrorCode calculateBDI( preciseResult & topBDI, preciseResult & clusters ) {
 	float * dResults;
 	unsigned char * dClusters;
+	enableErrorControl;
+
 	cudaMalloc( &dResults, populationSize * sizeof(float) );
 	cudaMalloc( &dClusters, populationSize * sizeof(unsigned int) );
 
 	kernelBDI<<< 1, populationSize >>>( dResults, dClusters );
 	cutilDeviceSynchronize();
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] After kernelBDI - %s\n", cudaGetErrorString( cuErr ));
+	}
 
 	float * hResults = (float*)malloc( populationSize * sizeof(float) );
 	unsigned char * hClusters = (unsigned char*)malloc( populationSize * sizeof(unsigned int) );
@@ -1403,16 +1467,27 @@ ErrorCode calculateBDI( float & topBDI, unsigned int & clusters ) {
 	cudaMemcpy( hClusters, dClusters, populationSize * sizeof(unsigned int), cudaMemcpyDeviceToHost );
 
 	//printf( " \n BDI index: \n" );
-	topBDI = hResults[ 0];
-	unsigned int res = 0;
+	topBDI.min = topBDI.max = hResults[ 0];
+	topBDI.sum = 0.0;
+	clusters.min = clusters.max = hClusters[ 0];
+	clusters.sum = 0.0;
 	for ( int i = 1; i < populationSize; i++ ) {
-		if ( hResults[ i] < topBDI ) {
-			topBDI = hResults[ i];
-			clusters = hClusters[ i];
-			res = i;
+		if ( topBDI.min == 0 || hResults[ i] < topBDI.min ) {
+			topBDI.min = hResults[ i];
 		}
+		if ( topBDI.max == 0 || hResults[ i] > topBDI.max ) {
+			topBDI.max = hResults[ i];
+		}
+		topBDI.sum += hResults[ i];
+
+		if ( clusters.min == 0 || hClusters[ i] < clusters.min ) {
+			clusters.min = hClusters[ i];
+		}
+		if ( clusters.max == 0 || hClusters[ i] > clusters.max ) {
+			clusters.max = hClusters[ i];
+		}
+		clusters.sum += hClusters[ i];
 	}
-	//printf( "======\n (%d) %f\n", res, topBDI );
 
 	return errOk;
 }
@@ -1461,34 +1536,41 @@ __global__ void kernelCalculateDI( float * indexes ) {
 }
 
 //====================================================================
-ErrorCode calculateDI( float & topDi ) {
-
+ErrorCode calculateDI( preciseResult & topDi ) {
+	enableErrorControl;
 	float * dResults;
 	cudaMalloc( &dResults, populationSize * sizeof(float) );
 
 	kernelCalculateDI<<< 1, populationSize >>>( dResults );
 	cutilDeviceSynchronize();
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] After kernelDI - %s\n", cudaGetErrorString( cuErr ));
+	}
 
 	float * hResults = (float*)malloc( populationSize * sizeof(float) );
 	cudaMemcpy( hResults, dResults, populationSize * sizeof(float), cudaMemcpyDeviceToHost );
 	unsigned int res = 0;
 
 	//printf( " \n DI index: \n" );
-	topDi = hResults[ 0];
+	topDi.min = topDi.max = hResults[ 0];
+	topDi.sum = 0.0;
 	for ( int i = 1; i < populationSize; i++ ) {
-		if ( hResults[ i] > topDi ) {
-			topDi = hResults[ i];
-			res = i;
+		if ( topDi.min == 0 || hResults[ i] < topDi.min ) {
+			topDi.min = hResults[ i];
 		}
+		if ( topDi.max == 0 || hResults[ i] > topDi.max ) {
+			topDi.max = hResults[ i];
+		}
+		topDi.sum += hResults[ i];
 	}
-	//printf( "======\n (%d) %f\n", res, topDi );
 
 	return errOk;
 }
 //====================================================================
 
 // <<< 1, dPopulationSize >>>
-__global__ void kernelCalculateRand( unsigned char * preclasified, float * rand) {
+__global__ void kernelCalculateRand( unsigned int * preclasified, float * rand) {
 	unsigned char clusters[ MEDOID_VECTOR_SIZE];
 	float densities[ MEDOID_VECTOR_SIZE];
 	
@@ -1533,40 +1615,69 @@ __global__ void kernelCalculateRand( unsigned char * preclasified, float * rand)
 }
 //====================================================================
 
-ErrorCode calculateRand( float & topRand ) {
+ErrorCode calculateRand( DataStore * dataStore, preciseResult & topRand ) {
 	// Get Clasified data
 	static float bestRand = 0;
-	unsigned char * preclasifiedEntires = loadPreclasifiedData();
+	enableErrorControl;
 
-	unsigned char * dPreclasified;
-	cudaMalloc( &dPreclasified, hNumEntries * sizeof(unsigned char) );
-	cudaMemcpy( dPreclasified, preclasifiedEntires, hNumEntries * sizeof(unsigned char), cudaMemcpyHostToDevice ); 
+	unsigned int * dPreclasified;
+	cudaMalloc( &dPreclasified, hNumEntries * sizeof(unsigned int) );
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] rand malloc - %s\n", cudaGetErrorString( cuErr ));
+	}
+	cudaMemcpy( dPreclasified, dataStore->classes, hNumEntries * sizeof(unsigned int), cudaMemcpyHostToDevice );
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] Rand memcpy - %s\n", cudaGetErrorString( cuErr ));
+	}
 
 	float * dRandIndex;
 	cudaMalloc( &dRandIndex, populationSize * sizeof(float) );
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] Rand malloc2 - %s\n", cudaGetErrorString( cuErr ));
+	}
 	
 	// run comparision
 	kernelCalculateRand<<< 1, populationSize >>>( dPreclasified, dRandIndex );
+	cutilDeviceSynchronize();
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] After kernelRand - %s\n", cudaGetErrorString( cuErr ));
+	}
 
 	// display results
 	float * hRandIndex = (float*)malloc( populationSize * sizeof(float) );
 	cudaMemcpy( hRandIndex, dRandIndex, populationSize * sizeof(float), cudaMemcpyDeviceToHost );
 
-	topRand = hRandIndex[ 0];
-	unsigned int res = 0;	
 	for ( int i = 1; i < populationSize; i++ ) {
-		if ( hRandIndex[ i] > topRand ) {
-			topRand = hRandIndex[ i];
-			res = i;
+		if ( topRand.min == 0 || hRandIndex[ i] < topRand.min ) {
+			topRand.min = hRandIndex[ i];
 		}
+		if ( topRand.max == 0 || hRandIndex[ i] > topRand.max ) {
+			topRand.max = hRandIndex[ i];
+		}
+		topRand.sum += hRandIndex[ i];
 	}
-	if ( bestRand == 0 || bestRand < topRand ) {
-		bestRand = topRand;
-		printf( "\n Rand Index: %f\n", bestRand );
-	}
-	
-	//printf( "======\n (%d) %f\n", res, topRand );
-	
+
 	return errOk;
+}
+//====================================================================
+
+void CleanResults( preciseResult & results ) {
+	results.max = 0.0;
+	results.mean = 0.0;
+	results.min = 0.0;
+	results.sum = 0.0;
+}
+//====================================================================
+
+void CleanAlgResults( algResults & results ) {
+	CleanResults( results.bdi );
+	CleanResults( results.clusters );
+	CleanResults( results.di );
+	CleanResults( results.rand );
+	CleanResults( results.time );
 }
 //====================================================================

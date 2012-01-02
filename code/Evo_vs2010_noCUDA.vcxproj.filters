@@ -16,57 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
-    <None Include="includes\globals.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\evoEngine.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\errors.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\errors.cu">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\distanceCalculator_Iris.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\distanceCalculator.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\defs.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\dataLoader_Iris.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="includes\dataLoader.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="src\vectorAdd.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="src\main.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="src\evoEngine.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="src\distanceCalculator.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="src\dataLoader_Iris.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="src\dataLoader.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="includes\clustering.cuh">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="src\clustering.cu">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dataLoader.h">
@@ -94,6 +43,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dataLoader_Wine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dataLoader_Cancer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -126,6 +78,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="dataLoader_Wine.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dataLoader_Cancer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

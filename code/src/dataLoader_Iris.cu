@@ -1,209 +1,120 @@
-// Module of data loader specialized in loading Iris database
+/**
+ 18/10/2011
+ Jaroslaw Wojtasik
 
-#include <stdlib.h>
-#include "errors.cuh"
+ noCuda
+
+ dataLoader_Iris.c
+ **/
+
 #include "dataLoader_Iris.cuh"
-#include "dataLoader.cuh"
+#include "errors.cuh"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
-// Constants
+//==============================================
+//== Globals
 
-static const char* kdataFilePath = "./data/iris.data";
-static const char* kConvFilePath = "./data/iris_converted.data";
-static dataStore* gCurrDataStore = 0;
+static const char * kDataName = "iris";
+static const char* kDataFilePath = "./data/iris.data";
+static const unsigned char kIrisDimensions = 4;
+static const unsigned int kIrisEntries = 150;
 
-// Functions
-// Local Declarations
+//==============================================
+//== Functions
 
-/*
- * Load data in already converted state.
+/**
+ * Loads data into the data store.
+ * @param irisStore	- [in] pointer to structure where data should be stored.
+ *
+ * @return 
  */
-ErrorCode LoadConverted();
+static ErrorCode LoadData( DataStore * irisStore );
 
-/*
- * Convert the data.
- */
-ErrorCode ConvertData();
-// Local Definitions
+ErrorCode IrisLoaderFunc( DataStore * irisStore, char loadAll );
 
-bool CheckAlreadyConverted() {
-	FILE* file = fopen( kConvFilePath, "r" );
-	if ( file != 0 ) {
-		fclose( file );
-		return true;
-	}
-	return false;
-}
-//====================================================================
+ErrorCode IrisLoaderFunc( DataStore * irisStore, char loadAll ) {
+	ErrorCode err = errOk;
 
-ErrorCode startLoadingData() {
-	 ErrorCode err;
-	 if ( CheckAlreadyConverted() ) {
-		 err = LoadConverted();
-	 } else {
-		 err = ConvertData();
-	 }
+	irisStore->info.dimSize = kIrisDimensions;
+	irisStore->info.numEntries = kIrisEntries;
+	irisStore->dataVector = NULL;
+	irisStore->distances = NULL;
+	irisStore->neighbours = NULL;
+	irisStore->info.name = strdup( kDataName );
 
-	 return err;
-}
-//====================================================================
-
- dataStore* GetCurrDataStore() {
-	 return gCurrDataStore;
- }
- //====================================================================
- 
-ErrorCode LoadConverted() {	
-	if ( gCurrDataStore == 0 ) {
-		// prepare data store
-		gCurrDataStore = (dataStore*)malloc( sizeof( dataStore ));
-		if ( gCurrDataStore == 0 ) {
-			logError("No memory for data store descriptor");
-			return SetError( errNoMemory );
-		}
-
-		gCurrDataStore->info.numEntries = 150; // there are 150 entries in Iris database
-		gCurrDataStore->dataVector = (dataEntry*)malloc( sizeof(dataEntry) * gCurrDataStore->info.numEntries );
-
-		if ( gCurrDataStore->dataVector == 0 ) {
-			logError("No memory for data vector");
-			free( gCurrDataStore );
-			return SetError( errNoMemory );
-		}
+	if ( !loadAll ) {
+		return err;
 	}
 
-	FILE* dataFile = fopen( kConvFilePath, "r" );
+	// - Read records from file
+	err = LoadData( irisStore );
 
+	return err;
+}
+//----------------------------------------------
+
+void SetupIrisLoader( void ) {
+	AddFunction( kDataName, IrisLoaderFunc );
+}
+
+ErrorCode LoadData( DataStore * irisStore ) {
+	FILE * dataFile = NULL;
+	int index = 0;
+	char str[20];
+	char read = 0;
+
+	if ( irisStore == NULL ) {
+		reportError ( errWrongParameter, "Should be not NULL.%s", "" );
+		return SetLastErrorCode( errWrongParameter );
+	}
+
+	irisStore->dataVector = (float*)malloc( kIrisEntries * kIrisDimensions * sizeof(float) );
+
+	checkAlloc( irisStore->dataVector )
+		return errNoMemory;
+	}
+
+	irisStore->classes = (unsigned int*)malloc( kIrisEntries * sizeof(unsigned int) );
+
+	checkAlloc( irisStore->classes )
+		return errNoMemory;
+	}
+	
+	// open file
+	dataFile = fopen( kDataFilePath, "r" );
 	if ( dataFile == 0 ) {
-		free( gCurrDataStore );
-		free( gCurrDataStore->dataVector );
-		logError("File with data Not found");
-		return SetError( errFileNotFound );
-	}
-
-	size_t res;
-	// numEntries
-	res = fread( &gCurrDataStore->info.numEntries, sizeof(unsigned int), 1, dataFile );
-	if ( res <= 0 ) {
-		free( gCurrDataStore );
-		free( gCurrDataStore->dataVector );
-		logError("Failed to read converted data");
-		fclose( dataFile );
-		return SetError( errFileCorupted );	
-	}
-	// vector
-	res = fread( gCurrDataStore->dataVector, sizeof(dataEntry), gCurrDataStore->info.numEntries, dataFile );
-	if ( res <= 0 ) {
-		free( gCurrDataStore );
-		free( gCurrDataStore->dataVector );
-		logError("Failed to read converted data");
-		fclose( dataFile );
-		return SetError( errFileCorupted );	
-	}
-
-	fclose( dataFile );
-
-
-	return errOk;
-}
-//====================================================================
-
-ErrorCode ConvertData() {
-	if ( gCurrDataStore == 0 ) {
-		// prepare data store
-		gCurrDataStore = (dataStore*)malloc( sizeof( dataStore ));
-		if ( gCurrDataStore == 0 ) {
-			logError("No memory for data store descriptor");
-			return SetError( errNoMemory );
-		}
-
-		gCurrDataStore->info.numEntries = 150; // there are 150 entries in Iris database
-		gCurrDataStore->dataVector = (dataEntry*)malloc( sizeof(dataEntry) * gCurrDataStore->info.numEntries );
-
-		if ( gCurrDataStore->dataVector == 0 ) {
-			free( gCurrDataStore );
-			logError("No memory for data vector");
-			return SetError( errNoMemory );
-		}
-	}
-
-	FILE* dataFile = fopen( kdataFilePath, "r" );
-	if ( dataFile == 0 ) {
-		free( gCurrDataStore->dataVector );
-		free( gCurrDataStore );
-		logError("File with data Not found");
-		return SetError( errFileNotFound );
+		free( irisStore->dataVector );
+		reportError( errFileNotFound, "file:%s", kDataFilePath );
+		return SetLastErrorCode( errFileNotFound );
 	}
 
 	// load data into memory
-	int index = 0;	
-	char str[20];
-	while( !feof( dataFile ) && ( index < gCurrDataStore->info.numEntries )) {
-		fscanf( dataFile, "%3f,%3f,%3f,%3f,%s",
-			&gCurrDataStore->dataVector[index].a,
-			&gCurrDataStore->dataVector[index].b,
-			&gCurrDataStore->dataVector[index].c,
-			&gCurrDataStore->dataVector[index].d, str );
-		index++;
-	}
-	fclose( dataFile );
-
-	// save data into binary file
-	dataFile = fopen( kConvFilePath, "w" );
-
-	if ( dataFile == 0 ) {		
-		LogWarning( "Failed opening converted data file for writting" );
-		//return SetError( errFileWrite );		
-		return errOk;
-	}
-
-	size_t res;
-	// numEntries
-	res = fwrite( &gCurrDataStore->info.numEntries, sizeof(unsigned int), 1, dataFile );
-	if ( res <= 0 ) {
-		free( gCurrDataStore->dataVector );
-		free( gCurrDataStore );
-		logError( "Failed to write down converted data" );
-		fclose( dataFile );
-		//return SetError( errFileWrite );	
-		return errOk;
-	}
-	// vector
-	res = fwrite( gCurrDataStore->dataVector, sizeof(dataEntry), gCurrDataStore->info.numEntries, dataFile );
-	if ( res <= 0 ) {
-		free( gCurrDataStore->dataVector );
-		free( gCurrDataStore );
-		logError("Failed to write down converted data");
-		fclose( dataFile );
-		//return SetError( errFileWrite );	
-		return errOk;
-	}
-
-	fclose( dataFile );
-	return errOk;
-}
-//====================================================================
-
-ErrorCode releaseDataStore() {
-	if ( gCurrDataStore ) {
-		free( gCurrDataStore->dataVector );
-		free( gCurrDataStore );
-	}
-	return errOk;
-}
-//====================================================================
-
-unsigned char * loadPreclasifiedData() {
-	unsigned int entries = numEntries();
-	unsigned char * entriesTable = (unsigned char*)malloc( entries * sizeof(unsigned char) );
-
-	unsigned char cluster = 0;
-	for ( int i = 0; i < entries; i++ ) {
-		if ( ( i % 50 ) == 0 ) {
-			cluster++;
+	while( !feof( dataFile ) && ( index < kIrisEntries )) {
+		read = fscanf( dataFile, "%3f,%3f,%3f,%3f,%s",
+			irisStore->dataVector + index * kIrisDimensions,
+			irisStore->dataVector + index * kIrisDimensions + 1,
+			irisStore->dataVector + index * kIrisDimensions + 2,
+			irisStore->dataVector + index * kIrisDimensions + 3, str );
+		irisStore->classes[ index] = ( index - ( index % 50 ) ) / 50 + 1;
+        index++;
+		// check if we read 5 elements, 4 values and the rest
+		if ( read != 5 ) {
+			break;
 		}
-		entriesTable[ i] = cluster;
 	}
 
-	return entriesTable;
+	if ( read != 5 ) {
+		// we failed to read the file
+		reportError( errFileCorupted, "we've failed to read the data at index: %d.", index );
+		free( irisStore->dataVector );
+		fclose( dataFile );
+
+		return SetLastErrorCode( errFileCorupted );
+	}
+
+	fclose( dataFile );
+
+	return errOk;
 }
-//====================================================================

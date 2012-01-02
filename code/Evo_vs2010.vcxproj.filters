@@ -36,9 +36,6 @@
     <CudaCompile Include="src\distanceCalculator.cu">
       <Filter>src</Filter>
     </CudaCompile>
-    <CudaCompile Include="src\distanceCalculator_Iris.cu">
-      <Filter>src</Filter>
-    </CudaCompile>
     <CudaCompile Include="src\clustering.cu">
       <Filter>src</Filter>
     </CudaCompile>
