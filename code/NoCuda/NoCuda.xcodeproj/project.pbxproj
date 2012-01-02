@@ -18,6 +18,7 @@
 		8EC5EDBD1472791D0075B60F /* dataLoader.c in Sources */ = {isa = PBXBuildFile; fileRef = 8EC5EDB61472791D0075B60F /* dataLoader.c */; };
 		8EC5EDBE1472791D0075B60F /* dataLoader_Iris.c in Sources */ = {isa = PBXBuildFile; fileRef = 8EC5EDB81472791D0075B60F /* dataLoader_Iris.c */; };
 		8EE3372E149A2FEC00391019 /* dataLoader_Wine.c in Sources */ = {isa = PBXBuildFile; fileRef = 8EE3372C149A2FEC00391019 /* dataLoader_Wine.c */; };
+		8EEB0DA214B1F835008B8CD3 /* dataLoader_Cancer.c in Sources */ = {isa = PBXBuildFile; fileRef = 8EEB0DA114B1F834008B8CD3 /* dataLoader_Cancer.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -56,6 +57,8 @@
 		8EC5EDB81472791D0075B60F /* dataLoader_Iris.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dataLoader_Iris.c; path = ../../dataLoader_Iris.c; sourceTree = "<group>"; };
 		8EE3372C149A2FEC00391019 /* dataLoader_Wine.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dataLoader_Wine.c; path = ../../dataLoader_Wine.c; sourceTree = "<group>"; };
 		8EE3372D149A2FEC00391019 /* dataLoader_Wine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dataLoader_Wine.h; path = ../../dataLoader_Wine.h; sourceTree = "<group>"; };
+		8EEB0DA114B1F834008B8CD3 /* dataLoader_Cancer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dataLoader_Cancer.c; path = ../../dataLoader_Cancer.c; sourceTree = "<group>"; };
+		8EEB0DA414B1F85F008B8CD3 /* dataLoader_Cancer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dataLoader_Cancer.h; path = ../../dataLoader_Cancer.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +101,8 @@
 			isa = PBXGroup;
 			children = (
 				8EE3372C149A2FEC00391019 /* dataLoader_Wine.c */,
+				8EEB0DA114B1F834008B8CD3 /* dataLoader_Cancer.c */,
+				8EEB0DA414B1F85F008B8CD3 /* dataLoader_Cancer.h */,
 				8EE3372D149A2FEC00391019 /* dataLoader_Wine.h */,
 				8EBFD9441497454700668F6B /* evoEngine.c */,
 				8EBFD9451497454700668F6B /* evoEngine.h */,
@@ -183,6 +188,7 @@
 				8E445FE1148CF18300D85784 /* clustering.c in Sources */,
 				8EBFD9461497454700668F6B /* evoEngine.c in Sources */,
 				8EE3372E149A2FEC00391019 /* dataLoader_Wine.c in Sources */,
+				8EEB0DA214B1F835008B8CD3 /* dataLoader_Cancer.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

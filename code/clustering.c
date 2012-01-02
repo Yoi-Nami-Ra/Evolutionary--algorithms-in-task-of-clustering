@@ -267,7 +267,6 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 	float bestBDI = 100;
 	float bestDI = 100;
 	float bestRAND = 10;
-	FILE * resDump = NULL;
 
 	breedingData.table = NULL;
 	frontDensitiesProps.densities = NULL;
@@ -449,8 +448,8 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 			unsigned int currChild = 0;
 
 			if (breedingData.table == NULL) {
-				breedingData.table = (BreedDescriptor*) malloc(
-						props->popSize / 2 * sizeof(BreedDescriptor));
+				breedingData.table =
+                (BreedDescriptor*)malloc( props->popSize / 2 * sizeof(BreedDescriptor));
 			}
 
 			srand((unsigned int) time(0));
@@ -1212,7 +1211,7 @@ float SolutionResult(Solution * solution, char objective) {
 
 void CrossingKernel(LoopContext loop);
 void CrossingKernel(LoopContext loop) {
-	BreedingTable * breedingProps = (BreedingTable*) loop.params;
+	BreedingTable * breedingProps = (BreedingTable*)loop.params;
 	unsigned int i = 0;
 	unsigned int thisParent1, thisParent2, thisChild;
 	unsigned char howMany;

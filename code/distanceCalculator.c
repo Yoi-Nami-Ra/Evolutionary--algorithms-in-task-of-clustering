@@ -139,8 +139,8 @@ char CheckHaveSavedDistances( DataStore * dataStore ) {
 	char * fileName = NULL;
 	FILE * file = NULL;
 
-	nameLen = strlen( dataStore->info.name );
-	nameLen += strlen( "_distances.data" );
+	nameLen = (unsigned int)strlen( dataStore->info.name );
+	nameLen += (unsigned int)strlen( "_distances.data" );
 	nameLen += 1; // for null
 	fileName = (char*)malloc( nameLen * sizeof(char) );
 	sprintf( fileName, "%s_distances.data", dataStore->info.name );
@@ -239,12 +239,12 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 
 	if ( dataStore == NULL ||
 		dataStore->info.name == NULL ) {
-			reportError( errWrongParameter, "Got wrong parameters dataStore:%x, name:%x", (unsigned int)dataStore, (unsigned int)dataStore->info.name );
+			reportError( errWrongParameter, "Got wrong parameters dataStore or name are NULLs %s", "" );
 			return errWrongParameter;
 	}
 
-	nameLen = strlen( dataStore->info.name );
-	nameLen += strlen( "_distances.data" );
+	nameLen = (unsigned int)strlen( dataStore->info.name );
+	nameLen += (unsigned int)strlen( "_distances.data" );
 	nameLen += 1; // for null
 	fileName = (char*)malloc( nameLen * sizeof(char) );
 	sprintf( fileName, "%s_distances.data", dataStore->info.name );
@@ -265,7 +265,7 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 	checkAlloc( dataStore->distances )
 		return GetLastErrorCode();
 	}
-	read = fread( dataStore->distances, sizeof(float), dataStore->info.distancesSize, file );
+	read = (unsigned int)fread( dataStore->distances, sizeof(float), dataStore->info.distancesSize, file );
 	if ( read != dataStore->info.distancesSize ) {
 		reportError( errFileRead, "Failed to read distances data properly.%s", "" );
 		return errFileRead;
@@ -275,7 +275,7 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 	checkAlloc( dataStore->neighbours )
 		return GetLastErrorCode();
 	}
-	read = fread( dataStore->neighbours, kMaxNeighbours * sizeof(unsigned int), dataStore->info.numEntries, file );
+	read = (unsigned int)fread( dataStore->neighbours, kMaxNeighbours * sizeof(unsigned int), dataStore->info.numEntries, file );
 	if ( read != dataStore->info.numEntries ) {
 		reportError( errFileRead, "Failed to read neighbours data properly.%s", "" );
 		return errFileRead;

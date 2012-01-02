@@ -167,9 +167,9 @@ void runEvo( void ) {
         // error occured can't continue with the algorithms
         printf( " Error occured while preparing data for algorithms" );
     } else {
-		for ( cPopSize = 4; cPopSize <= 256; cPopSize *= 4 ) { // 4 - 16 - 64 - 256
+		for ( cPopSize = 256; cPopSize <= 256; cPopSize *= 4 ) { // 4 - 16 - 64 - 256
 			// now the evolution params                    
-            for ( cSteps = 2; cSteps <= 1002; cSteps += 500 ) { // 2 - 502 - 1002
+            for ( cSteps = 1002; cSteps <= 15002; cSteps += 500 ) { // 2 - 502 - 1002
 				// medoids <1; numEntries/2>
 				for ( cMedoids = 3; cMedoids <= dataStore.info.numEntries / 4; cMedoids += stepsMedoids ) {
 					// cluster max size <1; medoidvectorsize>
@@ -193,11 +193,9 @@ void runEvo( void ) {
                             props.maxNeighbours = cNeighbours;
                             props.maxClusterSize = cClusters;
 							ConfigureAlgorithms( &props );
-
-							diffTime = 0.0;
+                            
 							minTime = 0.0;
 							maxTime = 0.0;
-							meanTime = 0.0;
 							sumTime = 0.0;
 
 							if ( reportsFile == NULL ) {
