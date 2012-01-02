@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 	err = GetCalculatedDistances( 0, &dataStore );
 
 	unsigned int popSize = 256;
-	unsigned int evoSteps = 1002;
+	unsigned int evoSteps = 502;
 	unsigned int repeats = 5;
 
 	CleanAlgResults( results );

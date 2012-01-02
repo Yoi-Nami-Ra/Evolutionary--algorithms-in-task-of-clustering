@@ -5,9 +5,9 @@
 // =======================
 // Types
 
-#define MAX_CLUSTER_SIZE 13
-#define MEDOID_VECTOR_SIZE 14
-#define kMaxNeighboursToUSe 29
+#define MAX_CLUSTER_SIZE 1
+#define MEDOID_VECTOR_SIZE 36
+#define kMaxNeighboursToUSe 1
 
 #define CROS_FACTOR 3
 #define OBJECTIVES 4

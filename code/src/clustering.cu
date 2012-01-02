@@ -615,13 +615,6 @@ ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults *
 			currFront++;
 		} // while
 
-		//printf( " step: %u ==\n", i );
-		//TODO:
-		//calculateBDI( results->bdi, results->k );
-		//calculateDI( results->di );
-		//calculateRand( results->rand );
-		//printf( " ==========\n" );
-
 		// crossing		
 		// breedingTable[ parent1, parent2, child, mutation probability]
 		breedDescriptor * hBreedingTable = (breedDescriptor*)malloc( halfPopulation * sizeof(breedDescriptor) );
@@ -670,9 +663,6 @@ ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults *
 	if ( cuErr != cudaSuccess ) {
 		printf( "[E][cuda] After evolution - %s\n", cudaGetErrorString( cuErr ));
 	}
-
-	//TODO:
-	printf( " Finished:\n=====\n  populationSize(%d), steps(%d)\n  timeSpent(%f)\n", populationSize, steps, results->time );
 
 	calculateBDI( results->bdi, results->clusters );
 	calculateDI( results->di );
