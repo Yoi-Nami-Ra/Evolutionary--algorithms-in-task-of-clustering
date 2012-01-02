@@ -80,6 +80,7 @@
   <ItemGroup>
     <ClInclude Include="clustering.h" />
     <ClInclude Include="dataLoader.h" />
+    <ClInclude Include="dataLoader_Cancer.h" />
     <ClInclude Include="dataLoader_Iris.h" />
     <ClInclude Include="dataLoader_Test.h" />
     <ClInclude Include="dataLoader_Wine.h" />
@@ -91,6 +92,7 @@
   <ItemGroup>
     <ClCompile Include="clustering.c" />
     <ClCompile Include="dataLoader.c" />
+    <ClCompile Include="dataLoader_Cancer.c" />
     <ClCompile Include="dataLoader_Iris.c" />
     <ClCompile Include="dataLoader_test.c" />
     <ClCompile Include="dataLoader_Wine.c" />

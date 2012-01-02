@@ -7,7 +7,6 @@
 #include <stdio.h>
 //#include <string.h>
 //#include <math.h>
-#include "globals.cuh"
 #include "errors.cuh"
 #include "clustering.cuh"
 #include "distanceCalculator.cuh"
@@ -126,7 +125,7 @@ texture<float, cudaTextureType1D, cudaReadModeElementType> texRefDistances;
 texture<float, cudaTextureType1D, cudaReadModeElementType> texRefNeighbour;
 
 // host
-ErrorCode runAlgorithms( unsigned int steps, algResults * results );
+ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults * results );
 void hostRandomPopulation( unsigned int popSize, unit * dPopulationPool );
 // device
 __global__ void randomPopulation();
@@ -199,10 +198,15 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps, DataStore * d
 	//   bind neighbours to texture
 	cudaBindTexture( &offset, &texRefNeighbour, dNeighbours, &channelDesc, neighbourSize );
 
+	cudaError_t cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf("[E][cuda:%u] Cuda Error\n" );
+	}
+
 	// generate startup population
 	generateRandomPopulation( popSize );
 
-	runAlgorithms( steps, results );
+	runAlgorithms( dataStore, steps, results );
 
 	return errOk;
 }
@@ -335,7 +339,7 @@ ErrorCode configureAlgoritms() {
 	catchCudaError;
 }
 
-ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
+ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults * results ) {
 
 	enableErrorControl;
 
@@ -422,22 +426,6 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 
 		float * hResults = (float*)malloc( populationSize * OBJECTIVES * blocksPerEntires * sizeof(float) );
 		cudaMemcpy( hResults, fitnesResults, populationSize * OBJECTIVES * blocksPerEntires * sizeof(float), cudaMemcpyDeviceToHost );
-
-		FILE * dump;
-
-		// solution * OBJECTIVES * dBlocksPerSolution + objective * dBlocksPerSolution + block
-
-		dump = fopen( "results.txt", "w" );
-		if ( dump ) {
-			for ( int sol = 0; sol < populationSize; sol++ ) {
-				fprintf( dump, " %u <> ", sol );
-				for ( int obj = 0; obj < 4; obj++ ) {
-					fprintf( dump, " %f,", hResults[ sol * 4 * blocksPerEntires + obj * blocksPerEntires + 0] );
-				}
-				fprintf( dump, "\n");
-			}
-			fclose( dump );
-		}
 		
 		// sorting
 		kernelSorting<<<populationSize, populationSize>>>( dDominanceMatrix );
@@ -461,7 +449,9 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 
 		cudaMemcpy( hDominanceMatrix, dDominanceMatrix, populationSize * populationSize * sizeof(bool), cudaMemcpyDeviceToHost );
 		cudaMemcpy( hDominanceCounts, dDominanceCounts, populationSize * sizeof( unsigned int ), cudaMemcpyDeviceToHost );
-		cuErr = cudaGetLastError();
+		if ( cuErr != cudaSuccess ) {
+			printf("[E][cuda] After copying dominance matrix and counts to host\n" );
+		}
 
 		// me dominates he
 		for ( int he = 0; he < populationSize; he++ ) {
@@ -472,16 +462,17 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 				}
 				if ( hDominanceMatrix[ me * populationSize + he] ==
 					hDominanceMatrix[ he * populationSize + me] && hDominanceMatrix[ he * populationSize + me] == true ) {
-						printf( "[E][cude] Bad results in dominance matrix ( self domination ) - %s\n", "" );
+						printf( "[E] Bad results in dominance matrix ( self domination ) - %s\n", "" );
 				}
 			}
 			if ( currCount != hDominanceCounts[ he] ) {
-				printf( "[E][cude] Bad results in dominance counts ( differs from matrix ) - %s\n", "" );
+				printf( "[E] Bad results in dominance counts ( differs from matrix ) - %s\n", "" );
 			}
 		}
 
+		cuErr = cudaGetLastError();
 		if ( cuErr != cudaSuccess ) {
-			printf( "[E][cude] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
+			printf( "[E] After Dominance memory copies - %s\n", cudaGetErrorString( cuErr ));
 			break;
 		}
 
@@ -571,6 +562,11 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 
 				// Export results to Host
 				cudaMemcpy( hFrontDensities, dFrontDensities, currFrontSize * sizeof(float), cudaMemcpyDeviceToHost );
+				cuErr = cudaGetLastError();
+				if ( cuErr != cudaSuccess ) {
+					printf( "[E] After copying front densities to host - %s\n", cudaGetErrorString( cuErr ));
+					break;
+				}
 				
 				bool * thisFrontSelection = (bool*)malloc( populationSize * sizeof(bool));
 				unsigned int smallest = 0;
@@ -656,6 +652,10 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 
 		cudaMemcpy( breedingTable, hBreedingTable, halfPopulation * sizeof(breedDescriptor), cudaMemcpyHostToDevice );
 		cuErr = cudaGetLastError();
+		if ( cuErr != cudaSuccess ) {
+			printf( "[E] After copying breeding table to device - %s\n", cudaGetErrorString( cuErr ));
+			break;
+		}
 		// launch crossing
 		kernelCrossing<<< 1, halfPopulation >>>( breedingTable );
 		cutilDeviceSynchronize();
@@ -666,12 +666,22 @@ ErrorCode runAlgorithms( unsigned int steps, algResults * results ) {
 		}
 	} // evolution
 
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] After evolution - %s\n", cudaGetErrorString( cuErr ));
+	}
+
 	//TODO:
 	printf( " Finished:\n=====\n  populationSize(%d), steps(%d)\n  timeSpent(%f)\n", populationSize, steps, results->time );
 
 	calculateBDI( results->bdi, results->clusters );
 	calculateDI( results->di );
-	calculateRand( results->rand );
+	calculateRand( dataStore, results->rand );
+
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] After evolution calculation - %s\n", cudaGetErrorString( cuErr ));
+	}
 
 	return errOk;
 }
@@ -1449,11 +1459,17 @@ __global__ void kernelBDI( float * indexes, unsigned char * clustersCount ) {
 ErrorCode calculateBDI( preciseResult & topBDI, preciseResult & clusters ) {
 	float * dResults;
 	unsigned char * dClusters;
+	enableErrorControl;
+
 	cudaMalloc( &dResults, populationSize * sizeof(float) );
 	cudaMalloc( &dClusters, populationSize * sizeof(unsigned int) );
 
 	kernelBDI<<< 1, populationSize >>>( dResults, dClusters );
 	cutilDeviceSynchronize();
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] After kernelBDI - %s\n", cudaGetErrorString( cuErr ));
+	}
 
 	float * hResults = (float*)malloc( populationSize * sizeof(float) );
 	unsigned char * hClusters = (unsigned char*)malloc( populationSize * sizeof(unsigned int) );
@@ -1531,12 +1547,16 @@ __global__ void kernelCalculateDI( float * indexes ) {
 
 //====================================================================
 ErrorCode calculateDI( preciseResult & topDi ) {
-
+	enableErrorControl;
 	float * dResults;
 	cudaMalloc( &dResults, populationSize * sizeof(float) );
 
 	kernelCalculateDI<<< 1, populationSize >>>( dResults );
 	cutilDeviceSynchronize();
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] After kernelDI - %s\n", cudaGetErrorString( cuErr ));
+	}
 
 	float * hResults = (float*)malloc( populationSize * sizeof(float) );
 	cudaMemcpy( hResults, dResults, populationSize * sizeof(float), cudaMemcpyDeviceToHost );
@@ -1560,7 +1580,7 @@ ErrorCode calculateDI( preciseResult & topDi ) {
 //====================================================================
 
 // <<< 1, dPopulationSize >>>
-__global__ void kernelCalculateRand( unsigned char * preclasified, float * rand) {
+__global__ void kernelCalculateRand( unsigned int * preclasified, float * rand) {
 	unsigned char clusters[ MEDOID_VECTOR_SIZE];
 	float densities[ MEDOID_VECTOR_SIZE];
 	
@@ -1605,20 +1625,37 @@ __global__ void kernelCalculateRand( unsigned char * preclasified, float * rand)
 }
 //====================================================================
 
-ErrorCode calculateRand( preciseResult & topRand ) {
+ErrorCode calculateRand( DataStore * dataStore, preciseResult & topRand ) {
 	// Get Clasified data
 	static float bestRand = 0;
-	unsigned char * preclasifiedEntires = NULL; // TODO:loadPreclasifiedData();
+	enableErrorControl;
 
-	unsigned char * dPreclasified;
-	cudaMalloc( &dPreclasified, hNumEntries * sizeof(unsigned char) );
-	cudaMemcpy( dPreclasified, preclasifiedEntires, hNumEntries * sizeof(unsigned char), cudaMemcpyHostToDevice ); 
+	unsigned int * dPreclasified;
+	cudaMalloc( &dPreclasified, hNumEntries * sizeof(unsigned int) );
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] rand malloc - %s\n", cudaGetErrorString( cuErr ));
+	}
+	cudaMemcpy( dPreclasified, dataStore->classes, hNumEntries * sizeof(unsigned int), cudaMemcpyHostToDevice );
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] Rand memcpy - %s\n", cudaGetErrorString( cuErr ));
+	}
 
 	float * dRandIndex;
 	cudaMalloc( &dRandIndex, populationSize * sizeof(float) );
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] Rand malloc2 - %s\n", cudaGetErrorString( cuErr ));
+	}
 	
 	// run comparision
 	kernelCalculateRand<<< 1, populationSize >>>( dPreclasified, dRandIndex );
+	cutilDeviceSynchronize();
+	cuErr = cudaGetLastError();
+	if ( cuErr != cudaSuccess ) {
+		printf( "[E][cuda] After kernelRand - %s\n", cudaGetErrorString( cuErr ));
+	}
 
 	// display results
 	float * hRandIndex = (float*)malloc( populationSize * sizeof(float) );

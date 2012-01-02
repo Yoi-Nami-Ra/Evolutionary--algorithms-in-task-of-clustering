@@ -335,12 +335,6 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 
 	fclose( file );
 
-	file = fopen( "distances_cuda.txt", "w" );
-	for ( int i = 0; i < dataStore->info.distancesSize; i++ ) {
-		fprintf( file, " %f\n", dataStore->distances[ i] );
-	}
-	fclose( file );
-
 	return errOk;
 }
 //----------------------------------------------

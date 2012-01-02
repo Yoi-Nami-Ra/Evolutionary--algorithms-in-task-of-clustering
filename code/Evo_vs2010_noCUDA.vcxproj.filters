@@ -45,6 +45,9 @@
     <ClInclude Include="dataLoader_Wine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dataLoader_Cancer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dataLoader.c">
@@ -75,6 +78,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="dataLoader_Wine.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dataLoader_Cancer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

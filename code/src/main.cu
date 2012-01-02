@@ -72,6 +72,16 @@ int main(int argc, char** argv)
 		printf( " \n\n====\n pop(%d), steps(%d), repeats(%d)\n Rand(%f) BDI(%f) DI(%f) time(%f) clusters(%f)",
 			popSize, evoSteps, repeats, results.rand.mean, results.bdi.mean, results.di.mean, results.time.mean, results.clusters.mean );
 
+		printf( "---------------------------------\n" );
+		printf( " medoids: %d clusters: %d neighbours: %d\n", MEDOID_VECTOR_SIZE, MAX_CLUSTER_SIZE, kMaxNeighboursToUSe );
+		printf( " popSize: %d steps: %d\n", popSize, evoSteps );
+		printf( " Results:\n" );
+		printf( "=============================================\n" );
+		printf( " BDI:  %f / %f / %f\n", results.bdi.min, results.bdi.mean, results.bdi.max );
+		printf( " DI:  %f / %f / %f\n", results.di.min, results.di.mean, results.di.max );
+		printf( " Rand:  %f / %f / %f\n", results.rand.min, results.rand.mean, results.rand.max );
+		printf( " Time:  %f / %f / %f\n\n", results.time.min, results.time.mean, results.time.max );
+
 	}
 
 	// TODO:

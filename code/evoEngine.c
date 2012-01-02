@@ -12,6 +12,7 @@
 #include "dataLoader_Iris.h"
 #include "dataLoader_Test.h"
 #include "dataLoader_Wine.h"
+#include "dataLoader_Cancer.h"
 #include "distanceCalculator.h"
 #include "clustering.h"
 #include <stdlib.h>
@@ -106,21 +107,24 @@ void runEvo( void ) {
 	unsigned int stepsNeighbours;
    
 	/*
+	 medoids: 42 clusters: 41 neighbours: 15
+ popSize: 256 steps: 502
+	*/
 		
     char stateSaved = 1;
-    unsigned int sNeighbours = 10;
-    unsigned int sClusters = 1;
-    unsigned int sMedoids = 3;
-    unsigned int sPopSize = 64;
-    unsigned int sSteps = 1002;
-	*/
+    unsigned int sNeighbours = 15;
+    unsigned int sClusters = 41;
+    unsigned int sMedoids = 42;
+    unsigned int sPopSize = 256;
+    unsigned int sSteps = 502;
+	/*
 	char stateSaved = 0;
     unsigned int sNeighbours = 0;
     unsigned int sClusters = 0;
     unsigned int sMedoids = 0;
     unsigned int sPopSize = 0;
     unsigned int sSteps = 0;
-
+	*/
 	double diffTime = 0.0;
 	time_t currTime = 0.0;
 	double minTime = 0.0;
@@ -134,6 +138,7 @@ void runEvo( void ) {
 	SetupIrisLoader();
 	SetupTestLoader();
 	SetupWineLoader();
+	SetupCancerLoader();
     
     // hardcoded selection: 0 - Iris
     err = GetCalculatedDistances( 2, &dataStore );
@@ -167,9 +172,9 @@ void runEvo( void ) {
         // error occured can't continue with the algorithms
         printf( " Error occured while preparing data for algorithms" );
     } else {
-		for ( cPopSize = 256; cPopSize <= 256; cPopSize *= 4 ) { // 4 - 16 - 64 - 256
+		for ( cPopSize = 4; cPopSize <= 256; cPopSize *= 4 ) { // 4 - 16 - 64 - 256
 			// now the evolution params                    
-            for ( cSteps = 1002; cSteps <= 15002; cSteps += 500 ) { // 2 - 502 - 1002
+            for ( cSteps = 2; cSteps <= 1002; cSteps += 500 ) { // 2 - 502 - 1002
 				// medoids <1; numEntries/2>
 				for ( cMedoids = 3; cMedoids <= dataStore.info.numEntries / 4; cMedoids += stepsMedoids ) {
 					// cluster max size <1; medoidvectorsize>

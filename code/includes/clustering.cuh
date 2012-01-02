@@ -70,7 +70,7 @@ ErrorCode calculateBDI( preciseResult & topBDI, preciseResult & clusters );
 
 ErrorCode calculateDI( preciseResult & topDi );
 
-ErrorCode calculateRand( preciseResult & topRand );
+ErrorCode calculateRand( DataStore * dataStore, preciseResult & topRand ) ;
 
 void CleanResults( preciseResult & results );
 
