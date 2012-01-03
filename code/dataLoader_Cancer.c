@@ -62,6 +62,7 @@ ErrorCode LoadData( DataStore * cancerStore ) {
 	int index = 0;
 	char read = 0;
     unsigned int id;
+    char class;
     
 	if ( cancerStore == NULL ) {
 		reportError ( errWrongParameter, "Should be not NULL.%s", "" );
@@ -71,51 +72,71 @@ ErrorCode LoadData( DataStore * cancerStore ) {
 	cancerStore->dataVector = (float*)malloc( kCancerEntries * kCancerDimensions * sizeof(float) );
     
 	checkAlloc( cancerStore->dataVector )
-    return errNoMemory;
-}
-
-cancerStore->classes = (unsigned int*)malloc( kCancerEntries * sizeof(unsigned int) );
-
-checkAlloc( cancerStore->classes )
-return errNoMemory;
-}
-
-// open file
-dataFile = fopen( kDataFilePath, "r" );
-if ( dataFile == 0 ) {
-    free( cancerStore->dataVector );
-    reportError( errFileNotFound, "file:%s", kDataFilePath );
-    return SetLastErrorCode( errFileNotFound );
-}
-
-// load data into memory
-while( !feof( dataFile ) && ( index < kCancerEntries )) {
-    // 1,14.23,1.71,2.43,15.6,127,2.8,3.06,.28,2.29,5.64,1.04,3.92,1065
-    read = fscanf( dataFile, "%u,%u,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
-                  id,
-                  cancerStore->classes + index,
-                  cancerStore->dataVector + index * kCancerDimensions,
-                  cancerStore->dataVector + index * kCancerDimensions + 1,
-                  cancerStore->dataVector + index * kCancerDimensions + 2,
-                  cancerStore->dataVector + index * kCancerDimensions + 3,
-                  cancerStore->dataVector + index * kCancerDimensions + 4,
-                  cancerStore->dataVector + index * kCancerDimensions + 5,
-                  cancerStore->dataVector + index * kCancerDimensions + 6,
-                  cancerStore->dataVector + index * kCancerDimensions + 7,
-                  cancerStore->dataVector + index * kCancerDimensions + 8,
-                  cancerStore->dataVector + index * kCancerDimensions + 9,
-                  cancerStore->dataVector + index * kCancerDimensions + 10,
-                  cancerStore->dataVector + index * kCancerDimensions + 11,
-                  cancerStore->dataVector + index * kCancerDimensions + 12
-                  );
-    index++;
-    // check if we read 14 elements, 1 class, and 13 dimensions
-    if ( read != 14 ) {
-        break;
+        return errNoMemory;
     }
-}
 
-if ( read != 14 ) {
+    cancerStore->classes = (unsigned int*)malloc( kCancerEntries * sizeof(unsigned int) );
+
+    checkAlloc( cancerStore->classes )
+        return errNoMemory;
+    }
+
+    // open file
+    dataFile = fopen( kDataFilePath, "r" );
+    if ( dataFile == 0 ) {
+        free( cancerStore->dataVector );
+        reportError( errFileNotFound, "file:%s", kDataFilePath );
+        return SetLastErrorCode( errFileNotFound );
+    }
+
+    // load data into memory
+    while( !feof( dataFile ) && ( index < kCancerEntries )) {
+        // 1,14.23,1.71,2.43,15.6,127,2.8,3.06,.28,2.29,5.64,1.04,3.92,1065
+        read = fscanf( dataFile, "%u,%c,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+                      &id,
+                      &class,
+                      cancerStore->dataVector + index * kCancerDimensions,
+                      cancerStore->dataVector + index * kCancerDimensions + 1,
+                      cancerStore->dataVector + index * kCancerDimensions + 2,
+                      cancerStore->dataVector + index * kCancerDimensions + 3,
+                      cancerStore->dataVector + index * kCancerDimensions + 4,
+                      cancerStore->dataVector + index * kCancerDimensions + 5,
+                      cancerStore->dataVector + index * kCancerDimensions + 6,
+                      cancerStore->dataVector + index * kCancerDimensions + 7,
+                      cancerStore->dataVector + index * kCancerDimensions + 8,
+                      cancerStore->dataVector + index * kCancerDimensions + 9,
+                      cancerStore->dataVector + index * kCancerDimensions + 10,
+                      cancerStore->dataVector + index * kCancerDimensions + 11,
+                      cancerStore->dataVector + index * kCancerDimensions + 12,
+                      cancerStore->dataVector + index * kCancerDimensions + 13,
+                      cancerStore->dataVector + index * kCancerDimensions + 14,
+                      cancerStore->dataVector + index * kCancerDimensions + 15,
+                      cancerStore->dataVector + index * kCancerDimensions + 16,
+                      cancerStore->dataVector + index * kCancerDimensions + 17,
+                      cancerStore->dataVector + index * kCancerDimensions + 18,
+                      cancerStore->dataVector + index * kCancerDimensions + 19,
+                      cancerStore->dataVector + index * kCancerDimensions + 20,
+                      cancerStore->dataVector + index * kCancerDimensions + 21,
+                      cancerStore->dataVector + index * kCancerDimensions + 22,
+                      cancerStore->dataVector + index * kCancerDimensions + 23,
+                      cancerStore->dataVector + index * kCancerDimensions + 24,
+                      cancerStore->dataVector + index * kCancerDimensions + 25,
+                      cancerStore->dataVector + index * kCancerDimensions + 26,
+                      cancerStore->dataVector + index * kCancerDimensions + 27,
+                      cancerStore->dataVector + index * kCancerDimensions + 28,
+                      cancerStore->dataVector + index * kCancerDimensions + 29,
+                      cancerStore->dataVector + index * kCancerDimensions + 30,
+                      cancerStore->dataVector + index * kCancerDimensions + 31
+                      );
+        cancerStore->classes[ index] = class == 'R'?1:0; 
+        index++;
+        // check if we read 14 elements, 1 class, and 13 dimensions
+        if ( read != 34 && read != 0 ) {
+            break;
+        }
+    }
+
+if ( read != 34 && read != 0 ) {
     // we failed to read the file
     reportError( errFileCorupted, "we've failed to read the data at index: %d.", index );
     free( cancerStore->dataVector );

@@ -15,12 +15,13 @@
 #include "dataLoader_Cancer.h"
 #include "distanceCalculator.h"
 #include "clustering.h"
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 
-#define kReportsFileName "reportsFile.txt"
-#define kReportsFileNameXls "reportsFileXls.txt"
+#define kReportsFileName "_reportsFile.txt"
+#define kReportsFileNameXls "_reportsFileXls.txt"
 
 /**
  * Displays list of available loaders.
@@ -107,24 +108,20 @@ void runEvo( void ) {
 	unsigned int stepsNeighbours;
    
 	/*
-		medoids: 42 clusters: 1 neighbours: 1
-		popSize: 256 steps: 1002
-	*/
-		
-    char stateSaved = 1;
+	char stateSaved = 1;
     unsigned int sNeighbours = 1;
     unsigned int sClusters = 1;
     unsigned int sMedoids = 42;
     unsigned int sPopSize = 256;
     unsigned int sSteps = 1002;
-	/*
+	*/
 	char stateSaved = 0;
     unsigned int sNeighbours = 0;
     unsigned int sClusters = 0;
     unsigned int sMedoids = 0;
     unsigned int sPopSize = 0;
     unsigned int sSteps = 0;
-	*/
+	
 	double diffTime = 0.0;
 	time_t currTime = 0.0;
 	double minTime = 0.0;
@@ -133,6 +130,9 @@ void runEvo( void ) {
 	double sumTime = 0.0;
 
 	FILE * reportsFile = NULL;
+    char * reportsFileName;
+	char * xlsReportsFileName;
+    unsigned int fileNameLength;
 
 	// -- Setting up all loaders
 	SetupIrisLoader();
@@ -141,19 +141,27 @@ void runEvo( void ) {
 	SetupCancerLoader();
     
     // hardcoded selection: 0 - Iris
-    err = GetCalculatedDistances( 2, &dataStore );
+    err = GetCalculatedDistances( 3, &dataStore );
 
+	
+	fileNameLength = (unsigned int)strlen( kReportsFileName ) + (unsigned int)strlen( dataStore.info.name );
+	reportsFileName = (char*)malloc( fileNameLength + 1 );
+	sprintf( reportsFileName, "%s%s", dataStore.info.name, kReportsFileName );
+	fileNameLength = (unsigned int)strlen( kReportsFileNameXls ) + (unsigned int)strlen( dataStore.info.name );
+	xlsReportsFileName = (char*)malloc( fileNameLength + 1 );
+	sprintf( xlsReportsFileName, "%s%s", dataStore.info.name, kReportsFileNameXls );
+	
 	if ( reportsFile == NULL && !stateSaved ) {
-		reportsFile = fopen( kReportsFileName, "w" );
+		reportsFile = fopen( reportsFileName, "w" );
 	}
-
+    
 	if (reportsFile != NULL ) {
 		fclose( reportsFile );
 		reportsFile = NULL;
 	}
-
+    
 	if ( !stateSaved ) {
-		FILE * xlsReportFile = fopen( kReportsFileNameXls, "w" );
+		FILE * xlsReportFile = fopen( xlsReportsFileName, "w" );
 		if ( xlsReportFile != NULL ) {
 			fclose( xlsReportFile );
 			xlsReportFile = NULL;
@@ -204,7 +212,7 @@ void runEvo( void ) {
 							sumTime = 0.0;
 
 							if ( reportsFile == NULL ) {
-								reportsFile = fopen( kReportsFileName, "a" );
+								reportsFile = fopen( reportsFileName, "a" );
 							}
 
 							if (reportsFile != NULL ) {
@@ -244,7 +252,7 @@ void runEvo( void ) {
                             }
                             
 							if ( reportsFile == NULL ) {
-								reportsFile = fopen( kReportsFileName, "a" );
+								reportsFile = fopen( reportsFileName, "a" );
 							}
 
 							if (reportsFile != NULL ) {
@@ -266,7 +274,7 @@ void runEvo( void ) {
 							// xls readable file
 							{
 								// medoids, clusters, neighbours, popSize, Steps, BDI_min, BDI_mean, BDI_max, DI_min, DI_mean, DI_max, Rand_min, Rand_mean, Rand_max, Time_min, Time_mean, Time_max
-								FILE * xlsReportFile = fopen( kReportsFileNameXls, "a" );
+								FILE * xlsReportFile = fopen( xlsReportsFileName, "a" );
 								if ( xlsReportFile != NULL ) {
 									fprintf( xlsReportFile, "%u, %u, %u, %u, %u, ",
 										cMedoids, cClusters, cNeighbours, cPopSize, cSteps );
