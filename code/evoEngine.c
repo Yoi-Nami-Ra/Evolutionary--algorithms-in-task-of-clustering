@@ -107,16 +107,16 @@ void runEvo( void ) {
 	unsigned int stepsNeighbours;
    
 	/*
-	 medoids: 42 clusters: 41 neighbours: 15
- popSize: 256 steps: 502
+		medoids: 42 clusters: 1 neighbours: 1
+		popSize: 256 steps: 1002
 	*/
 		
     char stateSaved = 1;
-    unsigned int sNeighbours = 15;
-    unsigned int sClusters = 41;
+    unsigned int sNeighbours = 1;
+    unsigned int sClusters = 1;
     unsigned int sMedoids = 42;
     unsigned int sPopSize = 256;
-    unsigned int sSteps = 502;
+    unsigned int sSteps = 1002;
 	/*
 	char stateSaved = 0;
     unsigned int sNeighbours = 0;
@@ -300,7 +300,7 @@ void runEvo( void ) {
             if ( err != errOk ) {
                 break;
             }
-        }
+        } // pop size
     }
 
 
