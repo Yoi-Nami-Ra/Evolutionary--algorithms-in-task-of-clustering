@@ -533,7 +533,10 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
             } // for j
         }
         
-	} // evolution for
+        printf( "-" );
+    } // evolution for
+    
+    printf( "\n" );
 
 	// gather results
 	calculateBDI(props);
@@ -1094,12 +1097,6 @@ void FrontDensityKernel(LoopContext loop) {
 			&frontProps->props->solutions[frontProps->front[loop.blockIdx.x]],
 			(char) loop.threadIdx.x);
 
-	if (frontProps->densities == NULL) {
-        frontProps->densities = (float*)malloc(frontProps->frontSize * sizeof(float));
-    } else {
-        frontProps->densities = (float*)realloc(frontProps->densities, frontProps->frontSize * sizeof(float));
-    }
-
 	// find the smallest score bigger than this
 	// and biggest score smaller than this
 	for (i = 0; i < frontProps->frontSize; i++) {
@@ -1164,6 +1161,12 @@ ErrorCode FrontDensity(FrontDensities * frontProps) {
 			|| frontProps->props->solutions == NULL) {
 		return SetLastErrorCode(errWrongParameter);
 	}
+    
+    if (frontProps->densities == NULL) {
+        frontProps->densities = (float*)malloc(frontProps->frontSize * sizeof(float));
+    } else {
+        frontProps->densities = (float*)realloc(frontProps->densities, frontProps->frontSize * sizeof(float));
+    }
 
 	logDebug(" == FrontDensity %s", "" );
 	// <<< frontSize, kryterions >>>
@@ -1403,6 +1406,7 @@ void BDIKernel(LoopContext loop) {
 	unsigned int j;
 	float prevDistance;
 	float currDistance;
+    float toDiv;
     float * numbers;
     EvolutionProps * props = (EvolutionProps*) loop.params;
 	Solution *thisSolution = props->solutions + loop.threadIdx.x;
@@ -1430,12 +1434,14 @@ void BDIKernel(LoopContext loop) {
 			if ( j != i &&
 				thisMember->clusterMembership[i] 
 					!= thisMember->clusterMembership[j] &&
-				thisSolution->clusterDensities[i] != 0 &&
-				thisSolution->clusterDensities[j] != 0 ) {
-				currDistance = ((thisSolution->clusterDensities[i]
-						+ thisSolution->clusterDensities[j])
-						/ Distance(props, (*thisMember).medoids[i],
-								(*thisMember).medoids[j]));
+				( thisSolution->clusterDensities[i] != 0 ||
+				thisSolution->clusterDensities[j] != 0 ) ) {
+				currDistance = ( thisSolution->clusterDensities[i]
+                                 + thisSolution->clusterDensities[j] );
+                                
+                toDiv = Distance( props, (*thisMember).medoids[i],
+								(*thisMember).medoids[j] );
+                    currDistance /= toDiv;
 				// find the biggest BDI distance
 				if (currDistance > prevDistance || prevDistance == 0) {
 					prevDistance = currDistance;

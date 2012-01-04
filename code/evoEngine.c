@@ -109,23 +109,20 @@ void runEvo( void ) {
 	unsigned int stepsNeighbours;
    
 	/*
-	 medoids: 42 clusters: 8 neighbours: 29
- popSize: 256 steps: 1002
- */
 	char stateSaved = 1;
     unsigned int sNeighbours = 29;
     unsigned int sClusters = 8;
     unsigned int sMedoids = 42;
     unsigned int sPopSize = 256;
     unsigned int sSteps = 1002;
-	/*
+	*/
 	char stateSaved = 0;
     unsigned int sNeighbours = 0;
     unsigned int sClusters = 0;
     unsigned int sMedoids = 0;
     unsigned int sPopSize = 0;
     unsigned int sSteps = 0;
-	*/
+	
 	double diffTime = 0.0;
 	time_t currTime = 0.0;
 	double minTime = 0.0;
@@ -145,7 +142,7 @@ void runEvo( void ) {
 	SetupCancerLoader();
     
     // hardcoded selection: 2 - Wine
-    err = GetCalculatedDistances( 2, &dataStore );
+    err = GetCalculatedDistances( 3, &dataStore );
 
 	
 	fileNameLength = (unsigned int)strlen( kReportsFileName ) + (unsigned int)strlen( dataStore.info.name );
@@ -221,7 +218,6 @@ void runEvo( void ) {
 
 							if (reportsFile != NULL ) {
 								fprintf( reportsFile, "---------------------------------\n" );
-								printf( "---------------------------------\n" );
 								fprintf( reportsFile, " medoids: %d clusters: %d neighbours: %d\n", cMedoids, cClusters, cNeighbours );
 								printf( " medoids: %d clusters: %d neighbours: %d\n", cMedoids, cClusters, cNeighbours );
 								fprintf( reportsFile, " popSize: %d steps: %d\n", cPopSize, cSteps );
