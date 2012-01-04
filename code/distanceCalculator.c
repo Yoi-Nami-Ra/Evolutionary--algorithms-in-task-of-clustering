@@ -17,7 +17,8 @@
 //==============================================
 //== Globals
 
-#define kBlockSize 16
+const unsigned char kBlockSize = 16;
+static const unsigned char kMaxNeighbours = MAX_NEIGHBOURS;
 
 //==============================================
 //== Functions
@@ -283,7 +284,7 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore ) {
 
 	fclose( file );
 
-	file = fopen( "distances", "w" );
+	file = fopen( "distances.txt", "w" );
 	for ( i = 0; i < dataStore->info.distancesSize; i++ ) {
 		fprintf( file, " %f\n", dataStore->distances[ i] );
 	}
@@ -396,7 +397,7 @@ void CalculateNeighboursKernel( LoopContext loop ) {
 	unsigned int i = 0;
 	unsigned int j = 0;
 	float distance = 0;
-	float distancesArray[ kMaxNeighbours];
+	float distancesArray[ MAX_NEIGHBOURS];
 	unsigned int candidate = 0;
 	unsigned int a = 0;
 	float b = 0;

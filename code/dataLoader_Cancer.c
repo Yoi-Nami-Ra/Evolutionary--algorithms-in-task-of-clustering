@@ -62,7 +62,9 @@ ErrorCode LoadData( DataStore * cancerStore ) {
 	int index = 0;
 	char read = 0;
     unsigned int id;
-    char class;
+    char tClass;
+	char rest[ 20];
+
     
 	if ( cancerStore == NULL ) {
 		reportError ( errWrongParameter, "Should be not NULL.%s", "" );
@@ -91,10 +93,10 @@ ErrorCode LoadData( DataStore * cancerStore ) {
 
     // load data into memory
     while( !feof( dataFile ) && ( index < kCancerEntries )) {
-        // 1,14.23,1.71,2.43,15.6,127,2.8,3.06,.28,2.29,5.64,1.04,3.92,1065
-        read = fscanf( dataFile, "%u,%c,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+        // 119513,N,31,18.02,27.6,117.5,1013,0.09489,0.1036,0.1086,0.07055,0.1865,0.06333,0.6249,1.89,3.972,71.55,0.004433,0.01421,0.03233,0.009854,0.01694,0.003495,21.63,37.08,139.7,1436,0.1195,0.1926,0.314,0.117,0.2677,0.08113,5,5
+        read = fscanf( dataFile, "%u,%c,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%s",
                       &id,
-                      &class,
+                      &tClass,
                       cancerStore->dataVector + index * kCancerDimensions,
                       cancerStore->dataVector + index * kCancerDimensions + 1,
                       cancerStore->dataVector + index * kCancerDimensions + 2,
@@ -126,17 +128,18 @@ ErrorCode LoadData( DataStore * cancerStore ) {
                       cancerStore->dataVector + index * kCancerDimensions + 28,
                       cancerStore->dataVector + index * kCancerDimensions + 29,
                       cancerStore->dataVector + index * kCancerDimensions + 30,
-                      cancerStore->dataVector + index * kCancerDimensions + 31
+                      cancerStore->dataVector + index * kCancerDimensions + 31,
+					  rest
                       );
-        cancerStore->classes[ index] = class == 'R'?1:0; 
+        cancerStore->classes[ index] = tClass == 'R'?1:0; 
         index++;
         // check if we read 14 elements, 1 class, and 13 dimensions
-        if ( read != 34 && read != 0 ) {
+        if ( read != 35 && read != 34 ) {
             break;
         }
     }
 
-if ( read != 34 && read != 0 ) {
+if ( read != 35 && read != 34 ) {
     // we failed to read the file
     reportError( errFileCorupted, "we've failed to read the data at index: %d.", index );
     free( cancerStore->dataVector );

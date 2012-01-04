@@ -192,7 +192,10 @@
     <CudaCompile Include="includes\errors.cu" />
     <CudaCompile Include="src\clustering.cu" />
     <CudaCompile Include="src\dataLoader.cu" />
+    <CudaCompile Include="src\dataLoader_Cancer.cu" />
     <CudaCompile Include="src\dataLoader_Iris.cu" />
+    <CudaCompile Include="src\dataLoader_test.cu" />
+    <CudaCompile Include="src\dataLoader_Wine.cu" />
     <CudaCompile Include="src\distanceCalculator.cu" />
     <CudaCompile Include="src\main.cu" />
     <CudaCompile Include="src\vectorAdd.cu">
@@ -202,7 +205,10 @@
   <ItemGroup>
     <None Include="includes\clustering.cuh" />
     <None Include="includes\dataLoader.cuh" />
+    <None Include="includes\dataLoader_Cancer.cuh" />
     <None Include="includes\dataLoader_Iris.cuh" />
+    <None Include="includes\dataLoader_Test.cuh" />
+    <None Include="includes\dataLoader_Wine.cuh" />
     <None Include="includes\defs.cuh" />
     <None Include="includes\distanceCalculator.cuh" />
     <None Include="includes\distanceCalculator_Iris.cuh" />

@@ -23,6 +23,7 @@
 #define OBJECTIVES 4
 
 const char threadsPerBlock = 50;
+static const unsigned char kMaxNeighbours = MAX_NEIGHBOURS;
 
 #pragma mark - Function Prototypes
 //==============================================
@@ -737,9 +738,9 @@ void ConnectivityKernel(LoopContext loop) {
 
 	for (i = 0; i < (*thisMember).attr.numNeighbours && i < kMaxNeighbours; i++) {
 		if (memberOf
-				== (*thisSolution).recordMembership[props->dataStore->neighbours[record
-						* kMaxNeighbours + i]]) {
-			(*thisSolution).connectivity += (float) 1.0
+				== thisSolution->recordMembership[
+					props->dataStore->neighbours[record * kMaxNeighbours + i]]) {
+			thisSolution->connectivity += (float) 1.0
 					/ (float) (*thisMember).attr.numNeighbours;
 		}
 	}

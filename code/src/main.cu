@@ -46,7 +46,7 @@ int main(int argc, char** argv)
 	//= Load data
 	//--------------------
 	DataStore dataStore;
-	err = GetCalculatedDistances( 0, &dataStore );
+	err = GetCalculatedDistances( 2, &dataStore );
 
 	unsigned int cNeighbours = 0;
     unsigned int cClusters = 0;
@@ -60,20 +60,20 @@ int main(int argc, char** argv)
 	unsigned int stepsNeighbours;
 		
 	/*
+	 medoids: 42 clusters: 8 neighbours: 29
+ popSize: 256 steps: 1002
+	*/
     char stateSaved = 1;
-    unsigned int sNeighbours = 1;
-    unsigned int sClusters = 1;
-    unsigned int sMedoids = 42;
     unsigned int sPopSize = 256;
     unsigned int sSteps = 1002;
-	*/
+	/*
 	char stateSaved = 0;
     unsigned int sNeighbours = 0;
     unsigned int sClusters = 0;
     unsigned int sMedoids = 0;
     unsigned int sPopSize = 0;
     unsigned int sSteps = 0;
-
+	*/
 	FILE * reportsFile = NULL;
 	char * reportsFileName;
 	char * xlsReportsFileName;
@@ -118,117 +118,92 @@ int main(int argc, char** argv)
 			// now the evolution params                    
             for ( cSteps = 2; cSteps <= 1002; cSteps += 500 ) { // 2 - 502 - 1002
 				// medoids <1; numEntries/2>
-				for ( cMedoids = 3; cMedoids <= dataStore.info.numEntries / 4; cMedoids += stepsMedoids ) {
-					// cluster max size <1; medoidvectorsize>
-					stepsClusters = ( cMedoids - 1) / 4;
-					if ( stepsClusters == 0 ) stepsClusters = 1;
-					for ( cClusters = 1; cClusters <= cMedoids; cClusters += stepsClusters ) {
-						// max neighbours <1; hardMax>
-						for ( cNeighbours = 1; cNeighbours <= kMaxNeighbours; cNeighbours += stepsNeighbours ) {
-							if ( stateSaved ) {
-                                cNeighbours = sNeighbours;
-                                cClusters = sClusters;
-                                cMedoids = sMedoids;
-                                cPopSize = sPopSize;
-                                cSteps = sSteps;
-                                stateSaved = 0;
-                            }
-							CleanAlgResults( results );
+				if ( stateSaved ) {
+                    cPopSize = sPopSize;
+                    cSteps = sSteps;
+                    stateSaved = 0;
+                }
+				CleanAlgResults( results );
 
-							if ( reportsFile == NULL ) {
-								reportsFile = fopen( reportsFileName, "a" );
-							}
+				if ( reportsFile == NULL ) {
+					reportsFile = fopen( reportsFileName, "a" );
+				}
 
-							if (reportsFile != NULL ) {
-								fprintf( reportsFile, "---------------------------------\n" );
-								printf( "---------------------------------\n" );
-								fprintf( reportsFile, " medoids: %d clusters: %d neighbours: %d\n", cMedoids, cClusters, cNeighbours );
-								printf( " medoids: %d clusters: %d neighbours: %d\n", cMedoids, cClusters, cNeighbours );
-								fprintf( reportsFile, " popSize: %d steps: %d\n", cPopSize, cSteps );
-								printf( " popSize: %d steps: %d\n", cPopSize, cSteps );
-								fprintf( reportsFile, " Results:\n" );
-								printf( " Results:\n" );
-								fclose( reportsFile );
-								reportsFile = NULL;
-							}
+				if (reportsFile != NULL ) {
+					fprintf( reportsFile, "---------------------------------\n" );
+					printf( "---------------------------------\n" );
+					fprintf( reportsFile, " medoids: %d clusters: %d neighbours: %d\n", MEDOID_VECTOR_SIZE, MAX_CLUSTER_SIZE, kMaxNeighboursToUSe );
+					printf( " medoids: %d clusters: %d neighbours: %d\n", cMedoids, cClusters, cNeighbours );
+					fprintf( reportsFile, " popSize: %d steps: %d\n", cPopSize, cSteps );
+					printf( " popSize: %d steps: %d\n", cPopSize, cSteps );
+					fprintf( reportsFile, " Results:\n" );
+					printf( " Results:\n" );
+					fclose( reportsFile );
+					reportsFile = NULL;
+				}
 
-                            for ( cRepeat = 0; cRepeat < 5; cRepeat++ ) {
-                                time( &currTime );
-								err = runClustering( cPopSize, cSteps, &dataStore, &results );
-								timeDiff = difftime( time( NULL ), currTime );
+                for ( cRepeat = 0; cRepeat < 5; cRepeat++ ) {
+                    time( &currTime );
+					err = runClustering( cPopSize, cSteps, &dataStore, &results );
+					timeDiff = difftime( time( NULL ), currTime );
 
-								if ( results.time.min == 0 || results.time.min > timeDiff ) {
-									results.time.min = timeDiff;
-								}
-								if ( results.time.max == 0 || results.time.max < timeDiff ) {
-									results.time.max = timeDiff;
-								}
-								results.time.sum += timeDiff;
+					if ( results.time.min == 0 || results.time.min > timeDiff ) {
+						results.time.min = timeDiff;
+					}
+					if ( results.time.max == 0 || results.time.max < timeDiff ) {
+						results.time.max = timeDiff;
+					}
+					results.time.sum += timeDiff;
                                 
-                                if ( err != errOk ) {
-                                    break;
-                                }
-                            }
-							results.time.mean = results.time.sum / 5.0;
-							printf( "=============================================\n" );
-                            if ( err != errOk ) {
-                                break;
-                            }
-                            
-							if ( reportsFile == NULL ) {
-								reportsFile = fopen( reportsFileName, "a" );
-							}
-
-							if (reportsFile != NULL ) {
-								fprintf( reportsFile, " BDI:  %f / %f / %f\n", results.bdi.min, results.bdi.mean, results.bdi.max );
-								printf( " BDI:  %f / %f / %f\n", results.bdi.min, results.bdi.mean, results.bdi.max );
-								fprintf( reportsFile, " DI:  %f / %f / %f\n", results.di.min, results.di.mean, results.di.max );
-								printf( " DI:  %f / %f / %f\n", results.di.min, results.di.mean, results.di.max );
-								fprintf( reportsFile, " Rand:  %f / %f / %f\n", results.rand.min, results.rand.mean, results.rand.max );
-								printf( " Rand:  %f / %f / %f\n", results.rand.min, results.rand.mean, results.rand.max );
-								fprintf( reportsFile, " Time:  %f / %f / %f\n\n", results.time.min, results.time.mean, results.time.max );
-								printf( " Time:  %f / %f / %f\n\n", results.time.min, results.time.mean, results.time.max );
-								fclose( reportsFile );
-								reportsFile = NULL;
-
-							} else {
-								// Filed to write report
-							}
-
-							// xls readable file
-							{
-								// medoids, clusters, neighbours, popSize, Steps, BDI_min, BDI_mean, BDI_max, DI_min, DI_mean, DI_max, Rand_min, Rand_mean, Rand_max, Time_min, Time_mean, Time_max
-								FILE * xlsReportFile = fopen( xlsReportsFileName, "a" );
-								if ( xlsReportFile != NULL ) {
-									fprintf( xlsReportFile, "%u, %u, %u, %u, %u, ",
-										cMedoids, cClusters, cNeighbours, cPopSize, cSteps );
-									fprintf( xlsReportFile, "%f, %f, %f, ",
-										results.bdi.min, results.bdi.mean, results.bdi.max );
-									fprintf( xlsReportFile, "%f, %f, %f, ",
-										results.di.min, results.di.mean, results.di.max );
-									fprintf( xlsReportFile, "%f, %f, %f, ",
-										results.rand.min, results.rand.mean, results.rand.max );
-									fprintf( xlsReportFile, "%f, %f, %f\n", results.time.min, results.time.mean, results.time.max );
-									fclose( xlsReportFile );
-									xlsReportFile = NULL;
-								}
-							}
-                        }
-                        if ( err != errOk ) {
-                            break;
-                        }
-                        if ( err != errOk ) {
-                            break;
-                        }
-                    }
                     if ( err != errOk ) {
                         break;
                     }
                 }
+				results.time.mean = results.time.sum / 5.0;
+				printf( "=============================================\n" );
                 if ( err != errOk ) {
                     break;
                 }
-            }
+                            
+				if ( reportsFile == NULL ) {
+					reportsFile = fopen( reportsFileName, "a" );
+				}
+
+				if (reportsFile != NULL ) {
+					fprintf( reportsFile, " BDI:  %f / %f / %f\n", results.bdi.min, results.bdi.mean, results.bdi.max );
+					printf( " BDI:  %f / %f / %f\n", results.bdi.min, results.bdi.mean, results.bdi.max );
+					fprintf( reportsFile, " DI:  %f / %f / %f\n", results.di.min, results.di.mean, results.di.max );
+					printf( " DI:  %f / %f / %f\n", results.di.min, results.di.mean, results.di.max );
+					fprintf( reportsFile, " Rand:  %f / %f / %f\n", results.rand.min, results.rand.mean, results.rand.max );
+					printf( " Rand:  %f / %f / %f\n", results.rand.min, results.rand.mean, results.rand.max );
+					fprintf( reportsFile, " Time:  %f / %f / %f\n\n", results.time.min, results.time.mean, results.time.max );
+					printf( " Time:  %f / %f / %f\n\n", results.time.min, results.time.mean, results.time.max );
+					fclose( reportsFile );
+					reportsFile = NULL;
+
+				} else {
+					// Filed to write report
+				}
+
+				// xls readable file
+				{
+					// medoids, clusters, neighbours, popSize, Steps, BDI_min, BDI_mean, BDI_max, DI_min, DI_mean, DI_max, Rand_min, Rand_mean, Rand_max, Time_min, Time_mean, Time_max
+					FILE * xlsReportFile = fopen( xlsReportsFileName, "a" );
+					if ( xlsReportFile != NULL ) {
+						fprintf( xlsReportFile, "%u, %u, %u, %u, %u, ",
+							cMedoids, cClusters, cNeighbours, cPopSize, cSteps );
+						fprintf( xlsReportFile, "%f, %f, %f, ",
+							results.bdi.min, results.bdi.mean, results.bdi.max );
+						fprintf( xlsReportFile, "%f, %f, %f, ",
+							results.di.min, results.di.mean, results.di.max );
+						fprintf( xlsReportFile, "%f, %f, %f, ",
+							results.rand.min, results.rand.mean, results.rand.max );
+						fprintf( xlsReportFile, "%f, %f, %f\n", results.time.min, results.time.mean, results.time.max );
+						fclose( xlsReportFile );
+						xlsReportFile = NULL;
+					}
+				}
+            } // for steps
             if ( err != errOk ) {
                 break;
             }

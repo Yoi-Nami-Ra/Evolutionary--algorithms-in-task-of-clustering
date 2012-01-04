@@ -39,6 +39,15 @@
     <CudaCompile Include="src\clustering.cu">
       <Filter>src</Filter>
     </CudaCompile>
+    <CudaCompile Include="src\dataLoader_Cancer.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\dataLoader_test.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\dataLoader_Wine.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="includes\dataLoader.cuh">
@@ -63,6 +72,15 @@
       <Filter>inc</Filter>
     </None>
     <None Include="includes\clustering.cuh">
+      <Filter>inc</Filter>
+    </None>
+    <None Include="includes\dataLoader_Cancer.cuh">
+      <Filter>inc</Filter>
+    </None>
+    <None Include="includes\dataLoader_Test.cuh">
+      <Filter>inc</Filter>
+    </None>
+    <None Include="includes\dataLoader_Wine.cuh">
       <Filter>inc</Filter>
     </None>
   </ItemGroup>
