@@ -108,13 +108,13 @@ void runEvo( void ) {
 	unsigned int stepsClusters;
 	unsigned int stepsNeighbours;
    
-	/*
-	 medoids: 42 clusters: 8 neighbours: 29
+	/* 
+	 medoids: 42 clusters: 15 neighbours: 15
  popSize: 256 steps: 1002
  */
 	char stateSaved = 1;
-    unsigned int sNeighbours = 29;
-    unsigned int sClusters = 8;
+    unsigned int sNeighbours = 15;
+    unsigned int sClusters = 15;
     unsigned int sMedoids = 42;
     unsigned int sPopSize = 256;
     unsigned int sSteps = 1002;
@@ -127,7 +127,7 @@ void runEvo( void ) {
     unsigned int sSteps = 0;
 	*/
 	double diffTime = 0.0;
-	time_t currTime = 0.0;
+	time_t currTime = 0;
 	double minTime = 0.0;
 	double maxTime = 0.0;
 	double meanTime = 0.0;
@@ -221,7 +221,6 @@ void runEvo( void ) {
 
 							if (reportsFile != NULL ) {
 								fprintf( reportsFile, "---------------------------------\n" );
-								printf( "---------------------------------\n" );
 								fprintf( reportsFile, " medoids: %d clusters: %d neighbours: %d\n", cMedoids, cClusters, cNeighbours );
 								printf( " medoids: %d clusters: %d neighbours: %d\n", cMedoids, cClusters, cNeighbours );
 								fprintf( reportsFile, " popSize: %d steps: %d\n", cPopSize, cSteps );
