@@ -45,8 +45,8 @@ int main(int argc, char** argv)
 	
 	//= Load data
 	//--------------------
-	DataStore dataStore;
-	err = GetCalculatedDistances( 2, &dataStore );
+	DataStore dataStore; // 0 - wine
+	err = GetCalculatedDistances( 3, &dataStore );
 
 	unsigned int cNeighbours = 0;
     unsigned int cClusters = 0;

@@ -4367,3 +4367,21 @@
  medoids: 36 clusters: 33 neighbours: 29
  popSize: 64 steps: 1002
  Results:
+---------------------------------
+ medoids: 36 clusters: 1 neighbours: 15
+ popSize: 256 steps: 1002
+ Results:
+ BDI:  1.#QNAN0 / 0.000000 / 1.#QNAN0
+ DI:  0.000000 / 0.000000 / 0.000000
+ Rand:  0.338166 / 0.000000 / 0.687069
+ Time:  15.000000 / 15.600000 / 17.000000
+
+---------------------------------
+ medoids: 36 clusters: 1 neighbours: 15
+ popSize: 256 steps: 1502
+ Results:
+ BDI:  1.#QNAN0 / 0.000000 / 1.#QNAN0
+ DI:  1.#QNAN0 / 0.000000 / 1.#QNAN0
+ Rand:  0.333423 / 0.000000 / 0.695213
+ Time:  22.000000 / 23.200001 / 25.000000
+

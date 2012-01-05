@@ -532,14 +532,7 @@ ErrorCode RunAlgorithms(EvolutionProps * props) {
 				UpdateMinMaxResults( &props->resultRand, props->solutions[j].resultRand );
             } // for j
         }
-		printf( "-" );
-        
-        printf( "-" );
     } // evolution for
-    
-    printf( "\n" );
-
-	printf( "\n" );
 
 	// gather results
 	calculateBDI(props);

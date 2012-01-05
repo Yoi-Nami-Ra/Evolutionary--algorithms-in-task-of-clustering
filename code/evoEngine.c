@@ -109,20 +109,23 @@ void runEvo( void ) {
 	unsigned int stepsNeighbours;
    
 	/*
+	   medoids: 48 clusters: 34 neighbours: 15
+ popSize: 16 steps: 1002
+	*/
 	char stateSaved = 1;
     unsigned int sNeighbours = 15;
-    unsigned int sClusters = 15;
-    unsigned int sMedoids = 42;
-    unsigned int sPopSize = 256;
+    unsigned int sClusters = 34;
+    unsigned int sMedoids = 48;
+    unsigned int sPopSize = 16;
     unsigned int sSteps = 1002;
-	*/
+	/*
 	char stateSaved = 0;
     unsigned int sNeighbours = 0;
     unsigned int sClusters = 0;
     unsigned int sMedoids = 0;
     unsigned int sPopSize = 0;
     unsigned int sSteps = 0;
-	
+	*/
 	double diffTime = 0.0;
 	time_t currTime = 0;
 	double minTime = 0.0;
@@ -141,8 +144,8 @@ void runEvo( void ) {
 	SetupWineLoader();
 	SetupCancerLoader();
     
-    // hardcoded selection: 2 - Wine
-    err = GetCalculatedDistances( 2, &dataStore );
+    // hardcoded selection: 3 - Cancer
+    err = GetCalculatedDistances( 3, &dataStore );
 
 	
 	fileNameLength = (unsigned int)strlen( kReportsFileName ) + (unsigned int)strlen( dataStore.info.name );
