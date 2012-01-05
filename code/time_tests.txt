@@ -1,0 +1,18 @@
+Yime tests
+Iris:
+- no CUDA
+135	137,6	140
+- with CUDA
+ Time:  15.000000 / 15.600000 / 17.000000
+
+Wine
+- no CUDA
+447	451,8	457
+- with CUDA
+ Time:  25.000000 / 26.000000 / 28.000000
+
+Cancer:
+- no CUDA:
+135	137,6	140
+- with CUDA
+
