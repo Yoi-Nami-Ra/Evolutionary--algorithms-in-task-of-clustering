@@ -371,8 +371,6 @@ ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults *
 	cudaMalloc( &breedingTable, halfPopulation * sizeof(breedDescriptor));
 	cudaMemcpyToSymbol( dBreedingTable, &breedingTable, sizeof(breedDescriptor*) );
 
-	time_t startTime = time( 0 );
-
 	for (int i = 0; i < steps; i++ ) {
 		// membership and density phase
 		kernelMembershipAndDensity<<<dimGrid, threadsPerBlock>>>();
@@ -449,26 +447,6 @@ ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults *
 
 		cudaMemcpy( hDominanceMatrix, dDominanceMatrix, populationSize * populationSize * sizeof(bool), cudaMemcpyDeviceToHost );
 		cudaMemcpy( hDominanceCounts, dDominanceCounts, populationSize * sizeof( unsigned int ), cudaMemcpyDeviceToHost );
-		if ( cuErr != cudaSuccess ) {
-			printf("[E][cuda] After copying dominance matrix and counts to host\n" );
-		}
-
-		// me dominates he
-		for ( int he = 0; he < populationSize; he++ ) {
-			int currCount = 0;			
-			for ( int me = 0; me < populationSize; me++ ) {
-				if ( hDominanceMatrix[ me * populationSize + he] ) {
-					currCount++;
-				}
-				if ( hDominanceMatrix[ me * populationSize + he] ==
-					hDominanceMatrix[ he * populationSize + me] && hDominanceMatrix[ he * populationSize + me] == true ) {
-						printf( "[E] Bad results in dominance matrix ( self domination ) - %s\n", "" );
-				}
-			}
-			if ( currCount != hDominanceCounts[ he] ) {
-				printf( "[E] Bad results in dominance counts ( differs from matrix ) - %s\n", "" );
-			}
-		}
 
 		cuErr = cudaGetLastError();
 		if ( cuErr != cudaSuccess ) {
@@ -479,17 +457,15 @@ ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults *
 		// setup fronts
 		solutionsLeft = populationSize;
 		currFront = 0;
-
+		
 		int j;
 		for ( j = 0; j < populationSize; j++ ) {
 			solutionsSelected[ j] = false;
 		}
 
 		// front grouping phase
-		int testCount = 0;
 		while ( solutionsLeft > 0 ) {
 			currFrontSize = 0;
-			testCount = 0;
 			// select solutions for current front - where domination count is 0
 			for ( j = 0; j < populationSize && solutionsLeft > 0; j++ ) {				
 				if ( !solutionsSelected[ j] && hDominanceCounts[ j] == 0 ) {
@@ -506,7 +482,6 @@ ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults *
 					for ( int k = 0; k < populationSize; k++ ) {
 						if ( hDominanceMatrix[ solutionFronts[ currFront * ( populationSize + 1 ) + j + 1] * populationSize + k] && hDominanceCounts[ k] > 0 ) {
 							hDominanceCounts[ k] -= 1;
-							testCount++;
 						}
 					}
 				}
@@ -615,14 +590,14 @@ ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults *
 			currFront++;
 		} // while
 
-		// crossing		
+		// crossing
 		// breedingTable[ parent1, parent2, child, mutation probability]
 		breedDescriptor * hBreedingTable = (breedDescriptor*)malloc( halfPopulation * sizeof(breedDescriptor) );
 		unsigned int currParent1 = 0;
 		unsigned int currParent2 = 0;
 		unsigned int currChild = 0;
 
-		srand( time( 0 ) );
+		srand( clock() );
 		// generate breeding Table
 		for ( j = 0; j < populationSize; j++ ) {
 			if ( solutionsSelected[ j] ) {
@@ -649,6 +624,7 @@ ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults *
 			printf( "[E] After copying breeding table to device - %s\n", cudaGetErrorString( cuErr ));
 			break;
 		}
+
 		// launch crossing
 		kernelCrossing<<< 1, halfPopulation >>>( breedingTable );
 		cutilDeviceSynchronize();
@@ -657,8 +633,10 @@ ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults *
 			printf( "[E][cude] After kernelCrossing - %s\n", cudaGetErrorString( cuErr ));
 			break;
 		}
+
 	} // evolution
 
+	
 	cuErr = cudaGetLastError();
 	if ( cuErr != cudaSuccess ) {
 		printf( "[E][cuda] After evolution - %s\n", cudaGetErrorString( cuErr ));
@@ -788,7 +766,6 @@ __global__ void kernelConnectivity() {
 
 		// sum all solutions for this block
 		dFitnesResults[ fitnesResultIndex( solution, 1, blockIdx.x)] = result;
-		//fitnesResults[ solution * 4 * blocksPerSolution + 1 * blocksPerSolution + blockIdx.x] = result;
 	}
 }
 //====================================================================
@@ -801,7 +778,7 @@ __global__ void kernelSumResults() {
 		result += dFitnesResults[ fitnesResultIndex( blockIdx.x, threadIdx.x, i )];
 	}
 
-	//dFitnesResults[ fitnesResultIndex( blockIdx.x, threadIdx.x, 0 )] = result;
+	dFitnesResults[ fitnesResultIndex( blockIdx.x, threadIdx.x, 0 )] = result;
 }
 //====================================================================
 
@@ -1144,7 +1121,6 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 	childUnit.attr.numNeighbours = dPopulationPool[ descriptor.parent1].attr.numNeighbours;
 
 	// mutation
-	
 	char mutationProb = descriptor.factor;	
 	// 1) attributes
 	if ( mutationProb > 50 ) {
@@ -1207,142 +1183,6 @@ __global__ void kernelCrossing( breedDescriptor * breedingTable ) {
 	// now save the child into memory
 	dPopulationPool[ descriptor.child] = childUnit;
 }
-/*
-// <<< 1, popSize/2 >>>
-__global__ void kernelCrossing( breedDescriptor * breedingTable ) {
-	
-	__shared__ bool crossTemplate[ MEDOID_VECTOR_SIZE];
-
-	unsigned int stepSize = MEDOID_VECTOR_SIZE / CROS_FACTOR;
-	bool mark = true;
-	unit childUnit;
-
-	// calculate crossing template
-	if ( threadIdx.x == 0 ) {		
-		for ( int i = 0, j = 0; i < MEDOID_VECTOR_SIZE; i++, j++ ) {
-			if ( j >= stepSize ) {
-				mark = !mark;
-				j = 0;
-			}
-			crossTemplate[ i] = mark;
-		}
-	}
-
-	__syncthreads();
-	
-	
-	
-	char parent1Clusters[ MEDOID_VECTOR_SIZE];
-	char parent2Clusters[ MEDOID_VECTOR_SIZE];
-	
-	breedDescriptor descriptor = breedingTable[ threadIdx.x];	
-	
-	curandState randState;
-	curand_init( dPopulationSize, dNumEntries, 0, &randState );	
-
-	// calculate cluster groupings for parent 1
-	unsigned int toSign = 0;
-	unsigned int j = 0;
-	for ( unsigned int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-		if ( toSign == 0 ) {
-			toSign = dPopulationPool[ descriptor.parent1].clusters[ j++];			
-		}
-		parent1Clusters[ i] = j - 1;
-		if ( toSign != 0 ) toSign--;
-	}
-	
-	toSign = 0;
-	j = 0;
-	for ( unsigned int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-		if ( toSign == 0 ) {
-			toSign = dPopulationPool[ descriptor.parent2].clusters[ j++];			
-		}
-		parent2Clusters[ i] = j - 1;
-		if ( toSign != 0 ) toSign--;
-	}
-		
-	char childCluster[ MEDOID_VECTOR_SIZE];
-
-	// exchange data and put it into child
-	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-		if ( crossTemplate[ i] ) {
-			childCluster[ i] = parent1Clusters[ i];
-			childUnit.medoids[ i] = dPopulationPool[ descriptor.parent1].medoids[ i];
-		} else {
-			childCluster[ i] = parent2Clusters[ i];
-			childUnit.medoids[ i] = dPopulationPool[ descriptor.parent2].medoids[ i];
-		}
-	}
-	// copy attributes from first parent
-	childUnit.attr.clusterMaxSize = dPopulationPool[ descriptor.parent1].attr.clusterMaxSize;
-	childUnit.attr.numNeighbours = dPopulationPool[ descriptor.parent1].attr.numNeighbours;
-
-	// mutation
-	
-	char mutationProb = descriptor.factor;	
-	// 1) attributes
-	if ( mutationProb > 50 ) {
-		if ( mutationProb > 70 ) {
-			if ( mutationProb > 90 ) {
-				// both
-				childUnit.attr.clusterMaxSize = curand( &randState ) % MAX_CLUSTER_SIZE;
-				childUnit.attr.numNeighbours = curand( &randState ) % kMaxNeighbours;
-			} else {
-				// neighbours
-				childUnit.attr.numNeighbours = curand( &randState ) % kMaxNeighbours;
-			}
-		} else {
-			// max cluster size
-			childUnit.attr.clusterMaxSize = curand( &randState ) % MAX_CLUSTER_SIZE;
-		}
-	}
-
-	// 2) medoids
-	char howMany = 0;
-	if ( mutationProb > 20 ) {
-		if ( mutationProb > 50 ) {
-			if ( mutationProb > 80 ) {
-				if ( mutationProb > 95 ) {
-					// 4
-					howMany = 4;
-				} else {
-					// 3
-					howMany = 3;
-				}
-			} else {
-				// 2
-				howMany = 2;
-			}
-		} else {
-			// 1
-			howMany = 1;
-		}
-	}
-	// generate new random medoids
-	for ( char i = 0; i < howMany; i++ ) {
-		childUnit.medoids[ curand( &randState ) % MEDOID_VECTOR_SIZE] = curand( &randState ) % dNumEntries;
-	}
-	
-	// check groups sizes, if needed regroup
-	unsigned int index = 0;
-	char cluster = childCluster[ 0];
-	childUnit.clusters[ 0] = 0;
-	for ( int i = 0; i < MEDOID_VECTOR_SIZE; i++ ) {
-		if ( childCluster[ i] == cluster && childUnit.clusters[ index] < childUnit.attr.clusterMaxSize ) {
-			childUnit.clusters[ index]++;
-		} else {
-			childUnit.clusters[ ++index] = 1;
-			cluster = childCluster[ i];
-		}
-	}
-	for ( int i = index+1; i < MEDOID_VECTOR_SIZE; i++ ) {
-		childUnit.clusters[ i] = 0;
-	}
-
-	// now save the child into memory
-	dPopulationPool[ descriptor.child] = childUnit;
-}
-*/
 //====================================================================
 
 __device__ unsigned int devCalculateClustersAndDensities( unsigned char * clusters, float * densities ) {
@@ -1577,7 +1417,7 @@ __global__ void kernelCalculateRand( unsigned int * preclasified, float * rand) 
 	unsigned int k = devCalculateClustersAndDensities( clusters, densities );
 
 	unsigned int i,j;
-	unsigned int tp = 0, tn = 0, fp = 0, fn = 0;
+	unsigned int t = 0, f = 0;
 	bool we, they;
 
 	for ( i = 0; i < dNumEntries; i++ ) {
@@ -1589,29 +1429,15 @@ __global__ void kernelCalculateRand( unsigned int * preclasified, float * rand) 
 				they = ( preclasified[ i] == preclasified[ j] );
 
 				if ( we == they ) {
-					// true
-					if ( we ) {
-						// positive
-						tp++;
-					} else {
-						// negative
-						tn++;
-					}
+					t++;
 				} else {
-					// false
-					if ( we ) {
-						// positive
-						fp++;
-					} else {
-						// negative
-						fn++;
-					}
+					f++;
 				}
 			}
 		} // for j
 	} // for i
 
-	rand[ threadIdx.x] = (float)( tp + tn ) / (float)( tp + fp + tn + fn );
+	rand[ threadIdx.x] = (float)( t ) / (float)( t + f );
 }
 //====================================================================
 
