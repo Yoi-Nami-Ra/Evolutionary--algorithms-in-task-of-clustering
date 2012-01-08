@@ -35,6 +35,7 @@ int main(int argc, char** argv)
 	ErrorCode err = errOk;	
 
 	algResults results;
+	DataStore dataStore;
 
 	//= Setup loaders
 	//--------------------
@@ -45,36 +46,30 @@ int main(int argc, char** argv)
 	
 	//= Load data
 	//--------------------
-	DataStore dataStore; // 0 - wine
 	err = GetCalculatedDistances( 3, &dataStore );
 
 	unsigned int cNeighbours = 0;
     unsigned int cClusters = 0;
     unsigned int cMedoids = 0;
-    unsigned int cPopSize = 0;
+    unsigned int cPopSize =  0;
     unsigned int cSteps = 0;
-    unsigned int cRepeat = 0;
+    unsigned int cRepeat =  0;
 
 	unsigned int stepsMedoids;
 	unsigned int stepsClusters;
 	unsigned int stepsNeighbours;
 		
 	/*
-	 medoids: 42 clusters: 8 neighbours: 29
- popSize: 256 steps: 1002
-	*/
+	 
     char stateSaved = 1;
     unsigned int sPopSize = 256;
-    unsigned int sSteps = 1002;
-	/*
+    unsigned int sSteps = 502;
+	*/
 	char stateSaved = 0;
-    unsigned int sNeighbours = 0;
-    unsigned int sClusters = 0;
-    unsigned int sMedoids = 0;
     unsigned int sPopSize = 0;
     unsigned int sSteps = 0;
-	*/
-	FILE * reportsFile = NULL;
+
+	FILE * reportsFile =  NULL;
 	char * reportsFileName;
 	char * xlsReportsFileName;
 	unsigned int fileNameLength = strlen( kReportsFileName ) + strlen( dataStore.info.name );
@@ -114,16 +109,14 @@ int main(int argc, char** argv)
 
 
 	if ( err == errOk ) {
-		for ( cPopSize = 4; cPopSize <= 256; cPopSize *= 4 ) { // 4 - 16 - 64 - 256
+		for ( cPopSize = 256; cPopSize <= 256; cPopSize *= 4 ) { // 4 - 16 - 64 - 256
 			// now the evolution params                    
-            for ( cSteps = 2; cSteps <= 1502; cSteps += 500 ) { // 2 - 502 - 1002
-				// medoids <1; numEntries/2>
+            for ( cSteps = 2; cSteps <= 1002; cSteps += 500 ) { // 2 - 502 - 1002
 				if ( stateSaved ) {
                     cPopSize = sPopSize;
                     cSteps = sSteps;
                     stateSaved = 0;
                 }
-				CleanAlgResults( results );
 
 				if ( reportsFile == NULL ) {
 					reportsFile = fopen( reportsFileName, "a" );
@@ -133,7 +126,7 @@ int main(int argc, char** argv)
 					fprintf( reportsFile, "---------------------------------\n" );
 					printf( "---------------------------------\n" );
 					fprintf( reportsFile, " medoids: %d clusters: %d neighbours: %d\n", MEDOID_VECTOR_SIZE, MAX_CLUSTER_SIZE, kMaxNeighboursToUSe );
-					printf( " medoids: %d clusters: %d neighbours: %d\n", cMedoids, cClusters, cNeighbours );
+					printf( " medoids: %d clusters: %d neighbours: %d\n", MEDOID_VECTOR_SIZE, MAX_CLUSTER_SIZE, kMaxNeighboursToUSe );
 					fprintf( reportsFile, " popSize: %d steps: %d\n", cPopSize, cSteps );
 					printf( " popSize: %d steps: %d\n", cPopSize, cSteps );
 					fprintf( reportsFile, " Results:\n" );
@@ -141,7 +134,7 @@ int main(int argc, char** argv)
 					fclose( reportsFile );
 					reportsFile = NULL;
 				}
-
+				CleanAlgResults( results );
                 for ( cRepeat = 0; cRepeat < 5; cRepeat++ ) {
                     time( &currTime );
 					err = runClustering( cPopSize, cSteps, &dataStore, &results );
@@ -210,45 +203,7 @@ int main(int argc, char** argv)
         } // pop size
 	} // error
 	//====
-	/*
-	if ( err == errOk ) {
-		for (int i = 0; i < repeats; i++ ) {
-			time( &currTime );
-			err = runClustering( popSize, evoSteps, &dataStore, &results );
-			timeDiff = timeDiff( time( NULL ), currTime );
-
-			if ( results.time.min == 0 || results.time.min > timeDiff ) {
-				results.time.min = timeDiff;
-			}
-			if ( results.time.max == 0 || results.time.max < timeDiff ) {
-				results.time.max = timeDiff;
-			}
-			results.time.sum += timeDiff;
-		} // for
-
-		results.rand.mean = results.rand.sum / (float)( repeats * popSize );
-		results.bdi.mean = results.bdi.sum / (float)( repeats * popSize );
-		results.di.mean = results.di.sum / (float)( repeats * popSize );
-		results.time.mean = results.time.sum / (float)( repeats );
-		results.clusters.mean = results.clusters.sum / (float)( repeats * popSize );
-		
-		printf( " \n\n====\n pop(%d), steps(%d), repeats(%d)\n Rand(%f) BDI(%f) DI(%f) time(%f) clusters(%f)",
-			popSize, evoSteps, repeats, results.rand.mean, results.bdi.mean, results.di.mean, results.time.mean, results.clusters.mean );
-
-		printf( "---------------------------------\n" );
-		printf( " medoids: %d clusters: %d neighbours: %d\n", MEDOID_VECTOR_SIZE, MAX_CLUSTER_SIZE, kMaxNeighboursToUSe );
-		printf( " popSize: %d steps: %d\n", popSize, evoSteps );
-		printf( " Results:\n" );
-		printf( "=============================================\n" );
-		printf( " BDI:  %f / %f / %f\n", results.bdi.min, results.bdi.mean, results.bdi.max );
-		printf( " DI:  %f / %f / %f\n", results.di.min, results.di.mean, results.di.max );
-		printf( " Rand:  %f / %f / %f\n", results.rand.min, results.rand.mean, results.rand.max );
-		printf( " Time:  %f / %f / %f\n\n", results.time.min, results.time.mean, results.time.max );
-
-	}
-	*/
-	// TODO:
-	//releaseDistances();
+	
 
 	shrQAFinishExit(argc, (const char **)argv, QA_PASSED);
 	return 0;
