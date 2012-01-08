@@ -7,3 +7,5 @@
 /*.DS_Store
 /.cproject
 /.project
+/*.sdf
+/*.pdb
