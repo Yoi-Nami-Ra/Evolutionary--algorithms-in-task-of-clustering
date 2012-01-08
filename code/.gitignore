@@ -5,3 +5,5 @@
 /Win32/
 /*.cpp3.o
 /*.DS_Store
+/.cproject
+/.project
