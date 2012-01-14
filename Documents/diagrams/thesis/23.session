@@ -1,0 +1,14 @@
+window_sizes 1280 998 300 900 682 82
+diagrams
+  active  activitydiagram_ref 128023 // diag
+    974 842 100 4 0 0
+end
+show_stereotypes
+selected activitydiagram_ref 154410 // diag
+open
+  pseudostate_ref 128042 // initial
+  classview_ref 134570 // main
+  activity_ref 147754 // alg-sel-sort
+  activity_ref 128023 // alg-crossing
+end
+end

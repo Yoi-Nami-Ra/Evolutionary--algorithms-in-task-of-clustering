@@ -1,0 +1,90 @@
+format 75
+
+activitynodecanvas 128023 activitynode_ref 128023 // initial_node
+  xyz 32 38 2000
+end
+activityactioncanvas 128151 activityaction_ref 128023 // activity action Kopiuj atrybuty z A
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 128 17 2000 100 60
+end
+activitynodecanvas 128407 activitynode_ref 128151 // decision
+  xyz 305 27 2000
+end
+note 128663 "Kolejne medoidy"
+  xyzwh 425 28 2000 105 37
+activitynodecanvas 128919 activitynode_ref 128279 // decision
+  xyz 306 132 2000
+end
+note 129175 "Je¶li medoid w A jest w klastrze nieparzystym"
+  xyzwh 359 132 2000 249 35
+activityactioncanvas 129303 activityaction_ref 128151 // activity action Kopiuj medoida z A
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 128 121 2000 100 60
+end
+activitynodecanvas 129559 activitynode_ref 128407 // decision
+  xyz 306 211 2000
+end
+note 129687 "Je¶li medoid w B jest w klastrze parzystym"
+  xyzwh 373 210 2000 237 37
+activitynodecanvas 130199 activitynode_ref 128535 // decision
+  xyz 250 311 2000
+end
+note 130327 "Je¶li medoid w B jest w klastrze o mniejszym numerze ni¿ z A"
+  xyzwh 367 307 2000 241 45
+activityactioncanvas 130711 activityaction_ref 128279 // activity action Kopiuj medoid z B
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 128 302 2000 100 60
+end
+flowcanvas 128279 flow_ref 128023 // <flow>
+  
+  from ref 128023 z 2001 to ref 128151
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 128535 flow_ref 128151 // <flow>
+  
+  from ref 128151 z 2001 to ref 128407
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129047 flow_ref 128279 // <flow>
+  
+  from ref 128407 z 2001 to ref 128919
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129431 flow_ref 128407 // Tak
+  
+  from ref 128919 z 2001 label "Tak" xyz 256.5 143.5 3000 to ref 129303
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129815 flow_ref 128535 // Nie
+  
+  from ref 128919 z 2001 label "Nie" xyz 310 183 3000 to ref 129559
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130071 flow_ref 128663 // <flow>
+  
+  from ref 129303 z 2001 to point 175 226
+  line 130583 z 2001 to ref 129559
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130455 flow_ref 128791 // <flow>
+  
+  from ref 129559 z 2001 to ref 130199
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130839 flow_ref 128919 // <flow>
+  
+  from ref 130199 z 2001 to ref 130711
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+line 128791 -_-_
+  from ref 128663 z 2001 to ref 128407
+line 129943 -_-_
+  from ref 129687 z 2001 to ref 129559
+line 130967 -_-_
+  from ref 129175 z 2001 to ref 128919
+line 131095 -_-_
+  from ref 130327 z 2001 to ref 130199
+end
