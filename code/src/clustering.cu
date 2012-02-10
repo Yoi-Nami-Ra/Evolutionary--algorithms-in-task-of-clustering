@@ -189,14 +189,14 @@ ErrorCode runClustering( unsigned int popSize, unsigned int steps, DataStore * d
 	cudaMalloc( &dDistances, distancesSize );
 	cudaMemcpy( dDistances, dataStore->distances, dataStore->info.distancesSize, cudaMemcpyHostToDevice );
 	//   bind distances to texture
-	cudaBindTexture( &offset, &texRefDistances, dDistances, &channelDesc, dataStore->info.distancesSize );
+	cudaBindTexture( (size_t*)&offset, texRefDistances, (void*)dDistances, (size_t)dataStore->info.distancesSize );
 
 	//   Allocate memory for neighbours	
 	unsigned int neighbourSize = hNumEntries * kMaxNeighbours * sizeof(unsigned int);
 	cudaMalloc( &dNeighbours, neighbourSize );
 	cudaMemcpy( dNeighbours, dataStore->neighbours, neighbourSize, cudaMemcpyHostToDevice );
 	//   bind neighbours to texture
-	cudaBindTexture( &offset, &texRefNeighbour, dNeighbours, &channelDesc, neighbourSize );
+	cudaBindTexture( (size_t*)&offset, texRefNeighbour, (void*)dNeighbours, (size_t)neighbourSize );
 
 	cudaError_t cuErr = cudaGetLastError();
 	if ( cuErr != cudaSuccess ) {

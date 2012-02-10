@@ -220,7 +220,7 @@ ErrorCode CalculateDistances( DataStore * dataStore ) {
 
 	// Bind the array to the texture reference
 	uint offset = 0;
-	cudaBindTexture( &offset, &texRef, dData, &channelDesc, dataSize );
+	cudaBindTexture( (size_t*)&offset, texRef, (void*)dData, (size_t)dataSize );
 
 	// Allocate result of transformation in device memory
 	dataStore->info.distancesSize = dataStore->info.numEntries * ( dataStore->info.numEntries - 1 ) / 2;
@@ -245,7 +245,7 @@ ErrorCode CalculateDistances( DataStore * dataStore ) {
 	cudaFree( dData );
 
 	// now bind distances to texture, so we could use it for neighbours
-	cudaBindTexture( &offset, &texRef, dDistancesVector, &channelDesc, dataStore->info.distancesSize * sizeof(float) );
+	cudaBindTexture( (size_t*)&offset, texRef, (void*)dDistancesVector, (size_t)dataStore->info.distancesSize * sizeof(float) );
 
 	err = CalculateNeighbours( dataStore );
 
