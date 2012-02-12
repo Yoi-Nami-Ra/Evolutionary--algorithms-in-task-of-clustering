@@ -2,9 +2,9 @@
  03/10/2011
  Jaroslaw Wojtasik
 
- noCuda
+ Cuda
 
- errors.h
+ errors.cuh
  **/
 
 #ifndef ERRORS_H

@@ -1,6 +1,6 @@
 //
-//  dataLoader_Cancer.h
-//  NoCuda
+//  dataLoader_Cancer.cuh
+//  Cuda
 //
 //  Created by Jarosław Wojtasik on 02.01.2012.
 //
@@ -8,7 +8,7 @@
 #ifndef NoCuda_dataLoader_Cancer_h
 #define NoCuda_dataLoader_Cancer_h
 
-#include "dataLoader.h"
+#include "dataLoader.cuh"
 
 //==============================================
 //== Functions

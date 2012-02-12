@@ -2,15 +2,15 @@
  16/11/2011
  Jaroslaw Wojtasik
 
- noCuda
+ Cuda
 
- dataLoader_Test.h
+ dataLoader_Test.cuh
  **/
 
 #ifndef DATALOADER_TEST_H
 #define DATALOADER_TEST_H
 
-#include "dataLoader.h"
+#include "dataLoader.cuh"
 
 //==============================================
 //== Functions

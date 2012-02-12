@@ -10,7 +10,7 @@
 #ifndef DATALOADER_WINE_H
 #define DATALOADER_WINE_H
 
-#include "dataLoader.h"
+#include "dataLoader.cuh"
 
 //==============================================
 //== Functions
