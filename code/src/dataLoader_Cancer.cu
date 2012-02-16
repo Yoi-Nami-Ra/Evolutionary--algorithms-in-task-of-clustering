@@ -1,12 +1,12 @@
 //
-//  dataLoader_Cancer.c
-//  NoCuda
+//  dataLoader_Cancer.cu
+//  Cuda
 //
 //  Created by Jarosław Wojtasik on 02.01.2012.
 //
 
-#include "dataLoader_Cancer.h"
-#include "errors.h"
+#include "dataLoader_Cancer.cuh"
+#include "errors.cuh"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

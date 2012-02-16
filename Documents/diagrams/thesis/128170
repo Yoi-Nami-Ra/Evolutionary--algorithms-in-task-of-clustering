@@ -1,7 +1,7 @@
 format 75
 "app" // app
-  revision 6
-  modified_by 42 "Yoi"
+  revision 7
+  modified_by 23 "W³aœciciel"
   // class settings
   //class diagram settings
   draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_context default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
@@ -439,7 +439,6 @@ format 75
 	flow 154794 "<flow>"
 	  on activitynode_ref 150698 // decision
 	end
-
       end
 
       activitynode 150698 decision ""
@@ -679,7 +678,6 @@ format 75
 	flow 159786 "<flow>"
 	  on activityaction_ref 152106 // activity action wybierz rozwiazania o najmniejszym zageszczeniu
 	end
-
       end
 
       activityaction 152106 "wybierz rozwiazania o najmniejszym zageszczeniu"
@@ -772,6 +770,66 @@ format 75
       end
 
       activitynode 153258 flow_final ""
+      end
+    end
+
+    activity 128023 "alg-crossing"
+      activitydiagram 128023 "diag"
+	package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations default shadow default
+	show_infonote default drawing_language default show_stereotype_properties default
+	size A4
+      end
+
+      activitynode 128023 initial_node ""
+	flow 128023 "<flow>"
+	  on activityaction_ref 128023 // activity action Kopiuj atrybuty z A
+	end
+      end
+
+      activityaction 128023 "Kopiuj atrybuty z A"
+	opaque_action
+	flow 128151 "<flow>"
+	  on activitynode_ref 128151 // decision
+	end
+      end
+
+      activitynode 128151 decision ""
+	flow 128279 "<flow>"
+	  on activitynode_ref 128279 // decision
+	end
+      end
+
+      activitynode 128279 decision ""
+	flow 128407 "Tak"
+	  on activityaction_ref 128151 // activity action Kopiuj medoida z A
+	end
+
+	flow 128535 "Nie"
+	  on activitynode_ref 128407 // decision
+	end
+      end
+
+      activityaction 128151 "Kopiuj medoida z A"
+	opaque_action
+	flow 128663 "<flow>"
+	  on activitynode_ref 128407 // decision
+	end
+      end
+
+      activitynode 128407 decision ""
+	flow 128791 "<flow>"
+	  on activitynode_ref 128535 // decision
+	end
+      end
+
+      activitynode 128535 decision ""
+	flow 128919 "<flow>"
+	  on activityaction_ref 128279 // activity action Kopiuj medoid z B
+	end
+      end
+
+      activityaction 128279 "Kopiuj medoid z B"
+	opaque_action
       end
     end
   end

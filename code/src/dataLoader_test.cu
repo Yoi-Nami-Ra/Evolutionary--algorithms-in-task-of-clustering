@@ -2,13 +2,13 @@
  16/11/2011
  Jaroslaw Wojtasik
 
- noCuda
+ Cuda
 
- dataLoader_test.c
+ dataLoader_test.cu
  **/
 
-#include "errors.h"
-#include "dataLoader_Test.h"
+#include "errors.cuh"
+#include "dataLoader_Test.cuh"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

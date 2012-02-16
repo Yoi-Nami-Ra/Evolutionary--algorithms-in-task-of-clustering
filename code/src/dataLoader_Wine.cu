@@ -2,13 +2,13 @@
  15/12/2011
  Jaroslaw Wojtasik
 
- noCuda
+ Cuda
 
- dataLoader_Wine.c
+ dataLoader_Wine.cu
  **/
 
-#include "dataLoader_Wine.h"
-#include "errors.h"
+#include "dataLoader_Wine.cuh"
+#include "errors.cuh"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

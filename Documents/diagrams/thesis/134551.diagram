@@ -1,0 +1,72 @@
+format 75
+
+activitynodecanvas 128023 activitynode_ref 135063 // initial_node
+  xyz 59.9324 126.299 2000
+end
+activityactioncanvas 128151 activityaction_ref 134807 // activity action Utworz populacje startowa
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 17.4377 13.7697 2000 101 61
+end
+activityactioncanvas 128407 activityaction_ref 134935 // activity action Ocena rozwiazan
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 138.304 13.7697 2000 101 61
+end
+activityactioncanvas 128663 activityaction_ref 135063 // activity action Selekcja rozwiazan
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 259.676 103.804 2000 101 61
+end
+activityactioncanvas 128919 activityaction_ref 135191 // activity action Generowanie nowych rozwiazan
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  xyzwh 138.304 103.804 2000 101 61
+end
+activitynodecanvas 129175 activitynode_ref 135191 // decision
+  xyz 298.171 27.2645 2000
+end
+note 129431 "Czy spe³nioni warunki algorytmu?"
+  xyzwh 383.954 109.299 2000 127 53
+activitynodecanvas 130071 activitynode_ref 135319 // flow_final
+  xyz 437.954 36.2645 2000
+end
+flowcanvas 128279 flow_ref 135447 // <flow>
+  
+  from ref 128023 z 2001 to ref 128151
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 128535 flow_ref 135575 // <flow>
+  
+  from ref 128151 z 2001 to ref 128407
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129303 flow_ref 135831 // <flow>
+  decenter_begin 538
+  
+  from ref 128407 z 2001 to ref 129175
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129559 flow_ref 135959 // NIE
+  
+  from ref 129175 z 2001 label "NIE" xyz 289 76.5 3000 to ref 128663
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129687 flow_ref 136087 // <flow>
+  
+  from ref 128663 z 2001 to ref 128919
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 129815 flow_ref 136215 // <flow>
+  
+  from ref 128919 z 2001 to ref 128407
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130199 flow_ref 136343 // TAK
+  
+  from ref 129175 z 2001 label "TAK" xyz 369 31 3000 to ref 130071
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+line 129943 -_-_
+  from ref 129431 z 2001 to ref 129175
+end
