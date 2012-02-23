@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cutil", "C:\Users\main\AppD
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shrUtils", "C:\Users\main\AppData\Local\NVIDIA Corporation\NVIDIA GPU Computing SDK 4.1\shared\shrUtils_vs2010.vcxproj", "{F9750D72-D315-4F81-AF1B-10938220FFB3}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTests", "Evo_vs2010_tests.vcxproj", "{ECBD923C-0D15-45A8-BA97-936B317A28D0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -39,6 +41,14 @@ Global
 		{F9750D72-D315-4F81-AF1B-10938220FFB3}.Release|Win32.Build.0 = Release|Win32
 		{F9750D72-D315-4F81-AF1B-10938220FFB3}.Release|x64.ActiveCfg = Release|x64
 		{F9750D72-D315-4F81-AF1B-10938220FFB3}.Release|x64.Build.0 = Release|x64
+		{ECBD923C-0D15-45A8-BA97-936B317A28D0}.Debug|Win32.ActiveCfg = Debug|Win32
+		{ECBD923C-0D15-45A8-BA97-936B317A28D0}.Debug|Win32.Build.0 = Debug|Win32
+		{ECBD923C-0D15-45A8-BA97-936B317A28D0}.Debug|x64.ActiveCfg = Debug|x64
+		{ECBD923C-0D15-45A8-BA97-936B317A28D0}.Debug|x64.Build.0 = Debug|x64
+		{ECBD923C-0D15-45A8-BA97-936B317A28D0}.Release|Win32.ActiveCfg = Release|Win32
+		{ECBD923C-0D15-45A8-BA97-936B317A28D0}.Release|Win32.Build.0 = Release|Win32
+		{ECBD923C-0D15-45A8-BA97-936B317A28D0}.Release|x64.ActiveCfg = Release|x64
+		{ECBD923C-0D15-45A8-BA97-936B317A28D0}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
