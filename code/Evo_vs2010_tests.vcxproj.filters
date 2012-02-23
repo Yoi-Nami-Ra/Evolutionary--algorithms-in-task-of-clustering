@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include="includes\globals.cuh">
+      <Filter>cuda</Filter>
+    </None>
+    <None Include="includes\clustering.cuh">
+      <Filter>cuda</Filter>
+    </None>
+    <None Include="includes\dataLoader.cuh">
+      <Filter>cuda</Filter>
+    </None>
+    <None Include="includes\dataLoader_Cancer.cuh">
+      <Filter>cuda</Filter>
+    </None>
+    <None Include="includes\dataLoader_Iris.cuh">
+      <Filter>cuda</Filter>
+    </None>
+    <None Include="includes\dataLoader_Test.cuh">
+      <Filter>cuda</Filter>
+    </None>
+    <None Include="includes\dataLoader_Wine.cuh">
+      <Filter>cuda</Filter>
+    </None>
+    <None Include="includes\distanceCalculator.cuh">
+      <Filter>cuda</Filter>
+    </None>
+    <None Include="includes\errors.cuh">
+      <Filter>cuda</Filter>
+    </None>
+    <None Include="includes\evoEngine.cuh">
+      <Filter>cuda</Filter>
+    </None>
+    <None Include="tests\distanceCalculator_test.cuh">
+      <Filter>tests</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="tests\testMain.cu" />
+    <CudaCompile Include="src\clustering.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\dataLoader.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\dataLoader_Cancer.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\dataLoader_Iris.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\dataLoader_test.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\dataLoader_Wine.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\distanceCalculator.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="includes\errors.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="tests\distanceCalculator_test.cu">
+      <Filter>tests</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="cuda">
+      <UniqueIdentifier>{c7656a82-bf1b-4d26-a76e-342ae73728b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests">
+      <UniqueIdentifier>{5a42b4de-cfd7-4f21-931a-7d699cdc4717}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
