@@ -1,12 +1,14 @@
-// Module responsible for loading data
+/**
+ 22/02/2012
+ Jaroslaw Wojtasik
+
+ Cuda_test
+
+ distanceCalculator_test.cu
+ **/
 
 //==============================================
 //== Includes
-#include "globals.cuh"
-#include "errors.cuh"
-#include <math.h>
-#include "dataLoader.cuh"
-#include "distanceCalculator.cuh"
 #include <cutil_inline.h>
 #include <cutil_math.h>
 #include <cuda.h>

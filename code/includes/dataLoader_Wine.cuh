@@ -2,7 +2,7 @@
  15/12/2011
  Jaroslaw Wojtasik
 
- noCuda
+ Cuda
 
  dataLoader_Wine.h
  **/
