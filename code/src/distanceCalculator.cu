@@ -7,13 +7,15 @@
  distanceCalculator_test.cu
  **/
 
-//==============================================
+//============================================================================
 //== Includes
 #include <cutil_inline.h>
 #include <cutil_math.h>
 #include <cuda.h>
+#include "errors.cuh"
+#include "dataLoader.cuh"
 
-//==============================================
+//============================================================================
 //== Globals
 
 // num of entries per block
@@ -21,11 +23,12 @@
 // maximum dimensiosns ( used for some shared arrays )
 #define kDimSize 14
 
+static float*	dRawData = 0;
 static float*	dDistancesVector = 0;
 static uint*	dNeighbours = 0;
 
-//==============================================
-//== Declarations
+//============================================================================
+//== CUDA Declarations 
 texture<float, cudaTextureType1D, cudaReadModeElementType> texRef;
 
 __global__ void CalculateDistancesKernel( float* vector, uint numEntries, uint blockSize, uint gridSize, uint dimSize );
@@ -44,8 +47,8 @@ __device__ unsigned int DistanceVIdx( unsigned int a, unsigned int b );
 
 __device__ float sqr(float a);
 
-//==============================================
-//== Functions
+//============================================================================
+//== Host Declarations
 
 /**
  * Calculates distances on given data.
@@ -86,7 +89,67 @@ ErrorCode LoadCalculatedDistances( DataStore * dataStore );
 ErrorCode CalculateNeighbours( DataStore * dataStore );
 
 //============================================================================
+//== Functions
 
+uint properGridSize( uint numEntries, uint blockSize) {
+	uint gridSize = numEntries / blockSize;
+	while (( gridSize * blockSize ) < numEntries ) {
+		gridSize++;
+	}
+
+	return gridSize;
+}
+
+ErrorCode bindData( uint dataSize, float *hData, float **dData ) {
+	// Create chanel descriptor for texture bindings
+	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc( 32, 0, 0, 0, cudaChannelFormatKindFloat );
+
+	// Load data into device
+	CUDA_SAFE_CALL( cudaMalloc( dData, dataSize ) );
+	CUDA_SAFE_CALL( cudaMemcpy( *dData, hData, dataSize, cudaMemcpyHostToDevice ) );
+
+	// Set texture parameters
+	texRef.addressMode[ 0] = cudaAddressModeWrap;
+	texRef.addressMode[ 1] = cudaAddressModeWrap;
+	texRef.filterMode = cudaFilterModeLinear;
+	texRef.normalized = true;
+
+	// Bind the array to the texture reference
+	uint offset = 0;
+	CUDA_SAFE_CALL( cudaBindTexture( (size_t*)&offset, texRef, (void*)*dData, (size_t)dataSize ) );
+}
+//----------------------------------------------------------------------------
+
+ErrorCode bindRawData( DataStore *dataStore ) {
+
+	uint dataSize = dataStore->info.numEntries * dataStore->info.dimSize * sizeof(float);
+	ErrorCode err = errOk;
+
+	err = bindData( dataSize, dataStore->dataVector, &dRawData );
+
+	return err;
+}
+//----------------------------------------------------------------------------
+
+ErrorCode unbindRawData() {
+	CUDA_SAFE_CALL( cudaUnbindTexture ( texRef ) );
+	CUDA_SAFE_CALL( cudaFree ( dRawData ) );
+}
+//----------------------------------------------------------------------------
+
+ErrorCode bindDistances( DataStore *dataStore ) {
+	uint offset = 0;
+	CUDA_SAFE_CALL( cudaBindTexture( (size_t*)&offset,
+		texRef, (void*)dDistancesVector,
+		(size_t)dataStore->info.distancesSize * sizeof(float) ) );
+}
+//----------------------------------------------------------------------------
+
+ErrorCode unbindDistances() {
+	CUDA_SAFE_CALL( cudaUnbindTexture ( texRef ) );
+	CUDA_SAFE_CALL( cudaFree ( dDistancesVector ) );
+}
+//----------------------------------------------------------------------------
 
 ErrorCode GetCalculatedDistances( unsigned int num, DataStore * dataStore ) {
 	ErrorCode err;
@@ -103,6 +166,11 @@ ErrorCode GetCalculatedDistances( unsigned int num, DataStore * dataStore ) {
 		// We need to calculate them
 		err = CalculateDistances( dataStore );
 
+		// now bind distances to texture, so we could use it for neighbours
+		bindDistances( dataStore );
+		err = CalculateNeighbours( dataStore );
+		unbindDistances();
+
 		if ( err == errOk ) {
 			err = SaveCalculatedDistances( dataStore );
 		}
@@ -111,6 +179,7 @@ ErrorCode GetCalculatedDistances( unsigned int num, DataStore * dataStore ) {
 	return err;
 }
 //----------------------------------------------
+
 //<<<( hGridSize, hGridSize ), ( BLOCK_SIZE, BLOCK_SIZE )>>>
 __global__ void CalculateDistancesKernel( float* vector, uint numEntries, uint blockSize, uint gridSize, uint dimSize ) {
 	// global position of "first" thread
@@ -204,34 +273,14 @@ ErrorCode CalculateDistances( DataStore * dataStore ) {
 		return SetLastErrorCode( errNoData );
 	}
 	//=-
-
-	// Create chanel descriptor for texture bindings
-	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc( 32, 0, 0, 0, cudaChannelFormatKindFloat );
-
-	// Load data into device
-	float* dData;
-	uint dataSize = dataStore->info.numEntries * dataStore->info.dimSize * sizeof(float);
-	cudaMalloc( &dData, dataSize );
-	cudaMemcpy( dData, dataStore->dataVector, dataSize, cudaMemcpyHostToDevice );
-
-	// Set texture parameters
-	texRef.addressMode[ 0] = cudaAddressModeWrap;
-	texRef.addressMode[ 1] = cudaAddressModeWrap;
-	texRef.filterMode = cudaFilterModeLinear;
-	texRef.normalized = true;
-
-	// Bind the array to the texture reference
-	uint offset = 0;
-	cudaBindTexture( (size_t*)&offset, texRef, (void*)dData, (size_t)dataSize );
+	/*ErrorCode*/
+	ErrorCode bindRawData( DataStore *dataStore );
 
 	// Allocate result of transformation in device memory
 	dataStore->info.distancesSize = dataStore->info.numEntries * ( dataStore->info.numEntries - 1 ) / 2;
-	cudaMalloc( &dDistancesVector, dataStore->info.distancesSize * sizeof(float) );
+	CUDA_SAFE_CALL( cudaMalloc( &dDistancesVector, dataStore->info.distancesSize * sizeof(float) ) );
 
-	uint hGridSize = dataStore->info.numEntries / kBlockSize;
-	while (( hGridSize * kBlockSize ) < dataStore->info.numEntries ) {
-		hGridSize++;
-	}
+	uint hGridSize = properGridSize( dataStore->info.numEntries, kBlockSize );
 
 	dim3 dimBlock( kBlockSize, kBlockSize ); // thread per block
 	dim3 dimGrid( hGridSize, hGridSize ); // blocks per grid
@@ -242,14 +291,10 @@ ErrorCode CalculateDistances( DataStore * dataStore ) {
 
 	dataStore->distances = (float*)malloc( dataStore->info.distancesSize * sizeof(float) );
 
-	cudaMemcpy( dataStore->distances, dDistancesVector, dataStore->info.distancesSize * sizeof(float), cudaMemcpyDeviceToHost );	
+	CUDA_SAFE_CALL( cudaMemcpy( dataStore->distances, dDistancesVector, dataStore->info.distancesSize * sizeof(float), cudaMemcpyDeviceToHost ) );
 	// no need for raw data - free it
-	cudaFree( dData );
-
-	// now bind distances to texture, so we could use it for neighbours
-	cudaBindTexture( (size_t*)&offset, texRef, (void*)dDistancesVector, (size_t)dataStore->info.distancesSize * sizeof(float) );
-
-	err = CalculateNeighbours( dataStore );
+	
+	unbindRawData();
 
 	if ( err != errOk ) {
 		reportError( err, "Run loop returned with error%s", "" );
