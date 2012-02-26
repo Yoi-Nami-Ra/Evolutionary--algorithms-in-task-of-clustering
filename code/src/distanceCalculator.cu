@@ -12,6 +12,7 @@
 #include <cutil_inline.h>
 #include <cutil_math.h>
 #include <cuda.h>
+#include "distanceCalculator.cuh"
 #include "errors.cuh"
 #include "dataLoader.cuh"
 

@@ -10,8 +10,6 @@
 #ifndef DISTANCECALCULATOR_TEST_CUH
 #define DISTANCECALCULATOR_TEST_CUH
 
-#include "distanceCalculator.cuh"
-
 //==============================================
 //== Globals
 
@@ -20,6 +18,8 @@
 
 //==============================================
 //== Functions
+
+void runDistancesTests();
 
 
 #endif //DISTANCECALCULATOR_CUH

@@ -34,6 +34,9 @@
     <None Include="tests\distanceCalculator_test.cuh">
       <Filter>tests</Filter>
     </None>
+    <None Include="tests\testsGeneral.cuh">
+      <Filter>tests</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="tests\testMain.cu" />
