@@ -11,6 +11,7 @@ testMain.cu
 #include <stdio.h>
 #include <cutil_inline.h>
 #include <shrQATest.h>
+#include "distanceCalculator_test.cuh"
 
 // Host code
 int main(int argc, char** argv)
@@ -28,6 +29,8 @@ int main(int argc, char** argv)
 	cutilSafeCall(cudaGetDeviceProperties(&props, devID));
 	printf("Device %d: \"%s\" with Compute %d.%d capability\n", 
 			devID, props.name, props.major, props.minor);
+
+	runDistancesTests();
 
 	shrQAFinishExit(argc, (const char **)argv, QA_PASSED);
 	return 0;
