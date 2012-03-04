@@ -9,14 +9,29 @@
 
 #include "errors.cuh"
 #include <stdio.h>
+#include <string.h>
 
 //==============================================
 //== Globals
 
 static ErrorCode gCurrError;
+static char * gLogFile = 0;
 
 //==============================================
 //== Functions
+
+/*
+ * Allows to set a name for file where logs will be written.
+ */
+void SetLogFile( char * filename ) {
+	if ( gLogFile ) free( gLogFile );
+
+	gLogFile = strdup( filename );
+}
+
+const char * GetLogFile() {
+	return gLogFile;
+}
 
 /*
  * Sets Error code to be retrived as the last one.

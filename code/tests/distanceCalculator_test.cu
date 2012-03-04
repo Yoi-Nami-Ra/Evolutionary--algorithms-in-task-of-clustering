@@ -13,6 +13,8 @@
 #include <cutil_math.h>
 #include <cuda.h>
 #include "testsGeneral.cuh"
+#include "dataLoader.cuh"
+#include "distanceCalculator.cuh"
 
 //============================================================================
 //== Globals
@@ -28,7 +30,7 @@ bool test01 ();
 //== Functions
 
 void runDistancesTests() {
-	prepareTests;
+	prepareTests("Distances");
 
 	makeTest( "Texture binding", test01() );
 
@@ -37,7 +39,8 @@ void runDistancesTests() {
 //----------------------------------------------------------------------------
 
 bool test01 () {
-	return false;
+
+	return testRawTexturesKernel();
 }
 //----------------------------------------------------------------------------
 //----------------------------------------------------------------------------

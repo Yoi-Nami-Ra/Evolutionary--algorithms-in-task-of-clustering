@@ -15,24 +15,26 @@
 //==============================================
 //== Globals
 
-#define prepareTests uint testCounterP = 0; uint testCounter = 0; bool lastRes = true;
+#define prepareTests(X) uint testCounterP = 0;			\
+	uint testCounter = 0;								\
+	bool lastRes = true;								\
+	char * testName = X;								\
+	logMessage( " === starting Tests: %s", testName );
+	
 
-#define makeTest(x, y) do {															\
-		testCounter++;																\
-		if ( !lastRes ) break;														\
-		bool lastRes = y;															\
-		logMessage( " test: %u %s %s", testCounter, x, lastRes?"PASSED":"FAILED" );	\
-		if ( lastRes ) {															\
-			testCounterP++;															\
-		} else {																	\
-			goto exit;																\
-		}																			\
+#define makeTest(X, Y) do {																\
+		testCounter++;																	\
+		if ( !lastRes ) break;															\
+		lastRes =  Y;																	\
+		logMessage( " test: %u %s %s", testCounter, X, lastRes?"PASSED":"FAILED" );		\
+		if ( lastRes ) {																\
+			testCounterP++;																\
+		}																				\
 	} while(0);
 
-#define endTests exit:																\
-	do {																			\
-		logMessage( " passed %u out of %d tests", testCounterP, testCounter );		\
-		logMessage( " %s in general", lastRes?"PASSED":"FAILED" );					\
+#define endTests do {																					\
+		logMessage( " passed %u out of %d tests", testCounterP, testCounter );				\
+		logMessage( " === Tests: %s %s in general",testName, lastRes?"PASSED":"FAILED" );	\
 	} while(0);
 
 //==============================================

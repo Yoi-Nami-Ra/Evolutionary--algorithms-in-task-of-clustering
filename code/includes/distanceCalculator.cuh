@@ -38,5 +38,20 @@ ErrorCode GetCalculatedDistances( unsigned int num, DataStore * dataStore );
  */
 unsigned int DistanceVIdx( unsigned int a, unsigned int b );
 
+/**
+ * Binds raw data to texture.
+ * Raw data is taken from dataStore, space on device is allocated, and bound.
+ * @param dataStore Pointer tyo DataStore structure
+ * @return ErrorCode if any
+ */
+ErrorCode bindRawData( DataStore *dataStore );
+
+/**
+ * Takes the binding out, and releases the data on device.
+ */
+ErrorCode unbindRawData();
+
+bool testRawTexturesKernel();
+
 
 #endif //DISTANCECALCULATOR_CUH

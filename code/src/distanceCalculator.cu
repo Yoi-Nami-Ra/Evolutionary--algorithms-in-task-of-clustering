@@ -34,6 +34,7 @@ texture<float, cudaTextureType1D, cudaReadModeElementType> texRef;
 
 __global__ void CalculateDistancesKernel( float* vector, uint numEntries, uint blockSize, uint gridSize, uint dimSize );
 __global__ void CalculateNeighboursKernel( uint numEntries, uint * neighbours );
+__global__ void testRawTexturesKernel( bool result );
 /**
  * Calculates distance betwen two data entries.
  * @param x			- [in] first entry
@@ -118,6 +119,8 @@ ErrorCode bindData( uint dataSize, float *hData, float **dData ) {
 	// Bind the array to the texture reference
 	uint offset = 0;
 	CUDA_SAFE_CALL( cudaBindTexture( (size_t*)&offset, texRef, (void*)*dData, (size_t)dataSize ) );
+
+	return errOk;
 }
 //----------------------------------------------------------------------------
 
@@ -549,4 +552,48 @@ __global__ void CalculateNeighboursKernel( uint numEntries, uint * output ) {
 	for ( i = 0; i < kMaxNeighbours; i++ ) {
 		output[ record * kMaxNeighbours + i] = neighbours[ i];
 	}
+}
+
+__global__ void testRawTexturesKernel( float * result ) {
+	int i = 0;
+	for ( i = 0; i < 100; i++ ) {
+		result[ i] = tex1Dfetch( texRef, i);
+	}
+}
+
+
+bool testRawTexturesKernel() {
+	DataStore dataStore;
+
+	dataStore.info.dimSize = 10;
+	dataStore.info.numEntries = 10;
+
+	float *hBuf;
+	float *hResult;
+	float *dResult;
+	bool result = true;
+
+	hBuf = (float*)malloc( dataStore.info.numEntries * dataStore.info.dimSize * sizeof(float) );
+	for( int i = 0; i < 100; i++ ) {
+		float a = (float)i;
+		hBuf[ i] = a;
+	}
+
+	dataStore.dataVector = hBuf;
+	ErrorCode err = bindRawData( &dataStore );
+	CUDA_SAFE_CALL( cudaMalloc( &dResult, dataStore.info.numEntries * dataStore.info.dimSize * sizeof(float) ) );
+	testRawTexturesKernel<<<1,1>>>( dResult );	
+	cutilDeviceSynchronize();
+	hResult = (float*)malloc( 100 * sizeof(float) );
+	CUDA_SAFE_CALL( cudaMemcpy( hResult, dResult, 100 * sizeof(float), cudaMemcpyDeviceToHost ) );
+	CUDA_SAFE_CALL( cudaFree( dResult ) );
+	unbindRawData();
+
+	for ( int i = 0; i < 100; i++ ) {
+		if ( hBuf[ i] != hResult[ i] ) {
+			result = false;
+		}
+	}
+
+	return result;
 }

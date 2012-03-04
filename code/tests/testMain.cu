@@ -11,6 +11,7 @@ testMain.cu
 #include <stdio.h>
 #include <cutil_inline.h>
 #include <shrQATest.h>
+#include "errors.cuh"
 #include "distanceCalculator_test.cuh"
 
 // Host code
@@ -30,7 +31,16 @@ int main(int argc, char** argv)
 	printf("Device %d: \"%s\" with Compute %d.%d capability\n", 
 			devID, props.name, props.major, props.minor);
 
+	char * logFile = strdup( argv[ 0] );
+	logFile[ strlen( logFile ) -3] = 'l';
+	logFile[ strlen( logFile ) -2] = 'o';
+	logFile[ strlen( logFile ) -1] = 'g';
+	SetLogFile( logFile );
+	free( logFile );
+
+	logMessage(" ==== Starting Tests ====");
 	runDistancesTests();
+	logMessage(" ==== Tests Finished ====\n");
 
 	shrQAFinishExit(argc, (const char **)argv, QA_PASSED);
 	return 0;

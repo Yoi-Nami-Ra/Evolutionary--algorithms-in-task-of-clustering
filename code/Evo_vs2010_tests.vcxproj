@@ -73,6 +73,7 @@
     <OutDir>../bin/$(Platform)/$(Configuration)/</OutDir>
     <IntDir>$(Platform)/$(Configuration)/</IntDir>
     <IncludePath>$(DXSDK_DIR)\include;$(IncludePath)</IncludePath>
+    <TargetName>testEvo</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>../bin/$(Platform)/$(Configuration)/</OutDir>

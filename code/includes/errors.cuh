@@ -49,12 +49,30 @@ ErrorCode GetLastErrorCode( void );
  */
 char * ErrorDesc( ErrorCode errorType );
 
+/*
+ * Allows to set a name for file where logs will be written.
+ */
+void SetLogFile( char * filename );
+
+const char * GetLogFile();
+
 //---------------------------------------------------------
 //== Log Functions
 
 #define timeStamp
 
-#define logMessage(A, ...) printf(timeStamp " " A "\n", __VA_ARGS__)
+#define logMessage(A, ...) do{									\
+	printf(timeStamp " " A "\n", __VA_ARGS__);					\
+	const char * filename = GetLogFile();						\
+	if ( filename ) {											\
+		FILE * file = fopen( filename, "a" );					\
+		if ( file ) {											\
+			fprintf( file, timeStamp " " A "\n", __VA_ARGS__ );	\
+			fflush( file );										\
+			fclose( file );										\
+		}														\
+	}															\
+} while(0);
 
 /*
  * Log given message as an error.
