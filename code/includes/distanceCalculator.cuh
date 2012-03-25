@@ -51,7 +51,9 @@ ErrorCode bindRawData( DataStore *dataStore );
  */
 ErrorCode unbindRawData();
 
-bool testRawTexturesKernel();
+bool testRawTextures();
+
+bool testDistanceCalculation();
 
 
 #endif //DISTANCECALCULATOR_CUH

@@ -15,6 +15,7 @@
 #include "distanceCalculator.cuh"
 #include "errors.cuh"
 #include "dataLoader.cuh"
+#include "math.h"
 
 //============================================================================
 //== Globals
@@ -45,7 +46,7 @@ __global__ void testRawTexturesKernel( bool result );
  */
 __device__ float CalculateEntries( float * x, float * y, uint dimSize );
 
-__device__ unsigned int DistanceVIdx( unsigned int a, unsigned int b );
+__device__ unsigned int DistanceVIdx( unsigned int x, unsigned int y );
 
 __device__ float sqr(float a);
 
@@ -195,43 +196,63 @@ __global__ void CalculateDistancesKernel( float* vector, uint numEntries, uint b
 
 	__shared__ float rowData[ kBlockSize * kDimSize];
 	__shared__ float colData[ kBlockSize * kDimSize];
-
+	
 	//--
-	if ( col >= row || col >= numEntries || row >= numEntries ) {
-		// External block, no calculations here
+	if ( col >= numEntries || row >= numEntries ) {
+		// we're reaching outside calculation area
 		return;
+	}
+
+	if ( numEntries >= blockSize) {
+		if (firstCol >= ( firstRow + blockSize - 1 ) ) {
+			// this block has no use for us
+			return;
+		}
 	}
 
 	// Check if we should care for loading colums here
 	if ( threadIdx.y == 0 ) {
 		// load columns
 		for ( int i = 0; i < dimSize; i++ ) {
-			colData[ threadIdx.x * kDimSize + i] = tex1Dfetch( texRef, col * kDimSize + i );
+			colData[ threadIdx.x * kDimSize + i] = tex1Dfetch( texRef, col * dimSize + i );
 		}
 	}
-	if ( row == col ) {
+	if ( firstRow == firstCol ) {
 		boundryBlock = true;
 		// don't load rows here
-	} 
+	}
+
+	if (col >= row ) {
+		return;
+	}
 
 	// Check if we should care for loading rows
-	if ( threadIdx.x == 0 && !boundryBlock ) {
-		// load rows as wel
-		for ( int i = 0; i < dimSize; i++ ) {
-			rowData[ threadIdx.x * kDimSize + i] = tex1Dfetch( texRef, row * kDimSize + i );
+	//if (!boundryBlock) {
+		if ( threadIdx.x == 0 ) {
+			// load rows as wel
+			for ( int i = 0; i < dimSize; i++ ) {
+				rowData[ threadIdx.y * kDimSize + i] = tex1Dfetch( texRef, row * dimSize + i );
+			}
 		}
-	}
+	//} else {
+	//	rowData[ threadIdx.y * kDimSize + 0] = 3;
+	//}
 
 	// Sync up threads
 	__syncthreads();
-
+	
 
 	float distance = 0;
-	if ( boundryBlock ) {
-		distance = CalculateEntries( &colData[ threadIdx.x * kDimSize], &colData[ threadIdx.y * kDimSize], dimSize );
-	} else {
+	//if ( boundryBlock ) {
+	//	distance = CalculateEntries( &colData[ threadIdx.x * kDimSize], &colData[ threadIdx.y * kDimSize], dimSize );
+	//} else {
 		distance = CalculateEntries( &colData[ threadIdx.x * kDimSize], &rowData[ threadIdx.y * kDimSize], dimSize );
-	}
+	//}
+	//Test>>
+	//for ( int i = 0; i < dimSize; i++ ) {
+	//	distance = rowData[ threadIdx.y * kDimSize + 0];
+	//}
+	//<<Test
 	vector[ DistanceVIdx( col, row )] = distance;
 }
 //----------------------------------------------
@@ -278,11 +299,12 @@ ErrorCode CalculateDistances( DataStore * dataStore ) {
 	}
 	//=-
 	/*ErrorCode*/
-	ErrorCode bindRawData( DataStore *dataStore );
+	err = bindRawData( dataStore );
 
 	// Allocate result of transformation in device memory
 	dataStore->info.distancesSize = dataStore->info.numEntries * ( dataStore->info.numEntries - 1 ) / 2;
 	CUDA_SAFE_CALL( cudaMalloc( &dDistancesVector, dataStore->info.distancesSize * sizeof(float) ) );
+	CUDA_SAFE_CALL( cudaMemset( dDistancesVector, dataStore->info.distancesSize  * sizeof(float), 0 ) );
 
 	uint hGridSize = properGridSize( dataStore->info.numEntries, kBlockSize );
 
@@ -308,11 +330,11 @@ ErrorCode CalculateDistances( DataStore * dataStore ) {
 }
 //----------------------------------------------
 
-__device__ unsigned int DistanceVIdx( unsigned int a, unsigned int b ) {
-	if ( a > b ) {
-		return a * (a - 1) / 2 + b;
+__device__ unsigned int DistanceVIdx( unsigned int x, unsigned int y) {
+	if ( x >= y ) {
+		return 0;
 	} else {		
-		return b * (b - 1) / 2 + a;
+		return y * (y - 1) / 2 + x;
 	}
 }
 //----------------------------------------------
@@ -324,6 +346,7 @@ __device__ float CalculateEntries( float * x, float * y, uint dimSize ) {
 		result += sqr( x[ i] - y[ i] );
 	}
 	result = sqrt( result );
+
 	return result;
 }
 //----------------------------------------------
@@ -553,6 +576,7 @@ __global__ void CalculateNeighboursKernel( uint numEntries, uint * output ) {
 		output[ record * kMaxNeighbours + i] = neighbours[ i];
 	}
 }
+//----------------------------------------------
 
 __global__ void testRawTexturesKernel( float * result ) {
 	int i = 0;
@@ -560,9 +584,10 @@ __global__ void testRawTexturesKernel( float * result ) {
 		result[ i] = tex1Dfetch( texRef, i);
 	}
 }
+//----------------------------------------------
 
 
-bool testRawTexturesKernel() {
+bool testRawTextures() {
 	DataStore dataStore;
 
 	dataStore.info.dimSize = 10;
@@ -597,3 +622,61 @@ bool testRawTexturesKernel() {
 
 	return result;
 }
+//----------------------------------------------
+
+float tStore[] = { 0.0, 0.0, 0.0, 2.0, 2.0, 0.0, 2.0, 2.0 };
+//float tStore[] = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
+
+bool testDistanceCalculation() {
+	const int testDimensions = 4;
+	const int testEntries = 31;
+
+	DataStore testStore;
+
+	testStore.info.dimSize = testDimensions; // testing dimensions
+	testStore.info.numEntries = testEntries; // testing entries number
+
+	testStore.dataVector = (float*)malloc( testStore.info.numEntries * testStore.info.dimSize * sizeof(float) );
+	
+	//testStore.dataVector = tStore;
+
+	checkAlloc( testStore.dataVector )
+		return false;
+	}
+
+	float dims[ testDimensions] = { 1, 4, 8, 12 };
+
+	for ( int i = 0; i < testEntries; i++ ) {
+		for ( int j = 0; j < testDimensions; j++ ) {
+			testStore.dataVector[ i * testDimensions + j] = dims[ j] + i;
+		}
+	}
+
+	ErrorCode err = CalculateDistances( &testStore );
+
+	if ( err != errOk ) {
+		free( testStore.dataVector );
+		if ( testStore.distances ) {
+			free( testStore.distances );
+		}
+		return false;
+	}
+
+	
+	float a, b = 0, c = 2;
+	bool good = true;
+	for ( int i = 0; i < testStore.info.distancesSize; i++ ) {
+		a = testStore.distances[ i];
+		if ( b == 0 ) {
+			b = c;
+			c += 2;
+		}
+		good = good && ( abs(a - b) < 0.1 );
+		logMessage( " => %f == %f : %s", a, b, good?"true":"false" );
+		b -= 2;
+	}
+	
+
+	return true;
+}
+//----------------------------------------------
