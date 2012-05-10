@@ -143,10 +143,12 @@ ErrorCode unbindRawData() {
 //----------------------------------------------------------------------------
 
 ErrorCode bindDistances( DataStore *dataStore ) {
-	uint offset = 0;
-	CUDA_SAFE_CALL( cudaBindTexture( (size_t*)&offset,
-		texRef, (void*)dDistancesVector,
-		(size_t)dataStore->info.distancesSize * sizeof(float) ) );
+	uint dataSize = dataStore->info.distancesSize * sizeof(float);
+	ErrorCode err = errOk;
+
+	err = bindData( dataSize, dataStore->distances, &dDistancesVector );
+
+	return err;
 }
 //----------------------------------------------------------------------------
 
@@ -172,9 +174,11 @@ ErrorCode GetCalculatedDistances( unsigned int num, DataStore * dataStore ) {
 		err = CalculateDistances( dataStore );
 
 		// now bind distances to texture, so we could use it for neighbours
-		bindDistances( dataStore );
-		err = CalculateNeighbours( dataStore );
-		unbindDistances();
+		if ( err == errOk ) {
+			bindDistances( dataStore );
+			err = CalculateNeighbours( dataStore );
+			unbindDistances();
+		}
 
 		if ( err == errOk ) {
 			err = SaveCalculatedDistances( dataStore );
@@ -331,8 +335,9 @@ ErrorCode CalculateDistances( DataStore * dataStore ) {
 //----------------------------------------------
 
 __device__ unsigned int DistanceVIdx( unsigned int x, unsigned int y) {
-	if ( x >= y ) {
-		return 0;
+	if ( x == y ) return 0;
+	if ( x > y ) {
+		return x * (x - 1) / 2 + y;
 	} else {		
 		return y * (y - 1) / 2 + x;
 	}
@@ -480,18 +485,13 @@ ErrorCode CalculateNeighbours( DataStore *dataStore ) {
 		return SetLastErrorCode( errNoData );
 	}
 	//=-
+	gridSize = properGridSize( dataStore->info.numEntries, kBlockSize );
 
-	gridSize = dataStore->info.numEntries / kBlockSize;
-	while (( gridSize * kBlockSize ) < dataStore->info.numEntries ) {
-		gridSize++;
-	}
-
-	cudaMalloc( &dNeighbours, dataStore->info.numEntries * kMaxNeighbours * sizeof(uint) );
+	CUDA_SAFE_CALL( cudaMalloc( &dNeighbours, dataStore->info.numEntries * kMaxNeighbours * sizeof(uint) ) );
 	CalculateNeighboursKernel<<< gridSize, kBlockSize >>>( dataStore->info.numEntries, dNeighbours );
 
 	cutilDeviceSynchronize();
 
-	cudaFree( dDistancesVector );
 	dataStore->neighbours = (unsigned int*)malloc( dataStore->info.numEntries * kMaxNeighbours * sizeof( unsigned int ) );
 
 	checkAlloc( dataStore->neighbours )
@@ -499,10 +499,7 @@ ErrorCode CalculateNeighbours( DataStore *dataStore ) {
 		return GetLastErrorCode();
 	}
 
-	cudaMemcpy( dataStore->neighbours, dNeighbours, dataStore->info.numEntries * kMaxNeighbours * sizeof(uint), cudaMemcpyDeviceToHost );
-
-	//Save results to file
-	//saveDistanceData(); // TODO:
+	CUDA_SAFE_CALL( cudaMemcpy( dataStore->neighbours, dNeighbours, dataStore->info.numEntries * kMaxNeighbours * sizeof(uint), cudaMemcpyDeviceToHost ) );
 
 	cudaFree( dNeighbours );
 
@@ -535,8 +532,9 @@ __global__ void CalculateNeighboursKernel( uint numEntries, uint * output ) {
 	// fill with first records from the list as candidates
 	for ( j = 0; j < kMaxNeighbours; j++ ) {
 		neighboursDistances[ j] = 0;
+		neighbours[ i] = record;
 	}
-	
+
 	// for each record in the data set
 	for ( i = 0; i < numEntries; i++ ) {
 		if ( record == i ) {
@@ -546,28 +544,35 @@ __global__ void CalculateNeighboursKernel( uint numEntries, uint * output ) {
 
 		distance = tex1Dfetch( texRef, DistanceVIdx( record, i ));	
 		candidate = i;
-
+		
 		for ( j = 0; j < kMaxNeighbours; j++ ) {
-			if ( neighbours[ record * kMaxNeighbours + j] == i ) {
+			if ( neighboursDistances[ kMaxNeighbours -1] ) {
+				if ( distance > neighboursDistances[ kMaxNeighbours -1] ) {
+					break;
+				}
+			}
+
+			if ( neighbours[ j] == i ) {
 				// it's already here - break;
 				break;
 			}
 
 			if ( neighboursDistances[ j] == 0 ) {
-				neighbours[ record * kMaxNeighbours + j] = candidate;
+				neighbours[ j] = candidate;
 				neighboursDistances[ j] = distance;
 				break;
 			}
 
 			if ( distance < neighboursDistances[ j] ) {
 				// continue with a little buble sorting
-				a = neighbours[ record * kMaxNeighbours + j];
+				a = neighbours[ j];
 				b = neighboursDistances[ j];
-				neighbours[ record * kMaxNeighbours + j] = candidate;
+				neighbours[ j] = candidate;
 				neighboursDistances[ j] = distance;
 				candidate = a;
 				distance = b;
 			}
+
 		} // for each neighbour
 	} // for each data entry
 
@@ -575,6 +580,7 @@ __global__ void CalculateNeighboursKernel( uint numEntries, uint * output ) {
 	for ( i = 0; i < kMaxNeighbours; i++ ) {
 		output[ record * kMaxNeighbours + i] = neighbours[ i];
 	}
+	
 }
 //----------------------------------------------
 
@@ -637,8 +643,6 @@ bool testDistanceCalculation() {
 	testStore.info.numEntries = testEntries; // testing entries number
 
 	testStore.dataVector = (float*)malloc( testStore.info.numEntries * testStore.info.dimSize * sizeof(float) );
-	
-	//testStore.dataVector = tStore;
 
 	checkAlloc( testStore.dataVector )
 		return false;
@@ -672,11 +676,114 @@ bool testDistanceCalculation() {
 			c += 2;
 		}
 		good = good && ( abs(a - b) < 0.1 );
-		logMessage( " => %f == %f : %s", a, b, good?"true":"false" );
 		b -= 2;
 	}
 	
 
 	return true;
 }
+//----------------------------------------------
+
+#define kDistanceTestSize 100
+
+__global__ void testDistanceBindingKernel( float *result ) {
+	for ( uint i = 0; i < kDistanceTestSize; i++ ) {
+		result[ i] = tex1Dfetch( texRef, i );
+	}
+}
+//----------------------------------------------
+
+
+
+bool testDistanceBinding() {
+	DataStore testStore;
+	float *dResult = 0;
+	float *hResult = 0;
+
+	testStore.info.distancesSize = kDistanceTestSize;
+
+	testStore.distances = (float*)malloc( testStore.info.distancesSize * sizeof(float) );
+	for ( int i = 0; i < testStore.info.distancesSize; i++ ) {
+		testStore.distances[ i] = (float)i;
+	}
+
+	bindDistances( &testStore );
+	CUDA_SAFE_CALL( cudaMalloc( &dResult, testStore.info.distancesSize * sizeof(float) ) );
+	testDistanceBindingKernel<<< 1, 1 >>>( dResult );	
+	cutilDeviceSynchronize();
+	hResult = (float*)malloc( testStore.info.distancesSize * sizeof(float) );
+	CUDA_SAFE_CALL( cudaMemcpy( hResult, dResult, testStore.info.distancesSize * sizeof(float), cudaMemcpyDeviceToHost ) );
+	CUDA_SAFE_CALL( cudaFree( dResult ) );
+	
+	cutilDeviceSynchronize();
+	unbindDistances();
+
+	bool result = true;
+
+	for ( int i = 0; i < testStore.info.distancesSize; i++ ) {
+		if ( hResult[ i] != testStore.distances[ i] ) {
+			result = false;
+			break;
+		}
+	}
+
+	free( hResult );
+	free( testStore.distances );
+
+	return result;
+}
+//----------------------------------------------
+
+bool testNeighbourCalculation() {
+	unsigned int index = 0;
+	float x = 0;
+	float y = 0;
+	DataStore testStore;
+	ErrorCode err = errOk;
+
+	bool result = false;
+
+	testStore.info.dimSize = 2; // testing dimensions
+	testStore.info.numEntries = 120; // testing entries number
+
+	testStore.dataVector = (float*)malloc( testStore.info.numEntries * testStore.info.dimSize * sizeof(float) );
+
+	checkAlloc( testStore.dataVector )
+		return result;
+	}
+
+	for ( int i = 0; i < testStore.info.numEntries; i++ ) {
+		/*
+		testStore.dataVector[ i * 2] = (float)( ( i % 4 ) );
+		testStore.dataVector[ i * 2+1] = (float)( ( i / 4 ) * 5 );
+		*/
+		testStore.dataVector[ i * 2] = (float)( i * 2 );
+		testStore.dataVector[ i * 2+1] = (float)( 0 );
+	}
+
+	err = CalculateDistances( &testStore );
+
+	bindDistances( &testStore );
+	err = CalculateNeighbours( &testStore );
+	unbindDistances();
+
+	result = true;
+
+	for ( int i = 0; i < testStore.info.numEntries; i++ ) {
+		int distance = testStore.neighbours[ i * kMaxNeighbours] - testStore.neighbours[ i * kMaxNeighbours + 1];
+		logMessage( " testNeighbourCalculation: distance(%u): %u, %u, %u, %u, %u", i,
+			testStore.neighbours[ i * kMaxNeighbours],
+			testStore.neighbours[ i * kMaxNeighbours + 1],
+			testStore.neighbours[ i * kMaxNeighbours + 2],
+			testStore.neighbours[ i * kMaxNeighbours + 3],
+			testStore.neighbours[ i * kMaxNeighbours + 4] );
+	}
+
+	free( testStore.dataVector );
+	free( testStore.distances );
+	free( testStore.neighbours );
+
+	return result;
+}
+//----------------------------------------------
 //----------------------------------------------

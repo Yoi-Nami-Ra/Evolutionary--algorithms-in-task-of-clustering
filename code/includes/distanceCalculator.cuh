@@ -11,7 +11,7 @@
 //==============================================
 //== Globals
 
-#define kMaxNeighbours 30
+const unsigned int kMaxNeighbours = 30;
 
 
 //==============================================
@@ -55,5 +55,8 @@ bool testRawTextures();
 
 bool testDistanceCalculation();
 
+bool testNeighbourCalculation();
+
+bool testDistanceBinding();
 
 #endif //DISTANCECALCULATOR_CUH
