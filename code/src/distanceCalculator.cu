@@ -734,6 +734,9 @@ bool testDistanceBinding() {
 }
 //----------------------------------------------
 
+#define kMultiplier 2
+#define kNTestSize 10
+
 bool testNeighbourCalculation() {
 	unsigned int index = 0;
 	float x = 0;
@@ -757,7 +760,7 @@ bool testNeighbourCalculation() {
 		testStore.dataVector[ i * 2] = (float)( ( i % 4 ) );
 		testStore.dataVector[ i * 2+1] = (float)( ( i / 4 ) * 5 );
 		*/
-		testStore.dataVector[ i * 2] = (float)( i * 2 );
+		testStore.dataVector[ i * 2] = (float)( i * kMultiplier );
 		testStore.dataVector[ i * 2+1] = (float)( 0 );
 	}
 
@@ -770,17 +773,20 @@ bool testNeighbourCalculation() {
 	result = true;
 
 	for ( int i = 0; i < testStore.info.numEntries; i++ ) {
-		int distance = testStore.neighbours[ i * kMaxNeighbours] - testStore.neighbours[ i * kMaxNeighbours + 1];
-		logMessage( " testNeighbourCalculation: distance(%u): %u, %u, %u, %u, %u", i,
-			testStore.neighbours[ i * kMaxNeighbours],
-			testStore.neighbours[ i * kMaxNeighbours + 1],
-			testStore.neighbours[ i * kMaxNeighbours + 2],
-			testStore.neighbours[ i * kMaxNeighbours + 3],
-			testStore.neighbours[ i * kMaxNeighbours + 4] );
+		int prev = 0;
+		int dist = 0;
+		for ( int j = 0; j < kNTestSize; j++ ) {
+			dist = abs ( i - (int)( testStore.neighbours[ i * kMaxNeighbours + j] ) );
+			if ( abs( dist - prev ) > 2 ) {
+				result = false;
+				break;
+			}
+			prev = dist;
+		}
 	}
 
 	free( testStore.dataVector );
-	free( testStore.distances );
+	free( testStore.distances ); 
 	free( testStore.neighbours );
 
 	return result;
