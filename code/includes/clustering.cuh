@@ -6,7 +6,7 @@
 // Types
 
 #define MAX_CLUSTER_SIZE 1
-#define MEDOID_VECTOR_SIZE 48
+#define MEDOID_VECTOR_SIZE 6
 #define kMaxNeighboursToUSe 29
 
 #define CROS_FACTOR 3
@@ -75,3 +75,10 @@ ErrorCode calculateRand( DataStore * dataStore, preciseResult & topRand ) ;
 void CleanResults( preciseResult & results );
 
 void CleanAlgResults( algResults & results );
+
+// =======================
+// tests
+
+bool testMembershipAndDensity();
+
+bool testEnviroment();

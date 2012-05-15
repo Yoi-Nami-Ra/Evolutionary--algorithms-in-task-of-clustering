@@ -1,0 +1,95 @@
+\documentclass[11pt,a4paper,makeidx]{memoir}
+\usepackage{polski}
+\usepackage[cp1250]{inputenc}
+
+\begin{document}
+
+\section{Podstawy teori zbiorów przybli¿onych}
+
+\subsection{System informacyjny}
+
+\subsection{Relacja nierozró¿nialnoœci}
+
+\subsection{Zbiór dok³adny oraz zbiór przybli¿ony}
+
+Operowanie pojeciami nieostrymi (niescis³ymi, nieprecyzyjnymi) jest bez watpienia jednym z g³ównych problemów rozumowan potocznych. Pojecia nieostre
+róznia sie tym od pojec ostrych, ze w przeciwienstwie do tych ostatnich nie zawsze mozliwe jest jednoznaczne zaklasyfikowanie obiektu do pojecia, tzn. dla
+pewnej grupy obiektów z otaczajacej nas rzeczywistosci nie mozna — stwierdzic
+jednoznacznie czy dany obiekt nalezy do rozpatrywanego pojecia, czy tez nie
+nalezy.
+
+Na przyk³ad moga to byc pojecia takie jak: ma³e dziecko, piekna kobieta, wysoki
+cz³owiek, dobra ksiazka, ³atwe zadanie itd. Najbardziej znany model matematyczny
+pojec nieostrych, zwany teoria zbiorów rozmytych zosta³ zaproponowany przez Zadeha. Model ten zdoby³ duza popularnosc i znalaz³ wiele zastosowan (równiez przy konstrukcji inteligentnych systemów decyzyjnych).
+
+Zaleta tego modelu jest duza jego prostota oraz intuicyjnosc. Innym modelem
+matematycznym jaki mozna zastosowac do badania pojec nieostrych jest tzw. teoria ewidencji, zwana równiez teoria DemsteraShafera, gdyz obecna jej postac zawdzieczamy g³ównie pracom Demstera i Shafera. W 1976 roku Shafer opublikowa³
+monografie, w której zaproponowaó aksjomatyczne ujecie wczesniejszego
+modelu pochodzacego od Demstera. Wspomniany model dotyczy konstruowania
+prawdopodobnych sadów (wnioskowan) o s³abo ustrukturowanych problemach,
+a wiec, takich problemach, o których posiadana wiedza ma postac luznych przes³anek i ewentualnie wstepnych hipotez. Teoria zbiorów przyblizonych takze
+moze byc uwazana za jeden ze sposobów formalizacji nieostrosci pojec.
+
+Interesujacym wydaje sie fakt, ze istnieja zwiazki pomiedzy teoria zbiorów rozmytych a teoria zbiorów przyblizonych. Teoria zbiorów przyblizonych proponuje
+zastapienie nieostrego (nieprecyzyjnego) pojecia, para pojec precyzyjnych, zwanych \textbf{dolnym i górnym przyblizeniem} tego pojecia. Róznica miedzy górnym
+i dolnym przyblizeniem jest w³asnie tym obszarem granicznym, do którego naleza
+wszystkie przypadki, które nie moga byc prawid³owo zaklasyfikowane na
+podstawie aktualnej wiedzy. Im wiekszy obszar graniczny pojecia tym bardziej
+jest ono nieostre (nieprecyzyjne). Niech $SI = \{U, A, V, f\}$ bedzie systemem informacyjnym i niech $B \subseteq A$. Mówimy, ze zbiór $P \subseteq U$ jest zbiorem B – dok³adnym
+(B – definiowalnym) wtedy, gdy jest on skonczon¹ suma zbiorów B –
+elementarnych.
+
+Kazdy zbiór, który nie jest skonczona suma zbiorów B – elementarnych jest
+zbiorem B – przyblizonym.
+
+\subsection{Aproksymacja zbioru}
+
+Jesli $SI = \{U, A, V, f\}$ jest systemem informacyjnym takim, ze $B \subseteq A$ oraz
+$X \subseteq U$ to:
+\begin{itemize}
+	\item $B$ – dolnym przyblizeniem \(aproksymacja\) zbioru $X$ w systemie informacyjnym
+$SI$ nazywamy zbiór:
+\begin{equation}
+\underline{B}X = \{x \in U\colon I_{SI,B}(x) \subseteq X\}
+\end{equation}
+	\item B – górnym przyblizeniem (aproksymacja) zbioru X w systemie informacyjnym
+$SI$ nazywamy zbiór:
+\begin{equation}
+\overline{B}X = \{x \in U\colon I_{SI,B}(x) \cap X \neq \O\}
+\end{equation}
+	\item B – pozytywnym obszarem (ang. positive area) zbioru X w systemie informacyjnym
+$SI$ nazywamy zbiór:
+\begin{equation}
+POS_{B}(X) = \underline{B}X
+\end{equation}
+	\item B – brzegiem (granica) (ang. boundary) zbioru X w systemie informacyjnym
+$SI$ nazywamy zbiór:
+\begin{equation}
+BN_{B}(X) = \overline{B}X - \underline{B}X
+\end{equation}
+	\item $B$ – negatywnym obszarem (ang. negative area) zbioru $X$ w systemie informacyjnym
+$SI$ nazywamy zbiór:
+\begin{equation}
+NEG_{B}X = U - \overline{B}X
+\end{equation}
+\end{itemize}
+
+Z definicji powyzszych mozemy wysnuc nastepujace wnioski:
+
+\begin{itemize}
+	\item $\underline{B}X \subseteq X \subseteq \overline{B}X$
+	\item zbiór $X$ jest $B$-dok³adny, gdy: $\underline{B}X = \overline{B}X \iff BN_{B}X = \O$
+	\item zbiór $X$ jest $B$-przybli¿ony, gdy: $\underline{B}X = \overline{B}X \iff BN_{B}X \neq \O$
+\end{itemize}
+Dolne przyblizenie pojecia jest to wiec pojecie do którego naleza wszystkie
+obiekty, co do których nie ma watpliwosci, ze sa one reprezentantami tego
+pojecia w swietle posiadanej wiedzy. Do górnego przyblizenia nialeza obiekty,
+których nie mozna wykluczyc, ze sa reprezentantami tego pojecia. Brzegiem
+zas pojecia sa wszystkie te oniekty, co do ktorych nie wiadomo czy sa czy nie
+reprezentantami danego zbioru.
+
+% *************** Bibliography ***************
+\bibliographystyle{plain}
+{\small\bibliography{LThesis01}}
+
+\end{document}

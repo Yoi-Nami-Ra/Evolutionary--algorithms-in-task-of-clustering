@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 
 
 	if ( err == errOk ) {
-		for ( cPopSize = 256; cPopSize <= 256; cPopSize *= 4 ) { // 4 - 16 - 64 - 256
+		for ( cPopSize = 4; cPopSize <= 256; cPopSize *= 4 ) { // 4 - 16 - 64 - 256
 			// now the evolution params                    
             for ( cSteps = 2; cSteps <= 1002; cSteps += 500 ) { // 2 - 502 - 1002
 				if ( stateSaved ) {

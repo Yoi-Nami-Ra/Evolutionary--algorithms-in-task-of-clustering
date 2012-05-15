@@ -13,6 +13,7 @@ testMain.cu
 #include <shrQATest.h>
 #include "errors.cuh"
 #include "distanceCalculator_test.cuh"
+#include "clustering_test.cuh"
 
 // Host code
 int main(int argc, char** argv)
@@ -40,6 +41,7 @@ int main(int argc, char** argv)
 
 	logMessage(" ==== Starting Tests ====");
 	runDistancesTests();
+	runClusteringTests();
 	logMessage(" ==== Tests Finished ====\n");
 
 	shrQAFinishExit(argc, (const char **)argv, QA_PASSED);

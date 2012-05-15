@@ -76,7 +76,9 @@ __constant__ unsigned int dPopulationSize; //< size of population for EA.
  * [ populationSize x numObjectives x blocksPerSolution]
  */
 __constant__ float * dFitnesResults;
+char * membership;
 float * fitnesResults;
+unit * populationPool;
 
 /*
  * array to hold current population.
@@ -148,12 +150,12 @@ __global__ void kernelSumResults();
 ErrorCode generateRandomPopulation( unsigned int popSize ) {
 	populationSize = popSize;
 	cudaMemcpyToSymbol( dPopulationSize, &populationSize, sizeof(unsigned int) );
-	unit * populationPool;
+	
 	cudaMalloc( &populationPool, popSize * sizeof(unit) );
 	cudaMemcpyToSymbol( dPopulationPool, &populationPool, sizeof(unit*) );
 
 	//randomPopulation<<< 1, popSize>>>();
-	hostRandomPopulation( popSize, populationPool );
+  	hostRandomPopulation( popSize, populationPool );
 	//cutilDeviceSynchronize();
 
 	cudaError_t cuErr = cudaGetLastError();
@@ -301,10 +303,30 @@ __global__ void kernelRandomPopulation() {
 }
 //====================================================================
 
+ErrorCode deconfigureAlgoritms() {
+	//- fitnesResults - alloc cuda
+	CUDA_SAFE_CALL( cudaFree( fitnesResults ) );
+	//- membership - alloc cuda
+	CUDA_SAFE_CALL( cudaFree( membership ) );
+	//- dDominanceMatrix - cuda
+	CUDA_SAFE_CALL( cudaFree( dDominanceMatrix ) );
+	//- dDominanceCounts - cuda
+	CUDA_SAFE_CALL( cudaFree( dDominanceCounts ) );
+
+	CUDA_SAFE_CALL( cudaFree( populationPool ) );
+	//- hDominanceMatrix - alloc host
+	free( hDominanceMatrix );
+	//- hDominanceCounts - alloc host
+	free( hDominanceCounts );
+
+	return errOk;
+}
+//====================================================================
+
 ErrorCode configureAlgoritms() {
 	// Set things up
 	//float * fitnesResults = 0;
-	char * membership = 0;
+	
 //	cudaError err = cudaSuccess;
 
 	blocksPerEntires = hNumEntries / threadsPerBlock;
@@ -649,6 +671,10 @@ ErrorCode runAlgorithms( DataStore * dataStore, unsigned int steps, algResults *
 	cuErr = cudaGetLastError();
 	if ( cuErr != cudaSuccess ) {
 		printf( "[E][cuda] After evolution calculation - %s\n", cudaGetErrorString( cuErr ));
+	}
+
+	if ( deconfigureAlgoritms() == errOk ) {
+		printf( "[E][cuda] After deconfiguration - %s\n", cudaGetErrorString( cuErr ));
 	}
 
 	return errOk;
@@ -1505,5 +1531,68 @@ void CleanAlgResults( algResults & results ) {
 	CleanResults( results.di );
 	CleanResults( results.rand );
 	CleanResults( results.time );
+}
+//====================================================================
+
+bool testPrepareEnviroment() {
+	ErrorCode err;
+
+	err = configureAlgoritms();
+	/*
+	- dBlocksPerSolution - symbol
+	- dThreadsPerBlock - symbol
+	- fitnesResults - alloc cuda
+	- dFitnesResults - symbol
+	- membership - alloc cuda
+	- dMembership - symbol
+
+	- dDominanceMatrix - cuda
+	- dDominanceCounts - cuda
+	- hDominanceMatrix - alloc host
+	- hDominanceCounts - alloc host
+	*/
+
+	return ( err == errOk );
+}
+
+bool testCleanEnviroment() {
+	ErrorCode err;
+
+	err = deconfigureAlgoritms();
+
+	return ( err == cudaSuccess );
+}
+
+bool testEnviroment() {
+	bool test = true;
+
+	test = test && testPrepareEnviroment();
+	test = test && testCleanEnviroment();
+
+	return test;
+}
+
+#define kTestPopSize 10
+
+bool testMembershipAndDensity() {
+	enableErrorControl;
+
+	if ( !testPrepareEnviroment() ) {
+		return false;
+	}
+	//-------------
+	generateRandomPopulation( kTestPopSize );
+
+	dim3 dimGrid( blocksPerEntires, populationSize );
+
+	kernelMembershipAndDensity<<<dimGrid, threadsPerBlock>>>();
+	cutilDeviceSynchronize();
+	cuErr = cudaGetLastError();
+
+	//-------------
+
+	testCleanEnviroment();
+
+	return false;
 }
 //====================================================================

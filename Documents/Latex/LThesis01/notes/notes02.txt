@@ -1,0 +1,11 @@
+\documentclass[11pt,a4paper,makeidx]{memoir}
+
+\begin{document}
+
+
+
+% *************** Bibliography ***************
+\bibliographystyle{plain}
+{\small\bibliography{LThesis01}}
+
+\end{document}

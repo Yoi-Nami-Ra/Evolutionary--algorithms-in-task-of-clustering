@@ -1,0 +1,56 @@
+\documentclass[11pt,a4paper,makeidx]{memoir}
+
+\begin{document}
+
+Wed³ug artyku³u ~\cite{art01}
+Wymieniæ mo¿na nastêpuj¹ce rodzaje predykcji sk³onnoœci do b³êdów.
+\begin{itemize}
+	\item \textbf{Podejœcie zmianowe (Change Log Approaches)}\\
+	Pliki ostatnio lub czêsto poddawane zmian¹ s¹ najbardziej podatne na b³êdy.
+	\begin{itemize}
+ 		\item \textbf{code churn}\\
+		Iloœæ zmian w systemie 
+		\item \textbf{entropia zmian}\\
+		Miara kompleksowoœci zmian w kodzie
+		\item \textbf{metryki code churn, poprzednie bugi i refaktoringi, liczba autorów, rozmiar i wiek pliku)
+		\item \textbf{najczêstsze i niedawno zmieniane i naprawiane pliki}
+		\item \textbf{zmiany wprowadzaj¹ce bugi}
+	\end{itemize}
+	\item \textbf{Podejœcie jedno wersyjne (Single-version approach)}\\
+	Zak³ada siê, ¿e aktualny design i zachowanie programu wp³ywa na obecnoœæ przysz³ych bugów. Nie wymaga to historii systemu, lecz opiera siê wy³¹cznie na jego aktualnej postaci
+	\begin{itemize}
+		\item CK metrics
+		\item Several graph metrics including McCabe
+		\item Briand’s coupling metrics
+	\end{itemize}
+	\item Inne podejœcia
+	\begin{itemize}
+		\item zale¿noœci czêœci binarnych (dependencies of binaries)
+		\item miara spójnoœci bazuj¹c na LSI
+		\item Briand’s coupling metrics
+	\end{itemize}
+\end{itemize}
+
+Poziomy predykcji:
+\begin(itemize)
+	\item klasa
+	\item pliki
+	\item modu³y
+	\item katalogi
+	\item binarki
+\end(itemize)
+
+Rodzaj predykcji:
+\begin(itemize)
+	\item Defektowoœæ
+	\item Iloœæ bugów w przysz³oœci
+	\item modu³y
+	\item katalogi
+	\item binarki
+\end(itemize)
+
+% *************** Bibliography ***************
+\bibliographystyle{plain}
+{\small\bibliography{LThesis01}}
+
+\end{document}

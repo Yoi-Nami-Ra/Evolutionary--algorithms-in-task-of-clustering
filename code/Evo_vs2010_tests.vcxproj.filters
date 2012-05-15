@@ -37,6 +37,9 @@
     <None Include="tests\testsGeneral.cuh">
       <Filter>tests</Filter>
     </None>
+    <None Include="tests\clustering_test.cuh">
+      <Filter>tests</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="tests\testMain.cu" />
@@ -65,6 +68,9 @@
       <Filter>cuda</Filter>
     </CudaCompile>
     <CudaCompile Include="tests\distanceCalculator_test.cu">
+      <Filter>tests</Filter>
+    </CudaCompile>
+    <CudaCompile Include="tests\clustering_test.cu">
       <Filter>tests</Filter>
     </CudaCompile>
   </ItemGroup>

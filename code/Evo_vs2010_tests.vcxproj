@@ -195,7 +195,6 @@
   <ItemGroup>
     <CudaCompile Include="includes\errors.cu" />
     <CudaCompile Include="src\clustering.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </CudaCompile>
     <CudaCompile Include="src\dataLoader.cu" />
@@ -216,6 +215,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </CudaCompile>
     <CudaCompile Include="src\distanceCalculator.cu" />
+    <CudaCompile Include="tests\clustering_test.cu" />
     <CudaCompile Include="tests\distanceCalculator_test.cu" />
     <CudaCompile Include="tests\testMain.cu" />
   </ItemGroup>
@@ -233,7 +233,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="includes\clustering.cuh">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </None>
     <None Include="includes\dataLoader.cuh" />
@@ -263,6 +262,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </None>
+    <None Include="tests\clustering_test.cuh" />
     <None Include="tests\distanceCalculator_test.cuh" />
     <None Include="tests\testsGeneral.cuh" />
   </ItemGroup>
