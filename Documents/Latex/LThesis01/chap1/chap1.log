@@ -1,0 +1,13 @@
+This is TeX, Version 3.1415926 (MiKTeX 2.9) (preloaded format=tex 2012.5.15)  15 MAY 2012 18:24
+**chap1.tex
+(d:\Projects\Evo\Documents\Latex\LThesis01\chap1\chap1.tex
+! Undefined control sequence.
+l.2 \chapter
+            {Wst^^eap}
+? 
+! Emergency stop.
+l.2 \chapter
+            {Wst^^eap}
+End of file on the terminal!
+
+No pages of output.

@@ -1,0 +1,31 @@
+% *********** LEd - dokument oparty na szablonie pracy magisterskiej ***********
+
+\documentclass[11pt,a4paper,makeidx]{memoir}
+\input{style.tex}
+
+\begin{document}
+% *************** Front matter ***************
+\frontmatter
+\input{front.tex}
+
+% *************** Main matter ***************
+\mainmatter
+%\input{abstract//abstract.tex}
+%\input{ack//ack.tex}
+\input{chap1//chap1.tex}
+\input{chap2//chap2.tex}
+
+% *************** Bibliography ***************
+\bibliographystyle{plain}
+{\small\bibliography{LThesis02}}
+
+% *************** Appendixes ***************
+\appendix
+\appendixpage*
+%\input{app1//app1.tex}
+
+% *************** Back matter ***************
+\backmatter
+\input{back.tex}
+
+\end{document}

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.3-1.40.12 (MiKTeX 2.9) (preloaded format=pdflatex 2012.4.19)  15 MAY 2012 17:32
+This is pdfTeX, Version 3.1415926-2.3-1.40.12 (MiKTeX 2.9) (preloaded format=latex 2012.4.18)  15 MAY 2012 18:32
 entering extended mode
 **notes02.tex
 (D:\Projects\Evo\Documents\Latex\LThesis01\notes\notes02.tex
@@ -24,7 +24,7 @@ ment class
 \l@nohyphenation=\language70
 ("C:\Program Files (x86)\MiKTeX 2.9\tex\generic\oberdiek\ifpdf.sty"
 Package: ifpdf 2011/01/30 v2.3 Provides the ifpdf switch (HO)
-Package ifpdf Info: pdfTeX in PDF mode is detected.
+Package ifpdf Info: pdfTeX in PDF mode is not detected.
 )
 Class memoir Info: An `ifetex' package is being emulated on input line 251.
 
@@ -453,12 +453,11 @@ Class memoir Warning: The material used in the headers is too large
 either increase the head height or redesign the header
 (in both cases you will find help in the memoir manual). on input line 50.
 
-[1{C:/Users/main/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}
+[1
 
 ]
 LaTeX Font Info:    Try loading font information for OMS+cmr on input line 50.
-
-("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\omscmr.fd"
+ ("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\omscmr.fd"
 File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
@@ -482,27 +481,12 @@ either increase the head height or redesign the header
 
 [2] (D:\Projects\Evo\Documents\Latex\LThesis01\notes\notes02.aux) ) 
 Here is how much of TeX's memory you used:
- 3821 strings out of 494049
- 51161 string characters out of 3146068
+ 3820 strings out of 494050
+ 51151 string characters out of 3146091
  131699 words of memory out of 3000000
  7132 multiletter control sequences out of 15000+200000
  11736 words of font info for 34 fonts, out of 3000000 for 9000
  715 hyphenation exceptions out of 8191
  29i,10n,24p,294b,279s stack positions out of 5000i,500n,10000p,200000b,50000s
-{C:/Program 
-Files (x86)/MiKTeX 2.9/fonts/enc/dvips/pl/plmi.enc}{C:/Program Files (x86)/MiKT
-eX 2.9/fonts/enc/dvips/pl/plms.enc}{C:/Program Files (x86)/MiKTeX 2.9/fonts/enc
-/dvips/pl/plrm.enc}<C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/amsfon
-ts/cm/cmsy10.pfb><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/pl/plbx1
-0.pfb><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/pl/plbx12.pfb><C:/P
-rogram Files (x86)/MiKTeX 2.9/fonts/type1/public/pl/plmi10.pfb><C:/Program File
-s (x86)/MiKTeX 2.9/fonts/type1/public/pl/plmi8.pfb><C:/Program Files (x86)/MiKT
-eX 2.9/fonts/type1/public/pl/plr10.pfb><C:/Program Files (x86)/MiKTeX 2.9/fonts
-/type1/public/pl/plsl10.pfb><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/publ
-ic/pl/plsy10.pfb>
-Output written on notes02.pdf (2 pages, 71579 bytes).
-PDF statistics:
- 44 PDF objects out of 1000 (max. 8388607)
- 0 named destinations out of 1000 (max. 500000)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
+Output written on notes02.dvi (2 pages, 8376 bytes).

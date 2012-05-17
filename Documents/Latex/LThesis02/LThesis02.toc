@@ -1,0 +1,12 @@
+\changetocdepth {2}
+\changetocdepth {2}
+\contentsline {chapter}{Spis tre\'sci}{i}{section*.1}
+\contentsline {chapter}{\chapternumberline {1}Wst\k ep}{1}{chapter.1}
+\contentsline {chapter}{\chapternumberline {2}Wprowadzenie w problematyk\k e pracy}{3}{chapter.2}
+\contentsline {section}{\numberline {2.1}Predykcja Defekt\'ow}{3}{section.2.1}
+\contentsline {section}{\numberline {2.2}Algorytmy Ewolucyjne}{3}{section.2.2}
+\contentsline {section}{\numberline {2.3}Klasteryzacja}{3}{section.2.3}
+\contentsline {section}{\numberline {2.4}Zbiory przybli\.zone}{3}{section.2.4}
+\contentsline {chapter}{Spis symboli i skr\'ot\'ow}{7}{appendix*.2}
+\contentsline {chapter}{Spis rysunk\'ow}{8}{section*.3}
+\contentsline {chapter}{Spis tabel}{9}{section*.4}

@@ -1,7 +1,7 @@
-This is pdfTeX, Version 3.1415926-2.3-1.40.12 (MiKTeX 2.9) (preloaded format=pdflatex 2012.4.19)  15 MAY 2012 18:55
+This is pdfTeX, Version 3.1415926-2.3-1.40.12 (MiKTeX 2.9) (preloaded format=pdflatex 2012.4.19)  16 MAY 2012 00:24
 entering extended mode
-**LThesis01.tex
-(D:\Projects\Evo\Documents\Latex\LThesis01\LThesis01.tex
+**LThesis02.tex
+(D:\Projects\Evo\Documents\Latex\LThesis02\LThesis02.tex
 LaTeX2e <2009/09/24>
 Babel <v3.8l> and hyphenation patterns for english, afrikaans, ancientgreek, ar
 abic, armenian, assamese, basque, bengali, bokmal, bulgarian, catalan, coptic, 
@@ -347,7 +347,7 @@ Package verse [2008/07/23] emulated by memoir.
 (C:\Users\main\AppData\Roaming\MiKTeX\2.9\tex\latex\memoir\mempatch.sty
 Package: mempatch 2009/07/24 v6.0f Patches for memoir class v1.6180339
 ))
-(D:\Projects\Evo\Documents\Latex\LThesis01\style.tex
+(D:\Projects\Evo\Documents\Latex\LThesis02\style.tex
 ("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\graphics\graphicx.sty"
 Package: graphicx 1999/02/16 v1.0f Enhanced LaTeX Graphics (DPC,SPQR)
 
@@ -559,9 +559,9 @@ Package: inputenc 2008/03/30 v1.1d Input encoding file
 ("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\cp1250.def"
 File: cp1250.def 2008/03/30 v1.1d Input encoding file
 ))
-\LThesis01@idxfile=\write4
+\LThesis02@idxfile=\write4
 
-Writing index file LThesis01.idx 
+Writing index file LThesis02.idx 
 (C:\Users\main\AppData\Roaming\MiKTeX\2.9\tex\latex\citeref\citeref.sty
 Package: citeref 1999/27/05
 
@@ -698,7 +698,7 @@ Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
 )
 \Hy@SectionHShift=\skip197
 )
-(D:\Projects\Evo\Documents\Latex\LThesis01\supp-mis.tex
+(D:\Projects\Evo\Documents\Latex\LThesis02\supp-mis.tex
 loading : Context Support Macros / Missing
 \protectiondepth=\count167
 \scratchcounter=\count168
@@ -719,7 +719,7 @@ loading : Context Support Macros / Missing
 \!!counta=\count170
 \!!countb=\count171
 \recursecounter=\count172
-) (D:\Projects\Evo\Documents\Latex\LThesis01\supp-pdf.tex
+) (D:\Projects\Evo\Documents\Latex\LThesis02\supp-pdf.tex
 loading : Context Support Macros / PDF
 \nofMPsegments=\count173
 \nofMParguments=\count174
@@ -728,7 +728,7 @@ loading : Context Support Macros / PDF
 Package: thumbpdf 2010/07/07 v3.11 Inclusion of thumbnails (HO)
 
 
-Package thumbpdf Warning: Thumbnail data file `LThesis01.tpt' not found.
+Package thumbpdf Warning: Thumbnail data file `LThesis02.tpt' not found.
 
 )
 
@@ -756,7 +756,7 @@ Sidefootvsep and sidefootheight: 13.6pt and 594.32022pt
 LaTeX Warning: Unused global option(s):
     [makeidx].
 
-(D:\Projects\Evo\Documents\Latex\LThesis01\LThesis01.aux)
+(D:\Projects\Evo\Documents\Latex\LThesis02\LThesis02.aux)
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 6.
 LaTeX Font Info:    ... okay on input line 6.
 LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 6.
@@ -792,11 +792,11 @@ LaTeX Info: Redefining \nameref on input line 6.
 LaTeX Info: Redefining \ref on input line 6.
 LaTeX Info: Redefining \pageref on input line 6.
 LaTeX Info: Redefining \nameref on input line 6.
-(D:\Projects\Evo\Documents\Latex\LThesis01\LThesis01.out)
-(D:\Projects\Evo\Documents\Latex\LThesis01\LThesis01.out)
+(D:\Projects\Evo\Documents\Latex\LThesis02\LThesis02.out)
+(D:\Projects\Evo\Documents\Latex\LThesis02\LThesis02.out)
 \@outlinefile=\write6
 
-(D:\Projects\Evo\Documents\Latex\LThesis01\front.tex
+(D:\Projects\Evo\Documents\Latex\LThesis02\front.tex
 LaTeX Font Info:    Try loading font information for OT4+cmss on input line 10.
 
 
@@ -805,15 +805,11 @@ File: ot4cmss.fd 2008/02/24 v1.2.1 Font defs for fonts PL (MW)
 ) [1
 
 
-{C:/Users/main/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}] [2
-
-]
+{C:/Users/main/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}]
 LaTeX Font Info:    Font shape `OT4/cmss/m/it' in size <10.95> not available
-(Font)              Font shape `OT4/cmss/m/sl' tried instead on input line 54.
- [3] [4
-
-]
-(D:\Projects\Evo\Documents\Latex\LThesis01\LThesis01.toc
+(Font)              Font shape `OT4/cmss/m/sl' tried instead on input line 52.
+ [2]
+(D:\Projects\Evo\Documents\Latex\LThesis02\LThesis02.toc
 LaTeX Font Info:    Try loading font information for OML+plm on input line 3.
 
 (C:\Users\main\AppData\Roaming\MiKTeX\2.9\tex\latex\polski\omlplm.fd
@@ -852,61 +848,46 @@ LaTeX Font Info:    Try loading font information for U+stmry on input line 3.
 lready used, duplicate ignored
 <to be read again> 
                    \relax 
-l.14 \input
-           {ack//ack.tex} [1]pdfTeX warning (ext4): destination with the same i
-dentifier (name{page.ii}) has been already used, duplicate ignored
+l.15 \input
+           {chap1//chap1.tex} [1]pdfTeX warning (ext4): destination with the sa
+me identifier (name{page.ii}) has been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.14 \input
-           {ack//ack.tex} [2
+l.15 \input
+           {chap1//chap1.tex} [2
 
 ]
-(D:\Projects\Evo\Documents\Latex\LThesis01\ack//ack.tex)
-(D:\Projects\Evo\Documents\Latex\LThesis01\chap1//chap1.tex [1
+(D:\Projects\Evo\Documents\Latex\LThesis02\chap1//chap1.tex)
+(D:\Projects\Evo\Documents\Latex\LThesis02\chap2//chap2.tex [1
 
 ] [2
 
 ])
-(D:\Projects\Evo\Documents\Latex\LThesis01\chap2//chap2.tex [3] [4
+No file LThesis02.bbl.
+[3] [4
+
+] [5] [6] (D:\Projects\Evo\Documents\Latex\LThesis02\back.tex
+(D:\Projects\Evo\Documents\Latex\LThesis02\symbols.tex
+
+LaTeX Warning: Reference `sym:DMC' on page 7 undefined on input line 20.
+
+
+LaTeX Warning: Reference `sym:LZ77' on page 7 undefined on input line 22.
+
+
+LaTeX Warning: Reference `sym:LZ78' on page 7 undefined on input line 24.
+
+) [7
+
+
+
+
+] (D:\Projects\Evo\Documents\Latex\LThesis02\LThesis02.lof) [8
 
 ]
-<chap2/img/cluster_repr01.png, id=89, 301.125pt x 153.57375pt>
-File: chap2/img/cluster_repr01.png Graphic file (type png)
-
-<use chap2/img/cluster_repr01.png>
-Package pdftex.def Info: chap2/img/cluster_repr01.png used on input line 15.
-(pdftex.def)             Requested size: 301.12425pt x 153.57336pt.
- [5])
-No file LThesis01.bbl.
-[6 <D:/Projects/Evo/Documents/Latex/LThesis01/chap2/img/cluster_repr01.png>]
-[7
-
-] [8] (D:\Projects\Evo\Documents\Latex\LThesis01\app1//app1.tex) [9
-
-] [10
-
-]
-(D:\Projects\Evo\Documents\Latex\LThesis01\back.tex
-(D:\Projects\Evo\Documents\Latex\LThesis01\symbols.tex
-
-LaTeX Warning: Reference `sym:DMC' on page 11 undefined on input line 20.
-
-
-LaTeX Warning: Reference `sym:LZ77' on page 11 undefined on input line 22.
-
-
-LaTeX Warning: Reference `sym:LZ78' on page 11 undefined on input line 24.
-
-) [11
-
-
-
-] (D:\Projects\Evo\Documents\Latex\LThesis01\LThesis01.lof) [12
-
-]
-(D:\Projects\Evo\Documents\Latex\LThesis01\LThesis01.lot)
-No file LThesis01.ind.
-) [13
+(D:\Projects\Evo\Documents\Latex\LThesis02\LThesis02.lot)
+No file LThesis02.ind.
+) [9
 
 ]
 \tf@toc=\write7
@@ -914,11 +895,11 @@ No file LThesis01.ind.
 \tf@lot=\write9
 Package atveryend Info: Empty hook `BeforeClearDocument' on input line 31.
 Package atveryend Info: Empty hook `AfterLastShipout' on input line 31.
- (D:\Projects\Evo\Documents\Latex\LThesis01\LThesis01.aux)
+ (D:\Projects\Evo\Documents\Latex\LThesis02\LThesis02.aux)
 Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 31.
 Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 31.
-Package rerunfilecheck Info: File `LThesis01.out' has not changed.
-(rerunfilecheck)             Checksum: 5E45147D0AB9CBB686CF2FE39310C307;1082.
+Package rerunfilecheck Info: File `LThesis02.out' has not changed.
+(rerunfilecheck)             Checksum: FC53F58623C40623BD7B2790B0891658;1483.
 
 
 LaTeX Warning: There were undefined references.
@@ -926,23 +907,23 @@ LaTeX Warning: There were undefined references.
 Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 31.
  ) 
 Here is how much of TeX's memory you used:
- 11280 strings out of 494049
- 154487 string characters out of 3146068
- 260692 words of memory out of 3000000
- 14362 multiletter control sequences out of 15000+200000
- 18737 words of font info for 53 fonts, out of 3000000 for 9000
+ 11249 strings out of 494049
+ 153821 string characters out of 3146068
+ 258537 words of memory out of 3000000
+ 14350 multiletter control sequences out of 15000+200000
+ 18188 words of font info for 52 fonts, out of 3000000 for 9000
  715 hyphenation exceptions out of 8191
- 35i,12n,29p,951b,328s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 35i,11n,29p,951b,324s stack positions out of 5000i,500n,10000p,200000b,50000s
 {C:/Program Files (x86)/MiKTeX 2.9/fonts/enc/dvips/pl/plrm.enc}<C:/Program Fi
 les (x86)/MiKTeX 2.9/fonts/type1/public/pl/plbx10.pfb><C:/Program Files (x86)/M
 iKTeX 2.9/fonts/type1/public/pl/plbx12.pfb><C:/Program Files (x86)/MiKTeX 2.9/f
 onts/type1/public/pl/plr10.pfb><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/p
-ublic/pl/plsl10.pfb><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/pl/pl
-ss12.pfb><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/pl/plssbx10.pfb>
-<C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/pl/plssi10.pfb>
-Output written on LThesis01.pdf (19 pages, 83413 bytes).
+ublic/pl/plss12.pfb><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/pl/pl
+ssbx10.pfb><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/pl/plssi10.pfb
+>
+Output written on LThesis02.pdf (13 pages, 68751 bytes).
 PDF statistics:
- 163 PDF objects out of 1000 (max. 8388607)
- 28 named destinations out of 1000 (max. 500000)
- 70 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 141 PDF objects out of 1000 (max. 8388607)
+ 23 named destinations out of 1000 (max. 500000)
+ 81 words of extra memory for PDF output out of 10000 (max. 10000000)
 
